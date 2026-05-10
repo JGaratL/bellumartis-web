@@ -1,7 +1,9 @@
 import { useState, useRef, useEffect } from "react";
 import "./Navbar.css";
 
-import { FiSearch, FiBell, FiUser } from "react-icons/fi";
+import { Link } from "react-router-dom";
+import { FaBell, FaSearch } from "react-icons/fa";
+import { FaUser } from "react-icons/fa6";
 
 function Navbar() {
   const [user] = useState(null);
@@ -66,21 +68,22 @@ function Navbar() {
 
       {/* CENTRO */}
       <div className="navbar-links">
-        <a href="#">Videos/Articulos</a>
-        <a href="#">Tienda</a>
-        <a href="#">Comunidad</a>
-        <a href="#">Eventos</a>
-        <a href="#">Sobre BellumArtis</a>
+        <Link to="/">Home</Link>
+        <Link to="/articles">Vídeos/Artículos</Link>
+        <Link to="/shop">Tienda</Link>
+        <Link to="/community">Comunidad</Link>
+        <Link to="/events">Eventos</Link>
+        <Link to="/about">Sobre BellumArtis</Link>
       </div>
 
       {/* DERECHA */}
       <div className="navbar-right">
-        <FiSearch className="icon" />
-        <FiBell className="icon" />
+        <FaSearch className="icon" />
+        <FaBell className="icon" />
 
         {/* USER */}
         <div className="user" ref={userRef}>
-          <FiUser
+          <FaUser
             className="icon"
             onClick={() => setOpen((prev) => !prev)}
           />

@@ -1,0 +1,191 @@
+/* =========================
+   FOOTER BASE (GRANDE)
+========================= */
+.footer {
+  width: 100%;
+
+  background: linear-gradient(
+    180deg,
+    #0c3d3f 0%,
+    #0f6970 100%
+  );
+
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+
+  padding: 20px 70px 0;
+
+  box-sizing: border-box;
+}
+
+/* =========================
+   GRID PRINCIPAL
+========================= */
+.footer-container {
+  max-width: 1700px;
+  margin: 0 auto;
+
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+
+  gap: 50px;
+  align-items: start;
+
+  padding-bottom: 35px;
+}
+
+/* =========================
+   COLUMNAS
+========================= */
+.footer-column {
+  display: flex;
+  flex-direction: column;
+}
+
+/* =========================
+   TITULOS
+========================= */
+.footer-title {
+  color: white;
+
+  font-size: 20px;
+  font-weight: 600;
+
+  margin-bottom: 18px;
+
+  letter-spacing: 0.4px;
+}
+
+/* =========================
+   LOGOS
+========================= */
+.footer-logo {
+  width: 130px;
+
+  padding: 30px 0 20px 0;
+
+  object-fit: contain;
+
+  filter: contrast(1.05) saturate(0.95);
+
+  transition: transform 0.25s ease;
+}
+.footer-logo-right {
+  width: 100px;
+
+  object-fit: contain;
+
+  margin-right: 16px;
+  
+
+  filter: contrast(1.05) saturate(0.95);
+
+  transition: transform 0.25s ease;
+}
+
+.footer-logo:hover,
+.footer-logo-right:hover {
+  transform: translateY(-2px) scale(1.02);
+}
+
+/* =========================
+   ENLACES
+========================= */
+.footer-links {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.footer-links a {
+  color: rgba(255, 255, 255, 0.82);
+
+  text-decoration: none;
+  font-size: 14px;
+
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.footer-links a:hover {
+  color: #fff;
+  transform: translateX(3px);
+}
+
+/* =========================
+   CONTACTO
+========================= */
+.footer-contact {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.footer-contact p {
+  margin: 0;
+
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 14px;
+}
+
+/* =========================
+   RRSS
+========================= */
+.footer-social-column {
+  align-items: flex-end;
+}
+
+.footer-socials {
+  display: flex;
+  gap: 16px;
+  padding: 20px 0;
+  margin-top: 18px;
+}
+
+.footer-socials a {
+  color: rgba(255, 255, 255, 0.9);
+
+  font-size: 20px;
+
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.footer-socials a:hover {
+  color: #fff;
+  transform: translateY(-2px);
+}
+
+/* =========================
+   FRANJA INFERIOR NEGRA
+========================= */
+.footer-bottom {
+  width: calc(100% + 140px);
+  margin-left: -70px;
+
+  background: #000;
+
+  height: 50px;
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  padding: 0 70px;
+
+  box-sizing: border-box;
+}
+
+/* IZQUIERDA */
+.footer-bottom-left {
+  color: #fff;
+
+  font-weight: 700;
+  font-size: 16px;
+  margin-left: 50px;
+  letter-spacing: 0.5px;
+}
+
+/* DERECHA */
+.footer-bottom-right {
+  color: rgba(255, 255, 255, 0.7);
+  margin-right: 50px;
+  font-size: 12px;
+}

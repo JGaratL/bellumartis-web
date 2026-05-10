@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Roboto:wght@400;700&display=swap");
+
 /* =========================
    APP BASE
 ========================= */
@@ -10,42 +12,30 @@
 ========================= */
 .home {
   min-height: 100vh;
-
   position: relative;
-
   display: flex;
   align-items: center;
-  justify-content: center;
-
-  /* espacio para navbar flotante */
-  padding-top: 120px;
-
+  justify-content: flex-start;
+  padding: 140px 0 40px 10.5vw;
   box-sizing: border-box;
-
   background-image: url("/SecondWar.jpg");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
 }
 
-/* =========================
-   OVERLAY CINEMATOGRÁFICO
-========================= */
 .home::before {
   content: "";
   position: absolute;
   inset: 0;
-
   background: radial-gradient(
-    circle at center,
-    rgba(0, 0, 0, 0.35),
-    rgba(0, 0, 0, 0.85)
+    circle at 52% 42%,
+    rgba(0, 0, 0, 0.12),
+    rgba(0, 0, 0, 0.4)
   );
-
   z-index: 0;
 }
 
-/* contenido encima del overlay */
 .home > * {
   position: relative;
   z-index: 1;
@@ -55,154 +45,250 @@
    HERO CONTENT
 ========================= */
 .hero-content {
-  text-align: center;
-  max-width: 800px;
-  padding: 0 20px;
+  width: min(780px, 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  padding-right: 24px;
+}
+
+.hero-copy {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+
+.hero-copy::before {
+  content: "";
+  position: absolute;
+  left: -36px;
+  top: -34px;
+  width: min(720px, calc(100% + 84px));
+  height: 240px;
+  border-radius: 999px;
+  background: radial-gradient(
+    ellipse at 30% 48%,
+    rgba(0, 0, 0, 0.55) 0%,
+    rgba(0, 0, 0, 0.42) 38%,
+    rgba(0, 0, 0, 0.18) 65%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  opacity: 0;
+  filter: blur(18px);
+  transform: translateX(-18px) scale(0.96);
+  pointer-events: none;
+  z-index: -1;
+  animation: heroVignetteReveal 1.55s cubic-bezier(0.16, 0.9, 0.2, 1) 0.2s forwards;
+}
+
+.page {
+  min-height: 100vh;
+  background: #d9e9e9;
+  padding: 140px 40px 60px;
+  box-sizing: border-box;
+  color: #111;
 }
 
 .title {
-  font-size: 64px;
-  color: white;
-  font-weight: 600;
-  margin-bottom: 10px;
-  letter-spacing: 0.5px;
+  font-family: "DM Serif Display", serif;
+  font-size: clamp(80px, 5vw, 116px);
+  line-height: 0.74;
+  color: #fff;
+  font-weight: 400;
+  margin: 0 0 10px;
+  letter-spacing: 0;
+  max-width: 6ch;
+  opacity: 0;
+  filter: blur(7px);
+  transform: translateX(-58px);
+  animation: heroTitleReveal 1.35s cubic-bezier(0.16, 0.9, 0.2, 1) 0.22s forwards;
 }
 
 .subtitle {
-  font-size: 18px;
-  color: rgba(255, 255, 255, 0.75);
-  margin-bottom: 25px;
-  line-height: 1.5;
+  font-family: "Agrandir", "Avenir Next", "Segoe UI", sans-serif;
+  font-size: clamp(26px, 1.3vw, 34px);
+  line-height: 1.1;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0 0 26px;
+  max-width: none;
+  white-space: nowrap;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  opacity: 0;
+  filter: blur(5px);
+  transform: translateX(54px);
+  animation: heroSubtitleReveal 1.25s cubic-bezier(0.16, 0.9, 0.2, 1) 0.42s forwards;
 }
 
-/* =========================
-   CTA BUTTONS
-========================= */
 .cta {
   display: flex;
-  gap: 12px;
-  justify-content: center;
+  justify-content: flex-start;
+  opacity: 0;
+  transform: translateY(18px);
+  animation: heroButtonReveal 1.5s cubic-bezier(0.16, 0.9, 0.2, 1) 1.02s forwards;
 }
 
 .cta button {
-  padding: 10px 18px;
+  padding: 12px 26px;
   border: none;
   cursor: pointer;
-
   background: #0f6970;
-  color: white;
-
-  border-radius: 4px;
-
-  transition: 0.2s ease;
+  color: #fff;
+  border-radius: 999px;
+  font-size: 15px;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  transition: transform 0.2s ease, opacity 0.2s ease, background 0.2s ease;
 }
 
 .cta button:hover {
   transform: translateY(-2px);
-  opacity: 0.9;
+  opacity: 0.92;
 }
 
-.cta .secondary {
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+@keyframes heroTitleReveal {
+  0% {
+    opacity: 0;
+    filter: blur(7px);
+    transform: translateX(-58px);
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateX(0);
+  }
+}
+
+@keyframes heroSubtitleReveal {
+  0% {
+    opacity: 0;
+    filter: blur(5px);
+    transform: translateX(54px);
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateX(0);
+  }
+}
+
+@keyframes heroButtonReveal {
+  0% {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes heroVignetteReveal {
+  0% {
+    opacity: 0;
+    filter: blur(22px);
+    transform: translateX(-18px) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    filter: blur(18px);
+    transform: translateX(0) scale(1);
+  }
 }
 
 /* =========================
-   GLOBAL BODY FIX (NO TOCAR MÁS)
+   GLOBAL BODY FIX
 ========================= */
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
-
   height: auto;
   min-height: 100%;
-
   overflow-x: hidden;
   overflow-y: auto;
-
   background: black;
 }
 
-/* =========================
-   ROOT FIX
-========================= */
 #root {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
 }
 
-/* =========================================================
-   🔥 NUEVA SECCIÓN: FRANCISCO GARCÍA CAMPA (UNDER HOME)
-========================================================= */
-
+/* =========================
+   ABOUT SECTION
+========================= */
 .about-section {
   width: 100%;
   min-height: 100vh;
-
   display: flex;
   align-items: center;
   justify-content: center;
-
   background: #d9e9e9;
-
   padding: 80px 60px;
   box-sizing: border-box;
 }
 
-/* contenedor interno */
 .about-container {
   width: 100%;
   max-width: 1200px;
-
   display: flex;
   justify-content: space-between;
   gap: 60px;
 }
 
-/* =========================
-   IZQUIERDA TEXTO
-========================= */
 .about-left {
   flex: 1;
   display: flex;
   flex-direction: column;
   justify-content: center;
+  align-items: center;
+  text-align: center;
 }
 
 .about-title {
-  font-size: 42px;
-  font-weight: 600;
+  font-family: "DM Serif Display", serif;
+  font-size: clamp(54px, 3.6vw, 72px);
+  font-weight: 400;
+  line-height: 0.95;
   color: #000;
-  margin-bottom: 12px;
+  margin: 0 0 18px;
+}
+
+.about-title span {
+  display: block;
 }
 
 .about-line {
-  width: 120px;
+  width: 260px;
   height: 1px;
   background: #000;
-  margin-bottom: 20px;
+  margin: 0 auto 38px;
 }
 
 .about-text {
-  font-size: 16px;
-  line-height: 1.6;
+  font-family: "Agrandir", "Avenir Next", "Segoe UI", sans-serif;
+  font-size: 21px;
+  line-height: 1.65;
   color: #000;
-  margin-bottom: 30px;
-  max-width: 500px;
+  margin: 0 auto 30px;
+  max-width: 480px;
 }
 
-/* firma */
 .signature {
   width: 180px;
   height: auto;
-  margin-bottom: 25px;
+  margin: 0 auto 25px;
 }
 
-/* iconos sociales */
 .social-icons {
   display: flex;
   gap: 14px;
+  justify-content: center;
 }
 
 .social-icons svg {
@@ -216,9 +302,6 @@ html, body {
   transform: scale(1.15);
 }
 
-/* =========================
-   DERECHA IMAGEN
-========================= */
 .about-right {
   flex: 1;
   display: flex;
@@ -228,17 +311,137 @@ html, body {
 
 .about-right img {
   width: 100%;
-  max-width: 420px;
+  max-width: 520px;
   height: auto;
   object-fit: cover;
-
   border-radius: 6px;
+}
+
+/* =========================
+   JOURNEY SECTION
+========================= */
+.journey-section {
+  width: 100%;
+  background: #d9e9e9;
+  padding: 40px 24px 120px;
+  box-sizing: border-box;
+}
+
+.journey-container {
+  width: min(980px, 100%);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.journey-title {
+  font-family: "Agrandir", "Avenir Next", "Segoe UI", sans-serif;
+  font-size: clamp(34px, 3vw, 56px);
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  color: #111;
+  text-align: center;
+  font-weight: 500;
+  margin: 0;
+}
+
+.journey-title span {
+  display: block;
+}
+
+.journey-line {
+  width: min(100%, 240px);
+  height: 1px;
+  background: rgba(0, 0, 0, 0.7);
+  margin: 28px auto 70px;
+}
+
+.journey-copy {
+  width: min(100%, 880px);
+  text-align: justify;
+  text-justify: inter-word;
+  position: relative;
+  padding-bottom: 60px;
+}
+
+.journey-copy p {
+  font-family: "Agrandir", "Avenir Next", "Segoe UI", sans-serif;
+  font-size: 21px;
+  line-height: 1.72;
+  color: #111;
+  margin: 0 0 26px;
+}
+
+.journey-tank {
+  position: absolute;
+  left: 50%;
+  bottom: 50px;
+  transform: translateX(-50%);
+  width: min(1800px, 120%);
+  opacity: 0.07;
+  pointer-events: none;
+}
+
+.journey-signature {
+  width: min(100%, 935px);
+  margin-top: 0px;
+  text-align: right;
+  align-self: stretch;
+  padding-right: 48px;
+}
+
+.journey-name {
+  font-family: "Roboto", sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  color: #111;
+  margin: 0;
+  text-align: right;
+}
+
+.journey-role {
+  font-family: "Agrandir", "Avenir Next", "Segoe UI", sans-serif;
+  font-size: 21px;
+  font-weight: 400;
+  color: #111;
+  margin: 8px 0 0;
+  text-align: right;
 }
 
 /* =========================
    RESPONSIVE
 ========================= */
 @media (max-width: 900px) {
+  .home {
+    justify-content: center;
+    padding: 132px 24px 40px;
+  }
+
+  .hero-content {
+    width: 100%;
+    padding-right: 0;
+  }
+
+  .hero-copy {
+    margin-bottom: 20px;
+  }
+
+  .hero-copy::before {
+    left: -18px;
+    top: -22px;
+    width: calc(100% + 36px);
+    height: 210px;
+  }
+
+  .title {
+    max-width: none;
+  }
+
+  .subtitle {
+    white-space: normal;
+  }
+
   .about-container {
     flex-direction: column;
     text-align: center;
@@ -250,5 +453,48 @@ html, body {
 
   .about-text {
     max-width: 100%;
+  }
+
+  .journey-section {
+    padding: 24px 20px 88px;
+  }
+
+  .journey-title {
+    font-size: clamp(34px, 9vw, 52px);
+  }
+
+  .journey-line {
+    width: min(100%, 300px);
+    margin: 24px auto 32px;
+  }
+
+  .about-line {
+    width: min(360px, 100%);
+  }
+
+  .journey-copy {
+    padding-bottom: 84px;
+  }
+
+  .journey-copy p {
+    font-size: 18px;
+    line-height: 1.65;
+  }
+
+  .journey-tank {
+    width: min(560px, 96%);
+    bottom: -18px;
+  }
+
+  .journey-signature {
+    margin-top: 54px;
+  }
+
+  .journey-name {
+    font-size: 24px;
+  }
+
+  .journey-role {
+    font-size: 18px;
   }
 }

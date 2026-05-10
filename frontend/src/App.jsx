@@ -1,101 +1,144 @@
+import { Routes, Route } from "react-router-dom";
+
 import Navbar from "./components/Navbar";
-import EventsList from "./components/EventsList";
+import Footer from "./components/Footer";
+
+import Articles from "./pages/Articles";
+import Shop from "./pages/Shop";
+import Community from "./pages/Community";
+import Events from "./pages/Events";
+import About from "./pages/About";
+
 import "./App.css";
-import { FaFacebookF, FaInstagram, FaXTwitter, FaYoutube } from "react-icons/fa6";
+
+import {
+  FaFacebookF,
+  FaInstagram,
+  FaXTwitter,
+  FaYoutube,
+} from "react-icons/fa6";
 
 function App() {
   return (
     <div className="app">
-
       <Navbar />
 
-      {/* =========================
-          HOME HERO
-      ========================= */}
-      <section className="home">
+      {/* ROUTES */}
+      <Routes>
 
-        <div className="hero-content">
+        {/* HOME (tu página actual) */}
+        <Route
+          path="/"
+          element={
+            <>
+              <section className="home">
+                <div className="hero-content">
+                  <div className="hero-copy">
+                    <h1 className="title">BellumArtis</h1>
+                    <p className="subtitle">Historia y Actualidad Militar</p>
+                  </div>
 
-          <h1 className="title">
-            BellumArtis
-          </h1>
+                  <div className="cta">
+                    <button>Regístrate</button>
+                  </div>
+                </div>
+              </section>
 
-          <p className="subtitle">
-            Historia militar, análisis y documentación visual de conflictos modernos.
-          </p>
+              <section className="about-section">
+                <div className="about-container">
+                  <div className="about-left">
+                    <h2 className="about-title">
+                      <span>Francisco</span>
+                      <span>García Campa</span>
+                    </h2>
 
-          <div className="cta">
-            <button>Explorar vídeos</button>
-            <button className="secondary">Eventos</button>
-          </div>
+                    <div className="about-line"></div>
 
-        </div>
+                    <p className="about-text">
+                      Soy un viajero en el tiempo hambriento de conocimientos. Mi pasión
+                      por la historia militar me llevó a crear un proyecto de divulgación
+                      en YouTube y otras plataformas.
+                    </p>
 
-      </section>
+                    <img
+                      src="/firma.png"
+                      alt="Firma"
+                      className="signature"
+                    />
 
-      {/* =========================
-          NUEVA SECCIÓN: FRANCISCO GARCÍA CAMPA
-      ========================= */}
-      <section className="about-section">
+                    <div className="social-icons">
+                      <a href="#"><FaXTwitter /></a>
+                      <a href="#"><FaFacebookF /></a>
+                      <a href="#"><FaYoutube /></a>
+                      <a href="#"><FaInstagram /></a>
+                    </div>
+                  </div>
 
-        <div className="about-container">
+                  <div className="about-right">
+                    <img src="/Campa.webp" alt="Francisco García Campa" />
+                  </div>
+                </div>
+              </section>
 
-          {/* IZQUIERDA */}
-          <div className="about-left">
+              <section className="journey-section">
+                <div className="journey-container">
+                  <h2 className="journey-title">
+                    <span>De abogado a</span>
+                    <span>divulgador</span>
+                    <span>histórico militar.</span>
+                  </h2>
 
-            <h2 className="about-title">
-              Francisco García Campa
-            </h2>
+                  <div className="journey-line"></div>
 
-            <div className="about-line"></div>
+                  <div className="journey-copy">
+                    <p>
+                      Soy un ovetense, viajero en el tiempo y hambriento de conocimientos, siendo la Historia, especialmente la Militar, mi debilidad.
+                    </p>
 
-            <p className="about-text">
-              Soy un viajero en el tiempo hambriento de conocimientos. Mi pasión por la historia militar me llevó a crear un proyecto de divulgación en YouTube y otras plataformas.
-            </p>
+                    <p>
+                      Pese a mi pasión por la Historia, orienté mis estudios hacia las Ciencias Jurídicas, Licenciado en Derecho y Diplomado en Relaciones Laborales por la Universidad de Oviedo.
+                    </p>
 
-            {/* firma */}
-            <img
-              src="/firma.png"
-              alt="Firma"
-              className="signature"
-            />
+                    <p>
+                      Trabajando como profesor de Formación y Orientación Laboral en el Colegio Fundación Masaveu-Salesianos y actualmente en la organización Sindical OTECAS defendiendo a mis compañeros de la Enseñanza Concertada Asturiana.                  
+                    </p>
 
-            {/* redes sociales */}
-            <div className="social-icons">
+                    <p>
+                      Persiguiendo mi sueño me gradué en Geografía e Historia por la UNED, dedicándome a la divulgación histórico-militar en mi proyecto Bellumartis Historia Militar desde el 2011. Comenzando con un blog para posteriormente crear un Podcast y actualmente centrándome en la divulgación en Youtube.                    
+                    </p>
 
-              {/* X (Twitter) */}
-              <a href="#" aria-label="X">
-                <FaXTwitter />
-              </a>
+                    <p>
+                      Además de esto colaboro con numerosas revistas, blogs, podcasts y canales de YouTube para difundir la Historia en todas las facetas, pero especialmente la Militar.
+                    </p>
+         
+                    <img
+                      src="/tank.png"
+                      alt=""
+                      className="journey-tank"
+                      aria-hidden="true"
+                    />
+                  </div>
 
-              {/* Facebook */}
-              <a href="#" aria-label="Facebook">
-                <FaFacebookF />
-              </a>
+                  <div className="journey-signature">
+                    <p className="journey-name">Francisco García Campa</p>
+                    <p className="journey-role">Director de BellumArtis</p>
+                  </div>
+                </div>
+              </section>
+            </>
+          }
+        />
 
-              {/* YouTube */}
-              <a href="#" aria-label="YouTube">
-                <FaYoutube />
-              </a>
+        {/* PÁGINAS */}
+        <Route path="/articles" element={<Articles />} />
+        <Route path="/shop" element={<Shop />} />
+        <Route path="/community" element={<Community />} />
+        <Route path="/events" element={<Events />} />
+        <Route path="/about" element={<About />} />
 
-              {/* Instagram */}
-              <a href="#" aria-label="Instagram">
-                <FaInstagram />
-              </a>
+      </Routes>
 
-            </div>
-
-          </div>
-
-          {/* DERECHA */}
-          <div className="about-right">
-            <img src="/Campa.webp" alt="Francisco García Campa" />
-          </div>
-
-        </div>
-
-      </section>
-
+      <Footer />
     </div>
   );
 }
