@@ -1,0 +1,205 @@
+/* =========================
+   NAVBAR BASE (MILITARY / DOCUMENTARY)
+========================= */
+.navbar {
+  width: 100%;
+  height: 58px;
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  padding: 0 28px;
+  box-sizing: border-box;
+
+  background: linear-gradient(
+    180deg,
+    #0c3d3f 0%,
+    #0f6970 100%
+  );
+
+  position: fixed;
+  top: 32px;
+  left: 0;
+  z-index: 1000;
+
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+
+  overflow: visible;
+  will-change: transform, opacity;
+  transform: translateY(0);
+  opacity: 1;
+  backface-visibility: hidden;
+
+  animation: classifiedReveal 0.8s ease-out;
+  transition:
+    transform 0.36s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.26s ease;
+}
+
+/* =========================
+   NAVBAR OCULTA AL HACER SCROLL ABAJO
+========================= */
+.navbar.hide {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-140px);
+}
+
+/* =========================
+   ANIMACION ENTRADA
+========================= */
+@keyframes classifiedReveal {
+  0% {
+    opacity: 0;
+    transform: translateY(-12px);
+    filter: blur(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+/* =========================
+   LOGOS
+========================= */
+.logo,
+.logo-extra {
+  height: 100px;
+
+  margin-top: -34px;
+  margin-bottom: -34px;
+
+  transition: transform 0.25s ease, filter 0.25s ease;
+
+  filter: contrast(1.05) saturate(0.95);
+}
+
+.logo:hover,
+.logo-extra:hover {
+  transform: translateY(-2px) scale(1.02);
+  filter: brightness(1.05);
+}
+
+/* =========================
+   LINKS
+========================= */
+.navbar-links {
+  display: flex;
+  gap: 78px;
+  margin-left: 70px;
+}
+
+.navbar-links a {
+  color: rgba(255, 255, 255, 0.85);
+  text-decoration: none;
+
+  font-size: 14px;
+
+  position: relative;
+
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.navbar-links a::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -6px;
+
+  width: 0%;
+  height: 1px;
+
+  background: #d9e9e9;
+
+  transition: width 0.25s ease;
+}
+
+.navbar-links a:hover {
+  color: #fff;
+  transform: scale(1.06);
+}
+
+.navbar-links a:hover::after {
+  width: 100%;
+}
+
+/* =========================
+   ICONOS
+========================= */
+.navbar-right {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.icon {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 17px;
+  cursor: pointer;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.icon:hover {
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+/* =========================
+   USER
+========================= */
+.user {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* =========================
+   DROPDOWN
+========================= */
+.dropdown {
+  position: absolute;
+  top: 40px;
+  right: 0;
+
+  min-width: 150px;
+
+  background: linear-gradient(
+    180deg,
+    #145f61 0%,
+    #0f6970 100%
+  );
+
+  border: 1px solid rgba(217, 233, 233, 0.35);
+  border-radius: 6px;
+
+  padding: 4px 0;
+
+  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.35);
+
+  z-index: 2000;
+}
+
+.dropdown p {
+  margin: 0;
+  padding: 8px 12px;
+
+  text-align: center;
+
+  color: rgba(255, 255, 255, 0.92);
+  cursor: pointer;
+
+  font-size: 13px;
+}
+
+.dropdown p:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+}
+
+.dropdown p + p {
+  border-top: 1px solid rgba(217, 233, 233, 0.15);
+}

@@ -1,0 +1,254 @@
+/* =========================
+   APP BASE
+========================= */
+.app {
+  min-height: 100vh;
+}
+
+/* =========================
+   HOME / LANDING DOCUMENTAL
+========================= */
+.home {
+  min-height: 100vh;
+
+  position: relative;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  /* espacio para navbar flotante */
+  padding-top: 120px;
+
+  box-sizing: border-box;
+
+  background-image: url("/SecondWar.jpg");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* =========================
+   OVERLAY CINEMATOGRÁFICO
+========================= */
+.home::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+
+  background: radial-gradient(
+    circle at center,
+    rgba(0, 0, 0, 0.35),
+    rgba(0, 0, 0, 0.85)
+  );
+
+  z-index: 0;
+}
+
+/* contenido encima del overlay */
+.home > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* =========================
+   HERO CONTENT
+========================= */
+.hero-content {
+  text-align: center;
+  max-width: 800px;
+  padding: 0 20px;
+}
+
+.title {
+  font-size: 64px;
+  color: white;
+  font-weight: 600;
+  margin-bottom: 10px;
+  letter-spacing: 0.5px;
+}
+
+.subtitle {
+  font-size: 18px;
+  color: rgba(255, 255, 255, 0.75);
+  margin-bottom: 25px;
+  line-height: 1.5;
+}
+
+/* =========================
+   CTA BUTTONS
+========================= */
+.cta {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.cta button {
+  padding: 10px 18px;
+  border: none;
+  cursor: pointer;
+
+  background: #0f6970;
+  color: white;
+
+  border-radius: 4px;
+
+  transition: 0.2s ease;
+}
+
+.cta button:hover {
+  transform: translateY(-2px);
+  opacity: 0.9;
+}
+
+.cta .secondary {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* =========================
+   GLOBAL BODY FIX (NO TOCAR MÁS)
+========================= */
+html, body {
+  margin: 0;
+  padding: 0;
+
+  height: auto;
+  min-height: 100%;
+
+  overflow-x: hidden;
+  overflow-y: auto;
+
+  background: black;
+}
+
+/* =========================
+   ROOT FIX
+========================= */
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* =========================================================
+   🔥 NUEVA SECCIÓN: FRANCISCO GARCÍA CAMPA (UNDER HOME)
+========================================================= */
+
+.about-section {
+  width: 100%;
+  min-height: 100vh;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: #d9e9e9;
+
+  padding: 80px 60px;
+  box-sizing: border-box;
+}
+
+/* contenedor interno */
+.about-container {
+  width: 100%;
+  max-width: 1200px;
+
+  display: flex;
+  justify-content: space-between;
+  gap: 60px;
+}
+
+/* =========================
+   IZQUIERDA TEXTO
+========================= */
+.about-left {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.about-title {
+  font-size: 42px;
+  font-weight: 600;
+  color: #000;
+  margin-bottom: 12px;
+}
+
+.about-line {
+  width: 120px;
+  height: 1px;
+  background: #000;
+  margin-bottom: 20px;
+}
+
+.about-text {
+  font-size: 16px;
+  line-height: 1.6;
+  color: #000;
+  margin-bottom: 30px;
+  max-width: 500px;
+}
+
+/* firma */
+.signature {
+  width: 180px;
+  height: auto;
+  margin-bottom: 25px;
+}
+
+/* iconos sociales */
+.social-icons {
+  display: flex;
+  gap: 14px;
+}
+
+.social-icons svg {
+  font-size: 22px;
+  cursor: pointer;
+  color: #000;
+  transition: transform 0.2s ease;
+}
+
+.social-icons svg:hover {
+  transform: scale(1.15);
+}
+
+/* =========================
+   DERECHA IMAGEN
+========================= */
+.about-right {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.about-right img {
+  width: 100%;
+  max-width: 420px;
+  height: auto;
+  object-fit: cover;
+
+  border-radius: 6px;
+}
+
+/* =========================
+   RESPONSIVE
+========================= */
+@media (max-width: 900px) {
+  .about-container {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .about-left {
+    align-items: center;
+  }
+
+  .about-text {
+    max-width: 100%;
+  }
+}
