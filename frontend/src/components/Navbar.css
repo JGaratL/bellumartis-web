@@ -132,11 +132,30 @@
   transition: width 0.25s ease;
 }
 
+/* LINK ACTIVO */
+.navbar-links a.active {
+  color: #ffffff;
+
+  transform: scale(1.08);
+
+  font-size: 17px;
+
+  font-weight: 600;
+}
+
+.navbar-links a.active:hover::after {
+  width: 0%;
+}
+
 /* hover */
 .navbar-links button:hover,
 .navbar-links a:hover {
   color: #fff;
-  transform: scale(1.06);
+  transform: scale(1.05);
+}
+
+.navbar-links a.active:hover {
+  transform: scale(1.08);
 }
 
 .navbar-links button:hover::after,

@@ -1,8 +1,9 @@
-export default function Shop() {
+function Shop() {
   return (
-    <div style={{ background: "yellow", minHeight: "100vh" }}>
-      <h1>TIENDA</h1>
+    <div className="page-container">
+      <h1>Tienda Bellumartis</h1>
     </div>
   );
 }
 
+export default Shop;

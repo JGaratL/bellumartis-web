@@ -1,11 +1,9 @@
-import EventsList from "../components/EventsList";
+import EventsCalendar from "../components/Calendar/EventsCalendar";
 
 function Events() {
   return (
-    <div>
-      <h1>Eventos</h1>
-
-      <EventsList />
+    <div className="events-page">
+      <EventsCalendar />
     </div>
   );
 }

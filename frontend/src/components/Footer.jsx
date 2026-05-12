@@ -35,7 +35,7 @@ function Footer() {
             <h3 className="footer-title">Contacto</h3>
 
             <div className="footer-contact">
-              <p>© 2026 BellumArtis.</p>
+              <p>© 2026 Bellumartis.</p>
               <p>Todos los derechos reservados.</p>
             </div>
           </div>

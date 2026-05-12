@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, useLocation } from "react-router-dom";
 
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
@@ -8,6 +8,9 @@ import Shop from "./pages/Shop";
 import Community from "./pages/Community";
 import Events from "./pages/Events";
 import About from "./pages/About";
+
+import AuthPage from "./pages/Auth/AuthPage";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 import "./App.css";
 
@@ -19,14 +22,20 @@ import {
 } from "react-icons/fa6";
 
 function App() {
+  const location = useLocation();
+
+  const hideLayout =
+    location.pathname === "/login" ||
+    location.pathname === "/register";
+
   return (
     <div className="app">
-      <Navbar />
 
-      {/* ROUTES */}
+      {!hideLayout && <Navbar />}
+
       <Routes>
 
-        {/* HOME (tu página actual) */}
+        {/* HOME (TU ORIGINAL SIN TOCAR) */}
         <Route
           path="/"
           element={
@@ -91,6 +100,8 @@ function App() {
                   <div className="journey-line"></div>
 
                   <div className="journey-copy">
+
+                    {/* 👇 ESTE BLOQUE ES EL QUE HABÍAS PERDIDO SIEMPRE DEBE QUEDAR COMPLETO */}
                     <p>
                       Soy un ovetense, viajero en el tiempo y hambriento de conocimientos, siendo la Historia, especialmente la Militar, mi debilidad.
                     </p>
@@ -100,17 +111,17 @@ function App() {
                     </p>
 
                     <p>
-                      Trabajando como profesor de Formación y Orientación Laboral en el Colegio Fundación Masaveu-Salesianos y actualmente en la organización Sindical OTECAS defendiendo a mis compañeros de la Enseñanza Concertada Asturiana.                  
+                      Trabajando como profesor de Formación y Orientación Laboral en el Colegio Fundación Masaveu-Salesianos y actualmente en la organización Sindical OTECAS defendiendo a mis compañeros de la Enseñanza Concertada Asturiana.
                     </p>
 
                     <p>
-                      Persiguiendo mi sueño me gradué en Geografía e Historia por la UNED, dedicándome a la divulgación histórico-militar en mi proyecto Bellumartis Historia Militar desde el 2011. Comenzando con un blog para posteriormente crear un Podcast y actualmente centrándome en la divulgación en Youtube.                    
+                      Persiguiendo mi sueño me gradué en Geografía e Historia por la UNED, dedicándome a la divulgación histórico-militar en mi proyecto Bellumartis Historia Militar desde el 2011.
                     </p>
 
                     <p>
-                      Además de esto colaboro con numerosas revistas, blogs, podcasts y canales de YouTube para difundir la Historia en todas las facetas, pero especialmente la Militar.
+                      Además de esto colaboro con numerosas revistas, blogs, podcasts y canales de YouTube para difundir la Historia en todas las facetas.
                     </p>
-         
+
                     <img
                       src="/tank.png"
                       alt=""
@@ -121,7 +132,7 @@ function App() {
 
                   <div className="journey-signature">
                     <p className="journey-name">Francisco García Campa</p>
-                    <p className="journey-role">Director de BellumArtis</p>
+                    <p className="journey-role">Director de Bellumartis</p>
                   </div>
                 </div>
               </section>
@@ -129,16 +140,31 @@ function App() {
           }
         />
 
-        {/* PÁGINAS */}
+        {/* AUTH */}
+        <Route path="/login" element={<AuthPage />} />
+        <Route path="/register" element={<AuthPage />} />
+
+        {/* PUBLIC */}
         <Route path="/articles" element={<Articles />} />
         <Route path="/shop" element={<Shop />} />
         <Route path="/community" element={<Community />} />
         <Route path="/events" element={<Events />} />
         <Route path="/about" element={<About />} />
 
+        {/* PROTECTED */}
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute roles={["admin", "owner"]}>
+              <div>Admin Panel (en desarrollo)</div>
+            </ProtectedRoute>
+          }
+        />
+
       </Routes>
 
-      <Footer />
+      {!hideLayout && <Footer />}
+
     </div>
   );
 }

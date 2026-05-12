@@ -16,7 +16,7 @@
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  padding: 140px 0 40px 10.5vw;
+  padding: 140px 0 40px 14.5vw;
   box-sizing: border-box;
   background-image: url("/SecondWar.jpg");
   background-size: cover;
@@ -497,4 +497,31 @@ body {
   .journey-role {
     font-size: 18px;
   }
+}
+
+/* =========================
+   GENERIC PAGE LAYOUT
+========================= */
+.page-container {
+  min-height: 100vh;
+
+  padding-top: 150px;
+  padding-left: 60px;
+  padding-right: 60px;
+  padding-bottom: 80px;
+
+  box-sizing: border-box;
+
+  background: #d9e9e9; 
+}
+
+.page-container h1 {
+  margin: 0 0 60px;
+
+  font-size: 52px;
+  color: #111;
+
+  font-weight: 400;
+
+  text-align: center;
 }

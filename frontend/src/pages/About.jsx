@@ -1,7 +1,7 @@
 function About() {
   return (
-    <div>
-      <h1>Sobre BellumArtis</h1>
+    <div className="page-container">
+      <h1>Sobre Bellumartis</h1>
     </div>
   );
 }

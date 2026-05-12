@@ -1,34 +1,63 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useContext } from "react";
 import "./Navbar.css";
 
-import { Link } from "react-router-dom";
+import {
+  NavLink,
+  useNavigate,
+  useLocation,
+} from "react-router-dom";
+
 import { FaBell, FaSearch } from "react-icons/fa";
 import { FaUser } from "react-icons/fa6";
 
+import { AuthContext } from "../context/AuthContext";
+
 function Navbar() {
-  const [user] = useState(null);
+  const { user, logout, isAdmin, isOwner, isModerator } =
+    useContext(AuthContext);
+
   const [open, setOpen] = useState(false);
   const [hidden, setHidden] = useState(false);
 
   const userRef = useRef(null);
   const lastScrollY = useRef(0);
 
-  // Cerrar dropdown al hacer click fuera
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  /*
+  ============================
+  CLICK OUTSIDE DROPDOWN
+  ============================
+  */
   useEffect(() => {
     function handleClickOutside(event) {
-      if (userRef.current && !userRef.current.contains(event.target)) {
+      if (
+        userRef.current &&
+        !userRef.current.contains(event.target)
+      ) {
         setOpen(false);
       }
     }
 
-    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener(
+      "mousedown",
+      handleClickOutside
+    );
 
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener(
+        "mousedown",
+        handleClickOutside
+      );
     };
   }, []);
 
-  // Ocultar al bajar y mostrar al subir con un umbral pequeno
+  /*
+  ============================
+  SCROLL HIDE / SHOW
+  ============================
+  */
   useEffect(() => {
     lastScrollY.current = window.scrollY;
 
@@ -52,61 +81,208 @@ function Navbar() {
       lastScrollY.current = currentY;
     };
 
-    window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener(
+      "scroll",
+      handleScroll,
+      { passive: true }
+    );
 
     return () => {
-      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener(
+        "scroll",
+        handleScroll
+      );
     };
   }, []);
 
+  /*
+  ============================
+  NAVIGATION
+  ============================
+  */
+  const goTo = (path) => {
+    setOpen(false);
+    navigate(path);
+  };
+
+  /*
+  ============================
+  LOGOUT
+  ============================
+  */
+  const handleLogout = () => {
+    logout();
+
+    setOpen(false);
+
+    navigate("/");
+  };
+
   return (
     <nav className={`navbar ${hidden ? "hide" : ""}`}>
+
       {/* IZQUIERDA */}
       <div className="navbar-left">
-        <img src="/BHM.webp" className="logo" alt="Logo BHM" />
+        <img
+          src="/BHM.webp"
+          className="logo"
+          alt="Logo BHM"
+        />
       </div>
 
       {/* CENTRO */}
       <div className="navbar-links">
-        <Link to="/">Home</Link>
-        <Link to="/articles">Vídeos/Artículos</Link>
-        <Link to="/shop">Tienda</Link>
-        <Link to="/community">Comunidad</Link>
-        <Link to="/events">Eventos</Link>
-        <Link to="/about">Sobre BellumArtis</Link>
+        <NavLink to="/">Home</NavLink>
+
+        <NavLink to="/articles">
+          Vídeos/Artículos
+        </NavLink>
+
+        <NavLink to="/shop">
+          Tienda
+        </NavLink>
+
+        <NavLink to="/community">
+          Comunidad
+        </NavLink>
+
+        <NavLink to="/events">
+          Eventos
+        </NavLink>
+
+        <NavLink to="/about">
+          Sobre Bellumartis
+        </NavLink>
+
+        {/* ADMIN */}
+        {user && (isAdmin() || isOwner()) && (
+          <NavLink to="/admin">
+            Admin
+          </NavLink>
+        )}
+
+        {/* MOD */}
+        {user && isModerator() && (
+          <NavLink to="/moderation">
+            Moderación
+          </NavLink>
+        )}
       </div>
 
       {/* DERECHA */}
       <div className="navbar-right">
+
         <FaSearch className="icon" />
+
         <FaBell className="icon" />
 
         {/* USER */}
-        <div className="user" ref={userRef}>
+        <div
+          className="user"
+          ref={userRef}
+        >
           <FaUser
             className="icon"
-            onClick={() => setOpen((prev) => !prev)}
+            onClick={(e) => {
+              e.stopPropagation();
+
+              setOpen((prev) => !prev);
+            }}
           />
 
           {open && (
             <div className="dropdown">
+
+              {/* NO LOGUEADO */}
               {!user ? (
                 <>
-                  <p>Iniciar sesion</p>
-                  <p>Registrarse</p>
+                  <p
+                    className={
+                      location.pathname === "/login"
+                        ? "active"
+                        : ""
+                    }
+                    onMouseDown={(e) =>
+                      e.preventDefault()
+                    }
+                    onClick={() => goTo("/login")}
+                  >
+                    Iniciar sesión
+                  </p>
+
+                  <p
+                    className={
+                      location.pathname === "/register"
+                        ? "active"
+                        : ""
+                    }
+                    onMouseDown={(e) =>
+                      e.preventDefault()
+                    }
+                    onClick={() => goTo("/register")}
+                  >
+                    Registrarse
+                  </p>
                 </>
               ) : (
                 <>
-                  <p>Mi perfil</p>
-                  <p>Ajustes</p>
-                  <p>Cerrar sesion</p>
+                  <p className="user-name">
+                    {user.nickname}
+                  </p>
+
+                  <p
+                    onClick={() =>
+                      goTo("/profile")
+                    }
+                  >
+                    Mi perfil
+                  </p>
+
+                  <p
+                    onClick={() =>
+                      goTo("/settings")
+                    }
+                  >
+                    Ajustes
+                  </p>
+
+                  {/* ROLES */}
+                  {isAdmin() && (
+                    <p className="role">
+                      Admin
+                    </p>
+                  )}
+
+                  {isOwner() && (
+                    <p className="role">
+                      Owner
+                    </p>
+                  )}
+
+                  {isModerator() && (
+                    <p className="role">
+                      Moderator
+                    </p>
+                  )}
+
+                  <p
+                    onClick={handleLogout}
+                    className="logout"
+                  >
+                    Cerrar sesión
+                  </p>
                 </>
               )}
+
             </div>
           )}
         </div>
 
-        <img src="/BAM.png" className="logo-extra" alt="Logo BellumArtis" />
+        <img
+          src="/BAM.png"
+          className="logo-extra"
+          alt="Logo BellumArtis"
+        />
       </div>
     </nav>
   );
