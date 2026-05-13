@@ -179,7 +179,7 @@ function Events() {
               });
             }}>◀</button>
 
-            <span>
+            <span className="calendar-date">
               {monthNames[currentMonth]} de {currentYear}
             </span>
 

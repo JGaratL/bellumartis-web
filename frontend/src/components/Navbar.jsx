@@ -226,9 +226,7 @@ function Navbar() {
                 </>
               ) : (
                 <>
-                  <p className="user-name">
-                    {user.nickname}
-                  </p>
+
 
                   <p
                     onClick={() =>
