@@ -1,4 +1,5 @@
 const express = require("express");
+const postsRoutes = require("./routes/posts");
 const cors = require("cors");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
@@ -7,6 +8,27 @@ const checkRole = require("./middleware/role");
 const verifyToken = require("./middleware/auth");
 const { OAuth2Client } = require("google-auth-library");
 
+const multer = require("multer");
+const path = require("path");
+
+const storage = multer.diskStorage({
+
+  destination: (req, file, cb) => {
+    cb(null, "uploads/posts");
+  },
+
+  filename: (req, file, cb) => {
+
+    const unique =
+      Date.now() + "-" + Math.round(Math.random() * 1e9);
+
+    cb(
+      null,
+      unique + path.extname(file.originalname)
+    );
+  }
+});
+
 require("dotenv").config();
 
 const app = express();
@@ -14,6 +36,30 @@ const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 app.use(cors());
 app.use(express.json());
+app.use("/api/posts", postsRoutes);
+
+
+
+
+const upload = multer({
+
+  storage,
+
+  fileFilter: (req, file, cb) => {
+
+    const allowed = /jpg|jpeg|png|webp/;
+
+    const valid =
+      allowed.test(path.extname(file.originalname).toLowerCase());
+
+    if (valid) {
+      cb(null, true);
+    } else {
+      cb(new Error("Solo imágenes"));
+    }
+  }
+});
+
 
 /*
 ====================================
@@ -379,6 +425,14 @@ app.get("/profile", verifyToken, async (req, res) => {
     user: req.user,
   });
 });
+
+/*
+====================================
+CREAR POST
+====================================
+*/
+
+app.use("/api/posts", postsRoutes);
 
 /*
 ====================================
