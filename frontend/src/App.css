@@ -4,7 +4,31 @@
    APP BASE
 ========================= */
 .app {
-  min-height: 100vh;
+  height: 100vh;
+  width: 100%;
+  overflow-y: scroll;
+  scroll-snap-type: y proximity;
+  scroll-padding-top: 0px;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+.home,
+.about-section,
+.journey-section {
+  scroll-snap-align: start;
+  scroll-snap-stop: normal;
+}
+
+.footer,
+.footer-bottom {
+  scroll-snap-align: none;
 }
 
 /* =========================
@@ -28,15 +52,13 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: radial-gradient(
-    circle at 52% 42%,
-    rgba(0, 0, 0, 0.12),
-    rgba(0, 0, 0, 0.4)
-  );
+  background: radial-gradient(circle at 52% 42%,
+      rgba(0, 0, 0, 0.12),
+      rgba(0, 0, 0, 0.4));
   z-index: 0;
 }
 
-.home > * {
+.home>* {
   position: relative;
   z-index: 1;
 }
@@ -69,13 +91,11 @@
   width: min(720px, calc(100% + 84px));
   height: 240px;
   border-radius: 999px;
-  background: radial-gradient(
-    ellipse at 30% 48%,
-    rgba(0, 0, 0, 0.55) 0%,
-    rgba(0, 0, 0, 0.42) 38%,
-    rgba(0, 0, 0, 0.18) 65%,
-    rgba(0, 0, 0, 0) 100%
-  );
+  background: radial-gradient(ellipse at 30% 48%,
+      rgba(0, 0, 0, 0.55) 0%,
+      rgba(0, 0, 0, 0.42) 38%,
+      rgba(0, 0, 0, 0.18) 65%,
+      rgba(0, 0, 0, 0) 100%);
   opacity: 0;
   filter: blur(18px);
   transform: translateX(-18px) scale(0.96);
@@ -86,7 +106,7 @@
 
 .page {
   min-height: 100vh;
-  background: #d9e9e9;
+  background: #e0e4e4;
   padding: 140px 40px 60px;
   box-sizing: border-box;
   color: #111;
@@ -137,7 +157,7 @@
   cursor: pointer;
   background: #0f6970;
   color: #fff;
-  border-radius: 999px;
+  border-radius: 8px;
   font-size: 15px;
   letter-spacing: 0.02em;
   text-transform: none;
@@ -155,6 +175,7 @@
     filter: blur(7px);
     transform: translateX(-58px);
   }
+
   100% {
     opacity: 1;
     filter: blur(0);
@@ -168,6 +189,7 @@
     filter: blur(5px);
     transform: translateX(54px);
   }
+
   100% {
     opacity: 1;
     filter: blur(0);
@@ -180,6 +202,7 @@
     opacity: 0;
     transform: translateY(18px);
   }
+
   100% {
     opacity: 1;
     transform: translateY(0);
@@ -192,6 +215,7 @@
     filter: blur(22px);
     transform: translateX(-18px) scale(0.96);
   }
+
   100% {
     opacity: 1;
     filter: blur(18px);
@@ -210,11 +234,12 @@ body {
   min-height: 100%;
   overflow-x: hidden;
   overflow-y: auto;
-  background: black;
+  background: #e0e4e4;
 }
 
 #root {
   min-height: 100vh;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
 }
@@ -225,20 +250,25 @@ body {
 .about-section {
   width: 100%;
   min-height: 100vh;
+
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #d9e9e9;
-  padding: 80px 60px;
+
+  background: #e0e4e4;
+
+  padding: 60px 60px;
   box-sizing: border-box;
+
+  scroll-snap-align: start;
 }
 
 .about-container {
   width: 100%;
-  max-width: 1200px;
+  max-width: 1100px;
   display: flex;
   justify-content: space-between;
-  gap: 60px;
+  gap: 40px;
 }
 
 .about-left {
@@ -251,7 +281,7 @@ body {
 }
 
 .about-title {
-  font-family: "DM Serif Display", serif;
+  font-family: "Agrandir", serif;
   font-size: clamp(54px, 3.6vw, 72px);
   font-weight: 400;
   line-height: 0.95;
@@ -265,8 +295,8 @@ body {
 
 .about-line {
   width: 260px;
-  height: 1px;
-  background: #000;
+  height: 10px;
+  background: #0f6970;
   margin: 0 auto 38px;
 }
 
@@ -276,11 +306,11 @@ body {
   line-height: 1.65;
   color: #000;
   margin: 0 auto 30px;
-  max-width: 480px;
+  max-width: 380px;
 }
 
 .signature {
-  width: 180px;
+  width: 120px;
   height: auto;
   margin: 0 auto 25px;
 }
@@ -311,7 +341,7 @@ body {
 
 .about-right img {
   width: 100%;
-  max-width: 520px;
+  max-width: 360px;
   height: auto;
   object-fit: cover;
   border-radius: 6px;
@@ -322,78 +352,134 @@ body {
 ========================= */
 .journey-section {
   width: 100%;
-  background: #d9e9e9;
-  padding: 40px 24px 120px;
+  background: #e0e4e4;
+  padding: 60px 24px 120px;
   box-sizing: border-box;
+
+  display: flex;
+  justify-content: center;
 }
 
 .journey-container {
-  width: min(980px, 100%);
-  margin: 0 auto;
+  width: min(780px, 100%);
+  margin: 0;
+}
+
+
+/* =========================
+   BLOQUE 1 (HERO)
+========================= */
+
+.journey-hero {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  column-gap: 10px;
+  align-items: start;
+}
+
+.journey-hero-left {
+  margin-left: -4px;
+}
+
+.journey-svg {
+  width: 100%;
+  max-width: 130px;
+  display: block;
+  margin: 0;
+  transform: translateX(-8px);
+}
+
+.journey-hero-right {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
+}
+
+.journey-hero-line {
+  width: 100%;
+  height: 10px;
+  background: #0f6970;
+  margin: 2px 0 20px;
 }
 
 .journey-title {
-  font-family: "Agrandir", "Avenir Next", "Segoe UI", sans-serif;
-  font-size: clamp(34px, 3vw, 56px);
-  line-height: 0.95;
-  letter-spacing: -0.02em;
-  color: #111;
-  text-align: center;
+  font-family: "Agrandir", "Avenir Next", sans-serif;
+  font-size: clamp(26px, 2.4vw, 42px);
+  line-height: 0.92;
+  letter-spacing: -0.03em;
   font-weight: 500;
+  color: #111;
   margin: 0;
 }
 
 .journey-title span {
   display: block;
+  margin-bottom: 8px;
+  margin-left: 15px;
 }
 
-.journey-line {
-  width: min(100%, 240px);
-  height: 1px;
-  background: rgba(0, 0, 0, 0.7);
-  margin: 28px auto 70px;
+.journey-title span:last-child {
+  margin-bottom: 0;
 }
+
+/* =========================
+   BLOQUE 2 (TEXTO)
+========================= */
 
 .journey-copy {
-  width: min(100%, 880px);
-  text-align: justify;
-  text-justify: inter-word;
-  position: relative;
-  padding-bottom: 60px;
+  width: 100%;
+  margin-top: 28px;
 }
 
 .journey-copy p {
-  font-family: "Agrandir", "Avenir Next", "Segoe UI", sans-serif;
-  font-size: 21px;
+  font-family: "Agrandir", "Avenir Next", sans-serif;
+  font-size: 18px;
   line-height: 1.72;
   color: #111;
-  margin: 0 0 26px;
+  margin: 0 0 28px;
+  text-align: justify;
 }
 
-.journey-tank {
-  position: absolute;
-  left: 50%;
-  bottom: 50px;
-  transform: translateX(-50%);
-  width: min(1800px, 120%);
-  opacity: 0.07;
-  pointer-events: none;
+/* =========================
+   BLOQUE 3 (FOOTER)
+========================= */
+
+.journey-footer {
+  margin-top: 40px;
+
+  display: grid;
+  margin-bottom: 80px;
+  align-items: end;
 }
 
-.journey-signature {
-  width: min(100%, 935px);
-  margin-top: 0px;
+/* LEFT */
+.journey-footer-left {
+  display: flex;
+  align-items: flex-end;
+}
+
+.journey-footer-line {
+  width: 100%;
+  height: 10px;
+  background: #0f6970;
+  margin: 0 0 19px;
+}
+
+/* RIGHT */
+.journey-footer-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
   text-align: right;
-  align-self: stretch;
-  padding-right: 48px;
+}
+
+.journey-footer-top {
+  margin-bottom: 2px;
 }
 
 .journey-name {
   font-family: "Roboto", sans-serif;
-  font-size: 24px;
+  font-size: 21px;
   font-weight: 700;
   color: #111;
   margin: 0;
@@ -401,11 +487,10 @@ body {
 }
 
 .journey-role {
-  font-family: "Agrandir", "Avenir Next", "Segoe UI", sans-serif;
+  font-family: "Agrandir", "Avenir Next", sans-serif;
   font-size: 21px;
-  font-weight: 400;
   color: #111;
-  margin: 8px 0 0;
+  margin: 0;
   text-align: right;
 }
 
@@ -508,11 +593,11 @@ body {
   padding-top: 150px;
   padding-left: 60px;
   padding-right: 60px;
-  padding-bottom: 80px;
+  padding-bottom: 40px;
 
   box-sizing: border-box;
 
-  background: #d9e9e9; 
+  background: #e0e4e4;
 }
 
 .page-container h1 {
@@ -524,4 +609,20 @@ body {
   font-weight: 400;
 
   text-align: center;
+}
+
+.journey-image-divider {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  margin: 80px 0;   /* 👈 espacio arriba y abajo */
+}
+
+.journey-image-divider img {
+  width: 100%;
+  max-width: 620px;  /* 👈 tamaño pequeño controlado */
+  height: auto;
+
+  display: block;
 }

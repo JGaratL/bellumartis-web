@@ -20,10 +20,29 @@ function Navbar() {
   const [hidden, setHidden] = useState(false);
 
   const userRef = useRef(null);
-  const lastScrollY = useRef(0);
 
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    const setScrollbarOffset = () => {
+      const container = document.querySelector(".app");
+      const scrollBarWidth = container
+        ? Math.max(0, container.offsetWidth - container.clientWidth)
+        : 0;
+      document.documentElement.style.setProperty(
+        "--app-scrollbar-width",
+        `${scrollBarWidth}px`
+      );
+    };
+
+    setScrollbarOffset();
+    window.addEventListener("resize", setScrollbarOffset);
+
+    return () => {
+      window.removeEventListener("resize", setScrollbarOffset);
+    };
+  }, []);
 
   /*
   ============================
@@ -55,45 +74,54 @@ function Navbar() {
 
   /*
   ============================
-  SCROLL HIDE / SHOW
+  SCROLL HIDE / SHOW (FIXED)
   ============================
   */
   useEffect(() => {
-    lastScrollY.current = window.scrollY;
+    const container = document.querySelector(".app") || window;
+    const readY = () =>
+      container === window ? window.scrollY : container.scrollTop;
 
-    const handleScroll = () => {
-      const currentY = window.scrollY;
-      const delta = currentY - lastScrollY.current;
+    let lastY = readY();
+    let ticking = false;
 
-      if (Math.abs(delta) < 10) {
+    const applyDirection = () => {
+      const currentY = readY();
+      const delta = currentY - lastY;
+
+      if (currentY <= 0) {
+        setHidden(false);
+        lastY = currentY;
+        ticking = false;
         return;
       }
 
-      if (currentY <= 90) {
-        setHidden(false);
-      } else if (delta > 0) {
-        setHidden(true);
-        setOpen(false);
-      } else {
-        setHidden(false);
+      if (Math.abs(delta) >= 4) {
+        if (delta > 0) {
+          setHidden(true);
+          setOpen(false);
+        } else {
+          setHidden(false);
+        }
+        lastY = currentY;
       }
 
-      lastScrollY.current = currentY;
+      ticking = false;
     };
 
-    window.addEventListener(
-      "scroll",
-      handleScroll,
-      { passive: true }
-    );
+    const onScroll = () => {
+      if (!ticking) {
+        ticking = true;
+        requestAnimationFrame(applyDirection);
+      }
+    };
+
+    container.addEventListener("scroll", onScroll, { passive: true });
 
     return () => {
-      window.removeEventListener(
-        "scroll",
-        handleScroll
-      );
+      container.removeEventListener("scroll", onScroll);
     };
-  }, []);
+  }, [location.pathname]);
 
   /*
   ============================
@@ -123,45 +151,45 @@ function Navbar() {
 
       {/* IZQUIERDA */}
       <div className="navbar-left">
-        <img
-          src="/BHM.webp"
-          className="logo"
-          alt="Logo BHM"
-        />
+        <NavLink to="/">
+          <img
+            src="/BHM.webp"
+            className="logo"
+            alt="Logo BHM"
+          />
+        </NavLink>
       </div>
 
       {/* CENTRO */}
       <div className="navbar-links">
-        <NavLink to="/">Home</NavLink>
+        <NavLink to="/">HOME</NavLink>
 
         <NavLink to="/articles">
-          Vídeos/Artículos
+          VÍDEOS/ARTÍCULOS
         </NavLink>
 
         <NavLink to="/shop">
-          Tienda
+          TIENDA
         </NavLink>
 
         <NavLink to="/community">
-          Comunidad
+          COMUNIDAD
         </NavLink>
 
         <NavLink to="/events">
-          Eventos
+          EVENTOS
         </NavLink>
 
         <NavLink to="/about">
-          Sobre Bellumartis
+          CONTACTO
         </NavLink>
 
-        {/* ADMIN */}
         {user && (isAdmin() || isOwner()) && (
           <NavLink to="/admin">
             Admin
           </NavLink>
         )}
 
-        {/* MOD */}
         {user && isModerator() && (
           <NavLink to="/moderation">
             Moderación
@@ -177,15 +205,11 @@ function Navbar() {
         <FaBell className="icon" />
 
         {/* USER */}
-        <div
-          className="user"
-          ref={userRef}
-        >
+        <div className="user" ref={userRef}>
           <FaUser
             className="icon"
             onClick={(e) => {
               e.stopPropagation();
-
               setOpen((prev) => !prev);
             }}
           />
@@ -193,7 +217,6 @@ function Navbar() {
           {open && (
             <div className="dropdown">
 
-              {/* NO LOGUEADO */}
               {!user ? (
                 <>
                   <p
@@ -227,41 +250,17 @@ function Navbar() {
               ) : (
                 <>
 
-
-                  <p
-                    onClick={() =>
-                      goTo("/profile")
-                    }
-                  >
+                  <p onClick={() => goTo("/profile")}>
                     Mi perfil
                   </p>
 
-                  <p
-                    onClick={() =>
-                      goTo("/settings")
-                    }
-                  >
+                  <p onClick={() => goTo("/settings")}>
                     Ajustes
                   </p>
 
-                  {/* ROLES */}
-                  {isAdmin() && (
-                    <p className="role">
-                      Admin
-                    </p>
-                  )}
-
-                  {isOwner() && (
-                    <p className="role">
-                      Owner
-                    </p>
-                  )}
-
-                  {isModerator() && (
-                    <p className="role">
-                      Moderator
-                    </p>
-                  )}
+                  {isAdmin() && <p className="role">Admin</p>}
+                  {isOwner() && <p className="role">Owner</p>}
+                  {isModerator() && <p className="role">Moderator</p>}
 
                   <p
                     onClick={handleLogout}
@@ -269,6 +268,7 @@ function Navbar() {
                   >
                     Cerrar sesión
                   </p>
+
                 </>
               )}
 
@@ -276,11 +276,13 @@ function Navbar() {
           )}
         </div>
 
-        <img
-          src="/BAM.png"
-          className="logo-extra"
-          alt="Logo BellumArtis"
-        />
+        <NavLink to="/">
+          <img
+            src="/BAM.png"
+            className="logo-extra"
+            alt="Logo BellumArtis"
+          />
+        </NavLink>
       </div>
     </nav>
   );

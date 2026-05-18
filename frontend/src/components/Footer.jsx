@@ -15,7 +15,7 @@ function Footer() {
 
           {/* PARTE 1 */}
           <div className="footer-column footer-logo-column">
-            <img src="/BHM.webp" alt="BellumArtis" className="footer-logo" />
+            <img src="/escudo.png" alt="BellumArtis" className="footer-logo" />
           </div>
 
           {/* PARTE 2 */}

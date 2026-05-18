@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import "./Events.css";
 
 function Events() {
@@ -10,6 +10,8 @@ function Events() {
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
 
   const [selectedType, setSelectedType] = useState("Todos");
+  const [filterOpen, setFilterOpen] = useState(false);
+  const filterRef = useRef(null);
 
   // =========================
   // MODAL STATE
@@ -33,15 +35,34 @@ function Events() {
     fetchEvents();
   }, []);
 
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (
+        filterRef.current &&
+        !filterRef.current.contains(e.target)
+      ) {
+        setFilterOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener(
+        "mousedown",
+        handleClickOutside
+      );
+    };
+  }, []);
   // =========================
   // MONTH DATA
   // =========================
   const monthNames = [
-    "Enero","Febrero","Marzo","Abril","Mayo","Junio",
-    "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"
+    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
   ];
 
-  const weekDays = ["LUN","MAR","MIÉ","JUE","VIE","SÁB","DOM"];
+  const weekDays = ["LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB", "DOM"];
 
   const firstDay = new Date(currentYear, currentMonth, 1);
 
@@ -155,16 +176,48 @@ function Events() {
 
         <div className="calendar-top">
 
-          <div className="calendar-filter">
-            <select
-              value={selectedType}
-              onChange={(e) => setSelectedType(e.target.value)}
+          <div className="calendar-filter"
+            ref={filterRef}
+          >
+
+            <button
+              className="filter-button"
+              onClick={() => setFilterOpen(!filterOpen)}
             >
-              <option>Todos</option>
-              <option>Firma de libros</option>
-              <option>Charla/Conferencia</option>
-              <option>Webinar/Seminario</option>
-            </select>
+              <span>{selectedType}</span>
+
+              <span
+                className={`filter-caret ${filterOpen ? "open" : ""
+                  }`}
+              >
+                ▼
+              </span>
+            </button>
+
+            {filterOpen && (
+              <div className="filter-dropdown">
+
+                {[
+                  "Todos",
+                  "Firma de libros",
+                  "Charla/Conferencia",
+                  "Webinar/Seminario",
+                ].map((type) => (
+                  <div
+                    key={type}
+                    className="filter-option"
+                    onClick={() => {
+                      setSelectedType(type);
+                      setFilterOpen(false);
+                    }}
+                  >
+                    {type}
+                  </div>
+                ))}
+
+              </div>
+            )}
+
           </div>
 
           <div className="calendar-month-controls">
@@ -202,10 +255,10 @@ function Events() {
         </div>
 
         <div className="calendar-today">
-          <div className="calendar-note"><p>Selecciona el tipo de evento</p></div>
+          <div className="calendar-note"><p className="filter-comment">Selecciona el tipo de evento</p></div>
           <div className="calendar-ctoday">Hoy, {formattedToday}</div>
           <div className="calendar-note"><p>Solicita visita de Bellumartis a tu ciudad</p></div>
-            
+
 
         </div>
 
@@ -233,9 +286,8 @@ function Events() {
             return (
               <div
                 key={`${currentYear}-${currentMonth}-${day}`}
-                className={`calendar-cell ${
-                  isPastDay(day) ? "past-day" : "future-day"
-                }`}
+                className={`calendar-cell ${isPastDay(day) ? "past-day" : "future-day"
+                  }`}
               >
 
                 <div className="day-number">{day}</div>
@@ -254,9 +306,8 @@ function Events() {
                       {event.time?.slice(0, 5)}
                     </div>
 
-                    <div className={`event-city ${
-                      event.event_type === "webinar" ? "hidden" : ""
-                    }`}>
+                    <div className={`event-city ${event.event_type === "webinar" ? "hidden" : ""
+                      }`}>
                       {event.province}
                     </div>
 

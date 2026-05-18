@@ -1,0 +1,156 @@
+.about-page-wrap {
+  padding: 90px 100px 80px 100px;
+  background: #e0e4e4;
+  min-height: 100vh;
+  gap: 30px;
+
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  font-family: "Agrandir", sans-serif;
+}
+
+/* =========================
+   TÍTULO PRINCIPAL (52px)
+========================= */
+
+.about-page-title {
+  font-size: 52px;
+  text-align: center;
+  font-family: "Agrandir", sans-serif;
+  color: #111;
+  margin-top: 60px;
+}
+
+/* =========================
+   CARD PRINCIPAL
+========================= */
+
+.about-card {
+  width: 100%;
+  max-width: 760px;
+  background: #ffffff;
+  border: 1px solid #d0d4d4;
+  border-radius: 12px;
+  padding: 28px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+}
+
+
+/* =========================
+   FORMULARIO
+========================= */
+
+.about-form {
+  margin-top: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  padding-top: 20px;
+  border-top: 1px solid #e5e8e8;
+}
+
+.about-form input,
+.about-form textarea,
+.about-form select {
+  width: 100%;
+  background: #f8f9f9;
+  border: 1px solid #d0d4d4;
+  color: #111;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+}
+
+.about-form input:focus,
+.about-form textarea:focus,
+.about-form select:focus {
+  border-color: #1f6feb;
+  background: #fff;
+}
+
+.about-form button {
+  margin-top: 10px;
+  padding: 12px;
+  background: #0f6970;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.about-form button:hover {
+  background: #0f6970e4;
+}
+
+/* ERRORES */
+.form-error {
+  color: #d93025;
+  font-size: 12px;
+  margin-top: -6px;
+}
+
+/* =========================
+   PARTE INFERIOR (ORIGINAL)
+========================= */
+
+.about-card-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 30px;
+  border-top: 1px solid #e5e8e8;
+  padding-top: 20px;
+  gap: 20px;
+}
+
+.about-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.about-director-photo {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.about-director-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: #111;
+}
+
+.about-director-role {
+  font-size: 12px;
+  opacity: 0.7;
+  color: #111;
+}
+
+.about-social-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.about-social-row a {
+  color: #111;
+  opacity: 0.7;
+  transition: 0.2s;
+}
+
+.about-social-row a:hover {
+  opacity: 1;
+}
+
+.about-brand-logo {
+  width: 60px;
+  opacity: 0.8;
+}
