@@ -4,6 +4,7 @@ const router = express.Router();
 const upload = require("../middleware/upload");
 const verifyToken = require("../middleware/auth");
 const pool = require("../db");
+const sharp = require("sharp");
 
 /*
 ====================================
@@ -33,8 +34,19 @@ router.post(
                 ? req.files
                 : [];
 
-            const images = files.map((file) => file.filename);
+            const images = await Promise.all(
+                files.map(async (file) => {
 
+                    const filename = `post-${Date.now()}-${Math.round(Math.random() * 1e9)}.webp`;
+
+                    await sharp(file.buffer)   // 🔥 IMPORTANTE: buffer, NO path
+                        .resize(1080, null, { withoutEnlargement: true })
+                        .webp({ quality: 80 })
+                        .toFile(`uploads/posts/${filename}`);
+
+                    return filename;
+                })
+            );
             const cleanContent = content?.trim() || "";
 
             await pool.query(
@@ -157,46 +169,46 @@ REMOVE POST
 
 router.delete("/:id", verifyToken, async (req, res) => {
 
-  try {
+    try {
 
-    const postId = req.params.id;
-    const userId = req.user.id;
+        const postId = req.params.id;
+        const userId = req.user.id;
 
-    const [rows] = await pool.query(
-      "SELECT * FROM posts WHERE id = ?",
-      [postId]
-    );
+        const [rows] = await pool.query(
+            "SELECT * FROM posts WHERE id = ?",
+            [postId]
+        );
 
-    if (rows.length === 0) {
-      return res.status(404).json({
-        error: "Post no encontrado"
-      });
+        if (rows.length === 0) {
+            return res.status(404).json({
+                error: "Post no encontrado"
+            });
+        }
+
+        const post = rows[0];
+
+        if (post.user_id !== userId) {
+            return res.status(403).json({
+                error: "No autorizado"
+            });
+        }
+
+        await pool.query(
+            "DELETE FROM posts WHERE id = ?",
+            [postId]
+        );
+
+        res.json({
+            message: "Post eliminado"
+        });
+
+    } catch (err) {
+        console.error(err);
+
+        res.status(500).json({
+            error: "Error eliminando post"
+        });
     }
-
-    const post = rows[0];
-
-    if (post.user_id !== userId) {
-      return res.status(403).json({
-        error: "No autorizado"
-      });
-    }
-
-    await pool.query(
-      "DELETE FROM posts WHERE id = ?",
-      [postId]
-    );
-
-    res.json({
-      message: "Post eliminado"
-    });
-
-  } catch (err) {
-    console.error(err);
-
-    res.status(500).json({
-      error: "Error eliminando post"
-    });
-  }
 
 });
 

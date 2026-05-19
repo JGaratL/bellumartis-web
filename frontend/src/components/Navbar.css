@@ -100,12 +100,18 @@
 ========================= */
 .navbar-links {
   display: flex;
+  align-items: center;
   gap: clamp(24px, 3vw, 60px);
 }
 
 /* 🔥 IMPORTANTE: ahora afecta a button y a Link (a) */
 .navbar-links button,
 .navbar-links a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  min-height: 22px;
   color: rgba(255, 255, 255, 0.85);
   font-size: 16px;
   font-family: inherit;
@@ -117,6 +123,8 @@
 
   text-decoration: none; /* 🔥 QUITA SUBRAYADO */
 
+  transform-origin: center center;
+  will-change: transform;
   transition: transform 0.2s ease, color 0.2s ease;
 }
 
@@ -139,11 +147,7 @@
 /* LINK ACTIVO */
 .navbar-links a.active {
   color: #ffffff;
-
   transform: scale(1.08);
-
-  font-size: 17px;
-
   font-weight: 600;
 }
 

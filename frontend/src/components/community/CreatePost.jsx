@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { FaImage, FaSmile, FaTimes } from "react-icons/fa";
+import imageCompression from "browser-image-compression";
 import { useAuth } from "../../hooks/useAuth";
 
 const EMOJIS = [
@@ -16,6 +17,7 @@ function CreatePost({ onPostCreated }) {
     const [imagePreviews, setImagePreviews] = useState([]);
     const [loading, setLoading] = useState(false);
     const [showEmoji, setShowEmoji] = useState(false);
+    const [compressing, setCompressing] = useState(false);
 
     const fileInputRef = useRef(null);
     const textareaRef = useRef(null);
@@ -41,17 +43,39 @@ function CreatePost({ onPostCreated }) {
     MULTIPLE IMAGES HANDLER
     ============================
     */
-    const handleImageChange = (e) => {
+    const handleImageChange = async (e) => {
         const files = Array.from(e.target.files);
-
         if (!files.length) return;
 
-        setImages(files);
+        setCompressing(true); // 🔥 empieza compresión
 
-        const previews = files.map(file => URL.createObjectURL(file));
-        setImagePreviews(previews);
+        try {
+            const compressedFiles = await Promise.all(
+                files.map(async (file) => {
+                    const options = {
+                        maxSizeMB: 1,
+                        maxWidthOrHeight: 1920,
+                        useWebWorker: true
+                    };
+
+                    return await imageCompression(file, options);
+                })
+            );
+
+            setImages(compressedFiles);
+
+            const previews = compressedFiles.map(file =>
+                URL.createObjectURL(file)
+            );
+
+            setImagePreviews(previews);
+
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setCompressing(false); // 🔥 termina compresión
+        }
     };
-
     /*
     ============================
     REMOVE IMAGE
@@ -239,6 +263,12 @@ function CreatePost({ onPostCreated }) {
                         </div>
                     ))}
 
+                </div>
+            )}
+
+            {compressing && (
+                <div className="compressing-msg">
+                    Comprimiendo imágenes...
                 </div>
             )}
 

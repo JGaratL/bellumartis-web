@@ -15,35 +15,16 @@ if (!fs.existsSync(uploadPath)) {
 
 /*
 ====================================
-STORAGE
-====================================
-*/
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadPath);
-  },
-
-  filename: (req, file, cb) => {
-    const unique =
-      Date.now() + "-" + Math.round(Math.random() * 1e9);
-
-    cb(
-      null,
-      unique + path.extname(file.originalname).toLowerCase()
-    );
-  }
-});
-
-/*
-====================================
 FILE FILTER
 ====================================
 */
 const fileFilter = (req, file, cb) => {
   const allowed = /jpg|jpeg|png|webp/;
-  const ext = path.extname(file.originalname).toLowerCase();
 
-  if (allowed.test(ext)) {
+  const ext = path.extname(file.originalname).toLowerCase();
+  const mime = file.mimetype.startsWith("image/");
+
+  if (allowed.test(ext) && mime) {
     cb(null, true);
   } else {
     cb(new Error("Solo imágenes permitidas"));
@@ -52,14 +33,15 @@ const fileFilter = (req, file, cb) => {
 
 /*
 ====================================
-MULTER CONFIG
+MULTER MEMORY (IMPORTANTE)
 ====================================
 */
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(), // 🔥 CLAVE
   fileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB
+    fileSize: 20 * 1024 * 1024, // límite de subida (no disco)
+    files: 10
   }
 });
 
