@@ -146,7 +146,16 @@ function CreatePost({ onPostCreated }) {
                 }
             );
 
-            const data = await res.json();
+            const raw = await res.text();
+            let data = {};
+
+            try {
+                data = raw ? JSON.parse(raw) : {};
+            } catch {
+                data = {
+                    error: raw || "Respuesta invalida del servidor"
+                };
+            }
 
             if (!res.ok) {
                 throw new Error(data.error || "Error subiendo el post");
@@ -238,6 +247,11 @@ function CreatePost({ onPostCreated }) {
                 <button
                     className="create-post-submit"
                     onClick={handleSubmit}
+                    disabled={!user}
+                    style={{
+                        opacity: user ? 1 : 0.5,
+                        cursor: user ? "pointer" : "not-allowed"
+                    }}
                 >
                     {loading ? "Publicando..." : "Publicar"}
                 </button>

@@ -80,17 +80,36 @@ function Shop() {
     {
       image: "/Libro1.webp",
       title: "Un Mundo Convulso",
-      description: `El mapa del mundo ya no es estable, sino un campo de batalla: fronteras en llamas, rutas bloqueadas, recursos convertidos en armas y tecnologías que alteran el equilibrio del poder.`
+      description: <p>
+        El mapa del mundo ya no es estable, sino un <strong>campo de batalla</strong>: fronteras en llamas, rutas bloqueadas, recursos convertidos en armas y tecnologías que alteran el equilibrio del poder. La <strong>geopolítica</strong> deja de ser un lujo académico para convertirse en una necesidad vital.
+
+        <strong>Un Mundo Convulso</strong> ofrece las claves del siglo XXI: guerras híbridas, energía, rivalidad entre potencias y fracturas identitarias. Francisco García Campa guía al lector desde <strong>Ucrania</strong> al <strong>Indo-Pacífico</strong>, del <strong>ciberespacio</strong> al <strong>Sahel</strong>.
+
+        No es un manual para expertos, sino una <strong>brújula</strong> para entender por qué el mundo se tambalea.
+
+        Quien no entiende el mapa… queda atrapado en él.
+      </p>
     },
     {
       image: "/Libro2.webp",
       title: "La Frontera Norte",
-      description: `Apaches, comanches, río Bravo y río Pecos, búfalos y caravanas atacadas forman parte del imaginario del western.`
+      description: <p>
+        Apaches, comanches, río Bravo y río Pecos, búfalos y caravanas atacadas forman parte del imaginario del <strong>western</strong>.
+        Antes de la llegada anglosajona, españoles recorrieron el <strong>Far West</strong> en una aventura.
+        Este libro aborda el norte de la <strong>Nueva España</strong> tras la conquista de México por Hernán Cortés,
+        con una frontera de exploración, conflicto y evangelización.
+        Conquistadores y misioneros se adentraron en territorios hostiles bajo la Corona.
+        Durante dos siglos, hasta los Borbones, se configuró una frontera que dio forma al suroeste de EE. UU. y al norte de México,
+        dejando un legado en su toponimia y cultura.
+      </p>
     },
     {
       image: "/Libro3.webp",
       title: "Cayo Mario",
-      description: `A finales del siglo II a.C. Roma se encontraba en una nueva edad de oro...`
+      description:
+        <p>
+          A finales del siglo II a.C. <strong>Roma</strong> se encontraba en una nueva edad de oro. Riquezas procedentes de los tres continentes conocidos llenaban las arcas de la Res Publica y de las familias patricias. Mientras los pequeños propietarios se arruinaban debido a los cada vez más largos períodos de servicio militar. Dos guerras, una al sur contra Yugurta el rey de los númidas, y la otra contra cimbrios y teutones que descendieron de las frías tierras del norte de Europa, ponían en peligro la propia existencia de Roma. La <strong>negligencia y corrupción</strong> generalizada de la clase política, hicieron que el pueblo confiase en la llegada de un hombre nuevo.
+        </p>
     }
   ];
 
