@@ -143,7 +143,10 @@ router.get("/", async (req, res) => {
                 created_at: post.created_at,
                 likes_count: post.likes_count,
                 nickname: post.nickname,
-                avatar: post.avatar,
+                avatar:
+                    typeof post.avatar === "string" && post.avatar.trim()
+                        ? post.avatar.trim()
+                        : null,
                 replies_count: post.replies_count || 0,
                 images: parsedImages
             };

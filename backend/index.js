@@ -324,6 +324,7 @@ app.post("/auth/google", async (req, res) => {
     const email = normalizeEmail(payload.email);
     const googleId = payload.sub;
     const nickname = payload.name || email.split("@")[0];
+    const googlePicture = payload.picture || null;
 
     if (!email || !googleId) {
       return res.status(400).json({ error: "Payload de Google inválido" });
@@ -367,12 +368,20 @@ app.post("/auth/google", async (req, res) => {
         ]);
       }
 
+      if (googlePicture) {
+        await pool.query(
+          "UPDATE users SET profile_image = ? WHERE id = ?",
+          [googlePicture, user.id]
+        );
+      }
+
       user = {
         id: user.id,
         nickname: user.nickname,
         email: user.email,
         role: user.role || "user",
         provider: "google",
+        profile_image: googlePicture || user.profile_image || null,
       };
     }
 
@@ -386,10 +395,10 @@ app.post("/auth/google", async (req, res) => {
       const [result] = await pool.query(
         `
         INSERT INTO users
-        (nickname, email, password, provider, google_id, province, country)
-        VALUES (?, ?, NULL, 'google', ?, NULL, NULL)
+        (nickname, email, password, provider, google_id, profile_image, province, country)
+        VALUES (?, ?, NULL, 'google', ?, ?, NULL, NULL)
         `,
-        [safeNickname, email, googleId]
+        [safeNickname, email, googleId, googlePicture]
       );
 
       user = {
@@ -398,6 +407,7 @@ app.post("/auth/google", async (req, res) => {
         email,
         role: "user",
         provider: "google",
+        profile_image: googlePicture || null,
       };
     }
 
@@ -428,6 +438,89 @@ app.get("/profile", verifyToken, async (req, res) => {
     message: "Acceso autorizado",
     user: req.user,
   });
+});
+
+/*
+====================================
+GET PROFILE
+====================================
+*/
+
+app.get("/users/me", verifyToken, async (req, res) => {
+  const [rows] = await pool.query(
+    `SELECT id, nickname, province, country, profile_image,
+            x_url, facebook_url, instagram_url, youtube_url
+     FROM users
+     WHERE id = ?`,
+    [req.user.id]
+  );
+
+  if (!rows.length) {
+    return res.status(404).json({ error: "Usuario no encontrado" });
+  }
+
+  res.json(rows[0]);
+});
+
+/*
+====================================
+EDIT PROFILE
+====================================
+*/
+
+app.put("/users/me", verifyToken, async (req, res) => {
+  const {
+    nickname,
+    province,
+    country,
+    x_url,
+    facebook_url,
+    instagram_url,
+    youtube_url
+  } = req.body;
+
+  await pool.query(
+    `UPDATE users SET
+      nickname = ?,
+      province = ?,
+      country = ?,
+      x_url = ?,
+      facebook_url = ?,
+      instagram_url = ?,
+      youtube_url = ?
+     WHERE id = ?`,
+    [
+      nickname,
+      province,
+      country,
+      x_url,
+      facebook_url,
+      instagram_url,
+      youtube_url,
+      req.user.id
+    ]
+  );
+
+  res.json({ message: "Perfil actualizado correctamente" });
+});
+
+
+
+
+app.get("/users/:id", verifyToken, async (req, res) => {
+  const [rows] = await pool.query(
+    `SELECT id, nickname, province, country, profile_image,
+            x_url, facebook_url, instagram_url, youtube_url
+     FROM users
+     WHERE id = ?`,
+    [req.params.id]
+  );
+
+  if (!rows.length) {
+    return res.status(404).json({ error: "Usuario no encontrado" });
+  }
+
+  res.json(rows[0]);
 });
 
 /*
@@ -656,6 +749,8 @@ app.get("/", (req, res) => {
     "API Bellumartis funcionando correctamente"
   );
 });
+
+console.log("users/me route loaded");
 
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en puerto ${PORT}`);

@@ -349,7 +349,7 @@ function Navbar() {
                     onClick={() => handleNotificationClick(n)}
                   >
                     <img
-                      src={n.from_avatar || "/default-avatar.png"}
+                      src={n.from_avatar || "/BHM.webp"}
                       alt={n.from_nickname || "usuario"}
                       className="notif-avatar"
                     />

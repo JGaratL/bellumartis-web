@@ -9,6 +9,8 @@ import Shop from "./pages/Shop";
 import Community from "./pages/Community";
 import Events from "./pages/Events";
 import About from "./pages/About";
+import MyProfile from "./pages/MyProfile";
+import Settings from "./pages/Settings";
 
 import AuthPage from "./pages/Auth/AuthPage";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -26,7 +28,7 @@ function App() {
   const location = useLocation();
   const { user } = useContext(AuthContext);
 
-  
+
   const hideLayout = ["/login", "/register"].includes(location.pathname);
 
   return (
@@ -169,13 +171,13 @@ function App() {
 
                   </div>
 
-                    <div className="journey-image-divider">
-                      <img
-                        src="/stalingrado.jpg"
-                        alt=""
-                        aria-hidden="true"
-                      />
-                    </div>
+                  <div className="journey-image-divider">
+                    <img
+                      src="/stalingrado.jpg"
+                      alt=""
+                      aria-hidden="true"
+                    />
+                  </div>
 
 
 
@@ -276,6 +278,8 @@ function App() {
         <Route path="/community" element={<Community />} />
         <Route path="/events" element={<Events />} />
         <Route path="/about" element={<About />} />
+        <Route path="/profile" element={<MyProfile />} />
+        <Route path="/settings" element={<Settings />} />
 
         {/* PROTECTED */}
         <Route

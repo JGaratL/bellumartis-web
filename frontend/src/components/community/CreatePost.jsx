@@ -12,6 +12,16 @@ function CreatePost({ onPostCreated }) {
 
     const { user, token } = useAuth();
 
+    const resolveAvatarSrc = (value) => {
+        if (!value || typeof value !== "string") return null;
+        const avatar = value.trim();
+        if (!avatar) return null;
+        if (avatar.startsWith("http://") || avatar.startsWith("https://")) return avatar;
+        if (avatar.startsWith("/uploads/")) return `http://localhost:5000${avatar}`;
+        if (avatar.startsWith("uploads/")) return `http://localhost:5000/${avatar}`;
+        return avatar;
+    };
+
     const [content, setContent] = useState("");
     const [images, setImages] = useState([]);
     const [imagePreviews, setImagePreviews] = useState([]);
@@ -226,9 +236,14 @@ function CreatePost({ onPostCreated }) {
             <div className="create-post-top">
 
                 <img
-                    src="/default-avatar.jpg"
+                    src={resolveAvatarSrc(user?.profile_image) || "/BHM.webp"}
                     alt=""
                     className="profile-image"
+                    referrerPolicy="no-referrer"
+                    onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = "/BHM.webp";
+                    }}
                 />
 
                 <textarea

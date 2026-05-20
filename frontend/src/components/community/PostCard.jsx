@@ -11,6 +11,26 @@ const EMOJIS = [
   "😡", "😱", "🥳", "🤔", "💔", "❤️", "👏", "🎉", "😴", "😏"
 ];
 
+const resolveAvatarSrc = (value) => {
+  if (!value || typeof value !== "string") return null;
+  const avatar = value.trim();
+  if (!avatar) return null;
+
+  if (avatar.startsWith("http://") || avatar.startsWith("https://")) {
+    return avatar;
+  }
+
+  if (avatar.startsWith("/uploads/")) {
+    return `http://localhost:5000${avatar}`;
+  }
+
+  if (avatar.startsWith("uploads/")) {
+    return `http://localhost:5000/${avatar}`;
+  }
+
+  return avatar;
+};
+
 const formatRelativeTime = (value) => {
   if (!value) return "";
 
@@ -397,7 +417,15 @@ const PostCard = ({ post = {}, onDelete, targetReplyId = null }) => {
   return (
     <div className="post-card" id={`post-${post.id}`}>
       <div className="post-header">
-        <img src={post.avatar || "/default-avatar.png"} alt="avatar" />
+        <img
+          src={resolveAvatarSrc(post.avatar) || "/BHM.webp"}
+          alt="avatar"
+          referrerPolicy="no-referrer"
+          onError={(e) => {
+            e.currentTarget.onerror = null;
+            e.currentTarget.src = "/BHM.webp";
+          }}
+        />
 
         <div className="post-user-info">
           <div className="post-name">{post.nickname}</div>
@@ -499,7 +527,16 @@ const PostCard = ({ post = {}, onDelete, targetReplyId = null }) => {
             ) : (
               replies.map((reply) => (
                 <div key={reply.id} className="reply-item" id={`reply-${reply.id}`}>
-                  <img src={reply.avatar || "/default-avatar.png"} alt="avatar" className="reply-avatar" />
+                  <img
+                    src={resolveAvatarSrc(reply.avatar) || "/BHM.webp"}
+                    alt="avatar"
+                    className="reply-avatar"
+                    referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = "/BHM.webp";
+                    }}
+                  />
                   <div className="reply-body">
                     <div className="reply-user">{reply.nickname}</div>
                     <div className="reply-content">{reply.content}</div>
