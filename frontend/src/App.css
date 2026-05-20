@@ -298,6 +298,7 @@ body {
   height: 10px;
   background: #0f6970;
   margin: 0 auto 38px;
+  border-radius: 6px;
 }
 
 .about-text {
@@ -400,6 +401,7 @@ body {
   height: 10px;
   background: #0f6970;
   margin: 2px 0 20px;
+  border-radius: 6px;
 }
 
 .journey-title {
@@ -463,6 +465,7 @@ body {
   height: 10px;
   background: #0f6970;
   margin: 0 0 19px;
+  border-radius: 6px;
 }
 
 /* RIGHT */

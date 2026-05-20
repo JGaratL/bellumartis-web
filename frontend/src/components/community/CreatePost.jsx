@@ -196,7 +196,7 @@ function CreatePost({ onPostCreated }) {
             setImagePreviews([]);
 
             if (textareaRef.current) {
-                textareaRef.current.style.height = "40px";
+                textareaRef.current.style.height = "36px";
             }
 
             if (onPostCreated) onPostCreated();
@@ -240,7 +240,7 @@ function CreatePost({ onPostCreated }) {
                     style={{
                         resize: "none",
                         overflow: "hidden",
-                        minHeight: "40px",
+                        minHeight: "36px",
                         maxHeight: "200px"
                     }}
                 />
@@ -298,7 +298,7 @@ function CreatePost({ onPostCreated }) {
                     {showEmoji && (
                         <div className="emoji-picker">
                             {EMOJIS.map((emoji, i) => (
-                                <span
+                                <span className="emoji"
                                     key={i}
                                     onClick={() => insertEmoji(emoji)}
                                 >

@@ -1,12 +1,21 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useLocation } from "react-router-dom";
 import CreatePost from "../components/community/CreatePost";
 import PostCard from "../components/community/PostCard";
 import "./Community.css";
 
 const Community = () => {
+  const location = useLocation();
 
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const params = useMemo(
+    () => new URLSearchParams(location.search),
+    [location.search]
+  );
+  const targetPostId = Number(params.get("post")) || null;
+  const targetReplyId = Number(params.get("reply")) || null;
 
   const fetchPosts = async () => {
 
@@ -51,6 +60,25 @@ const Community = () => {
 
   }, []);
 
+  useEffect(() => {
+    if (!posts.length || !targetPostId) return;
+
+    const timer = setTimeout(() => {
+      const postEl = document.getElementById(`post-${targetPostId}`);
+      if (!postEl) return;
+      postEl.scrollIntoView({ behavior: "smooth", block: "center" });
+
+      if (targetReplyId) {
+        const replyEl = document.getElementById(`reply-${targetReplyId}`);
+        if (replyEl) {
+          replyEl.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }
+    }, 150);
+
+    return () => clearTimeout(timer);
+  }, [posts, targetPostId, targetReplyId]);
+
   if (loading) {
 
     return (
@@ -82,6 +110,7 @@ const Community = () => {
             <PostCard
               key={post.id}
               post={post}
+              targetReplyId={targetPostId === post.id ? targetReplyId : null}
             />
           ) : null
         )

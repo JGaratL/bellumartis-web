@@ -11,6 +11,9 @@ const { OAuth2Client } = require("google-auth-library");
 const multer = require("multer");
 const path = require("path");
 
+const notificationsRoutes = require("./routes/notifications");
+
+
 const storage = multer.diskStorage({
 
   destination: (req, file, cb) => {
@@ -37,7 +40,7 @@ const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 app.use(cors());
 app.use(express.json());
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-app.use("/api/posts", postsRoutes);
+app.use("/api/notifications", notificationsRoutes);
 
 
 

@@ -1,6 +1,7 @@
 ﻿import { useState, useRef, useEffect } from "react";
 import { SlSpeech } from "react-icons/sl";
 import { BiLike } from "react-icons/bi";
+import { BiSolidLike } from "react-icons/bi";
 import { FaSmile } from "react-icons/fa";
 import { BsThreeDots } from "react-icons/bs";
 import { useAuth } from "../../hooks/useAuth";
@@ -10,11 +11,48 @@ const EMOJIS = [
   "😡", "😱", "🥳", "🤔", "💔", "❤️", "👏", "🎉", "😴", "😏"
 ];
 
-const PostCard = ({ post = {}, onDelete }) => {
+const formatRelativeTime = (value) => {
+  if (!value) return "";
+
+  const now = new Date();
+  const then = new Date(value);
+  const diffMs = now - then;
+
+  if (diffMs < 0) return "0 min";
+
+  const minute = 60 * 1000;
+  const hour = 60 * minute;
+  const day = 24 * hour;
+  const month = 30 * day;
+  const year = 365 * day;
+
+  if (diffMs < hour) return `${Math.max(1, Math.floor(diffMs / minute))} min`;
+  if (diffMs < day) return `${Math.floor(diffMs / hour)} h`;
+  if (diffMs < month) return `${Math.floor(diffMs / day)} días`;
+  if (diffMs < year) return `${Math.floor(diffMs / month)} meses`;
+
+  const years = Math.floor(diffMs / year);
+  return years === 1 ? "1 año" : `${years} años`;
+};
+
+const formatPostDateTime = (value) => {
+  if (!value) return "";
+  const d = new Date(value);
+  const date = `${d.getDate()} ${d.toLocaleString("es-ES", { month: "long" })} ${d.getFullYear()}`;
+  const time = d.toLocaleTimeString("es-ES", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false
+  });
+  return `${date} a las ${time}`;
+};
+
+const PostCard = ({ post = {}, onDelete, targetReplyId = null }) => {
   const [likes, setLikes] = useState(post.likes_count || 0);
   const [liked, setLiked] = useState(false);
 
   const [replies, setReplies] = useState([]);
+  const [replyLikes, setReplyLikes] = useState({});
   const [showReplies, setShowReplies] = useState(false);
   const [replyText, setReplyText] = useState("");
   const [loadingReplies, setLoadingReplies] = useState(false);
@@ -31,6 +69,35 @@ const PostCard = ({ post = {}, onDelete }) => {
   const [activeIndex, setActiveIndex] = useState(0);
 
   const { user } = useAuth();
+
+  useEffect(() => {
+    const fetchPostLikeStatus = async () => {
+      try {
+        if (!user) {
+          setLiked(false);
+          return;
+        }
+
+        const token = localStorage.getItem("token");
+        if (!token) return;
+
+        const res = await fetch(`http://localhost:5000/api/posts/${post.id}/like-status`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+
+        const data = await res.json();
+        if (!res.ok) return;
+
+        setLiked(Boolean(data.liked));
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    fetchPostLikeStatus();
+  }, [post.id, user]);
 
   const handleLike = async () => {
     if (!user) {
@@ -117,8 +184,23 @@ const PostCard = ({ post = {}, onDelete }) => {
     setTimeout(() => {
       input.focus();
       input.selectionStart = input.selectionEnd = start + emoji.length;
+      input.style.height = "auto";
+      input.style.height = `${Math.min(input.scrollHeight, 120)}px`;
     }, 0);
   };
+
+  const handleReplyInput = (e) => {
+    setReplyText(e.target.value);
+    const el = replyInputRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
+  };
+
+  useEffect(() => {
+    if (!replyInputRef.current) return;
+    replyInputRef.current.style.height = "32px";
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -141,6 +223,26 @@ const PostCard = ({ post = {}, onDelete }) => {
     document.addEventListener("mousedown", handleClickOutsideMenu);
     return () => document.removeEventListener("mousedown", handleClickOutsideMenu);
   }, []);
+
+  useEffect(() => {
+    if (!targetReplyId) return;
+
+    const openAndFocusReply = async () => {
+      if (!showReplies) {
+        setShowReplies(true);
+        await fetchReplies();
+      }
+
+      setTimeout(() => {
+        const replyEl = document.getElementById(`reply-${targetReplyId}`);
+        if (replyEl) {
+          replyEl.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }, 180);
+    };
+
+    openAndFocusReply();
+  }, [targetReplyId]);
 
   const scrollToIndex = (index) => {
     const el = trackRef.current;
@@ -166,7 +268,41 @@ const PostCard = ({ post = {}, onDelete }) => {
       setLoadingReplies(true);
       const res = await fetch(`http://localhost:5000/api/posts/${post.id}/replies`);
       const data = await res.json();
-      setReplies(Array.isArray(data) ? data : []);
+      const safeReplies = Array.isArray(data) ? data : [];
+      setReplies(safeReplies);
+
+      if (user) {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+
+        const likeStatusRes = await fetch(
+          `http://localhost:5000/api/posts/${post.id}/replies/like-status`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          }
+        );
+
+        const likeStatusData = await likeStatusRes.json();
+        if (!likeStatusRes.ok) return;
+
+        const likedIds = new Set(
+          Array.isArray(likeStatusData.likedReplyIds)
+            ? likeStatusData.likedReplyIds
+            : []
+        );
+
+        const nextReplyLikes = {};
+        safeReplies.forEach((reply) => {
+          nextReplyLikes[reply.id] = {
+            liked: likedIds.has(Number(reply.id)),
+            count: reply.likes_count ?? 0
+          };
+        });
+
+        setReplyLikes(nextReplyLikes);
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -203,6 +339,9 @@ const PostCard = ({ post = {}, onDelete }) => {
       if (!res.ok) throw new Error(data.error || "Error enviando respuesta");
 
       setReplyText("");
+      if (replyInputRef.current) {
+        replyInputRef.current.style.height = "32px";
+      }
       fetchReplies();
     } catch (err) {
       console.error(err);
@@ -213,20 +352,57 @@ const PostCard = ({ post = {}, onDelete }) => {
     setShowDeleteModal(true);
   };
 
+  const handleReplyLike = async (replyId) => {
+
+    if (!user) return;
+
+    try {
+
+      const token = localStorage.getItem("token");
+
+      const res = await fetch(
+        `http://localhost:5000/api/posts/${post.id}/replies/${replyId}/like`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+
+      const data = await res.json();
+      if (!res.ok) return;
+
+      setReplyLikes(prev => ({
+        ...prev,
+        [replyId]: (() => {
+          const replyFromList = replies.find((r) => r.id === replyId);
+          const currentCount =
+            prev[replyId]?.count ??
+            replyFromList?.likes_count ??
+            0;
+
+          return {
+            liked: data.liked,
+            count: Math.max(0, currentCount + (data.liked ? 1 : -1))
+          };
+        })()
+      }));
+
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   return (
-    <div className="post-card">
+    <div className="post-card" id={`post-${post.id}`}>
       <div className="post-header">
         <img src={post.avatar || "/default-avatar.png"} alt="avatar" />
 
         <div className="post-user-info">
           <div className="post-name">{post.nickname}</div>
           <div className="post-date">
-            {post.created_at
-              ? (() => {
-                  const d = new Date(post.created_at);
-                  return `${d.getDate()} ${d.toLocaleString("es-ES", { month: "long" })} ${d.getFullYear()}`;
-                })()
-              : ""}
+            {formatPostDateTime(post.created_at)}
           </div>
         </div>
 
@@ -300,9 +476,17 @@ const PostCard = ({ post = {}, onDelete }) => {
         <div
           className="post-action"
           onClick={handleLike}
-          style={{ cursor: user ? "pointer" : "not-allowed", opacity: user ? 1 : 0.4 }}
+          style={{
+            cursor: user ? "pointer" : "not-allowed",
+            opacity: user ? 1 : 0.4
+          }}
         >
-          <BiLike color={liked ? "#0f6970" : "black"} />
+          {liked ? (
+            <BiSolidLike className="post-like-icon" color="#0f6970" />
+          ) : (
+            <BiLike className="post-like-icon" color="black" />
+          )}
+
           <span>{likes}</span>
         </div>
       </div>
@@ -314,11 +498,30 @@ const PostCard = ({ post = {}, onDelete }) => {
               <p>Cargando...</p>
             ) : (
               replies.map((reply) => (
-                <div key={reply.id} className="reply-item">
+                <div key={reply.id} className="reply-item" id={`reply-${reply.id}`}>
                   <img src={reply.avatar || "/default-avatar.png"} alt="avatar" className="reply-avatar" />
                   <div className="reply-body">
                     <div className="reply-user">{reply.nickname}</div>
                     <div className="reply-content">{reply.content}</div>
+                    <div className="reply-meta">
+                      <div className="post-date">{formatRelativeTime(reply.created_at)}</div>
+                      <div className="reply-actions">
+                        <button
+                          onClick={() => handleReplyLike(reply.id)}
+                          className="reply-like-btn"
+                        >
+                          {replyLikes[reply.id]?.liked ? (
+                            <BiSolidLike color="#0f6970" />
+                          ) : (
+                            <BiLike color="black" />
+                          )}
+
+                          <span>
+                            {replyLikes[reply.id]?.count ?? reply.likes_count}
+                          </span>
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               ))
@@ -326,13 +529,13 @@ const PostCard = ({ post = {}, onDelete }) => {
           </div>
 
           <div className="reply-input-wrapper" ref={replyEmojiRef}>
-            <input
+            <textarea
               ref={replyInputRef}
-              type="text"
               value={replyText}
-              onChange={(e) => setReplyText(e.target.value)}
+              onChange={handleReplyInput}
               placeholder="Escribe una respuesta..."
               className="reply-input"
+              rows={1}
             />
 
             <div className="reply-emoji-wrap">

@@ -302,6 +302,24 @@ router.post("/:id/like", verifyToken, async (req, res) => {
             [postId]
         );
 
+        const [postOwnerRows] = await pool.query(
+            "SELECT user_id FROM posts WHERE id = ?",
+            [postId]
+        );
+
+        if (
+            postOwnerRows.length > 0 &&
+            Number(postOwnerRows[0].user_id) !== Number(userId)
+        ) {
+            await pool.query(
+                `
+                INSERT INTO notifications (user_id, from_user_id, type, reference_id)
+                VALUES (?, ?, 'like_post', ?)
+                `,
+                [Number(postOwnerRows[0].user_id), Number(userId), postId]
+            );
+        }
+
         return res.json({
             liked: true
         });
@@ -404,18 +422,44 @@ router.post("/:id/reply", verifyToken, async (req, res) => {
         INSERT REPLY
         ============================
         */
-        await pool.query(
+        const [result] = await pool.query(
             `
             INSERT INTO post_replies
             (post_id, user_id, content)
             VALUES (?, ?, ?)
             `,
-            [
-                postId,
-                userId,
-                cleanContent
-            ]
+            [postId, userId, cleanContent]
         );
+
+        const replyId = result.insertId;
+
+        /*
+        ============================
+        GET POST OWNER
+        ============================
+        */
+        const [post] = await pool.query(
+            "SELECT user_id FROM posts WHERE id = ?",
+            [postId]
+        );
+
+        /*
+        ============================
+        CREATE NOTIFICATION
+        ============================
+        */
+        if (
+            post.length > 0 &&
+            Number(post[0].user_id) !== Number(userId)
+        ) {
+            await pool.query(
+                `
+        INSERT INTO notifications (user_id, from_user_id, type, reference_id)
+        VALUES (?, ?, 'reply_post', ?)
+        `,
+                [Number(post[0].user_id), Number(userId), replyId]
+            );
+        }
 
         return res.json({
             success: true
@@ -430,6 +474,114 @@ router.post("/:id/reply", verifyToken, async (req, res) => {
         });
     }
 });
+
+
+
+/*
+====================================
+ENDPOINT TOGGLE LIKE REPLY
+====================================
+*/
+
+router.post("/:id/replies/:replyId/like", verifyToken, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const replyId = Number(req.params.replyId);
+
+        if (isNaN(replyId)) {
+            return res.status(400).json({ error: "ID inválido" });
+        }
+
+        const [existing] = await pool.query(
+            `SELECT id FROM post_reply_likes WHERE reply_id = ? AND user_id = ?`,
+            [replyId, userId]
+        );
+
+        // QUITAR LIKE
+        if (existing.length > 0) {
+            await pool.query(
+                `DELETE FROM post_reply_likes WHERE reply_id = ? AND user_id = ?`,
+                [replyId, userId]
+            );
+
+            await pool.query(
+                `UPDATE post_replies SET likes_count = GREATEST(likes_count - 1, 0) WHERE id = ?`,
+                [replyId]
+            );
+
+            return res.json({ liked: false });
+        }
+
+        // DAR LIKE
+        await pool.query(
+            `INSERT INTO post_reply_likes (reply_id, user_id) VALUES (?, ?)`,
+            [replyId, userId]
+        );
+
+        await pool.query(
+            `UPDATE post_replies SET likes_count = likes_count + 1 WHERE id = ?`,
+            [replyId]
+        );
+
+        const [replyOwnerRows] = await pool.query(
+            "SELECT user_id, post_id FROM post_replies WHERE id = ?",
+            [replyId]
+        );
+
+        if (
+            replyOwnerRows.length > 0 &&
+            Number(replyOwnerRows[0].user_id) !== Number(userId)
+        ) {
+            await pool.query(
+                `
+                INSERT INTO notifications (user_id, from_user_id, type, reference_id)
+                VALUES (?, ?, 'like_reply', ?)
+                `,
+                [Number(replyOwnerRows[0].user_id), Number(userId), replyId]
+            );
+        }
+
+        return res.json({ liked: true });
+
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ error: "Error like reply" });
+    }
+});
+
+/*
+====================================
+REPLIES LIKE STATUS (BY POST)
+====================================
+*/
+router.get("/:id/replies/like-status", verifyToken, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const postId = Number(req.params.id);
+
+        if (isNaN(postId)) {
+            return res.status(400).json({ error: "ID inválido" });
+        }
+
+        const [rows] = await pool.query(
+            `
+            SELECT pr.id AS reply_id
+            FROM post_reply_likes prl
+            JOIN post_replies pr ON pr.id = prl.reply_id
+            WHERE pr.post_id = ? AND prl.user_id = ?
+            `,
+            [postId, userId]
+        );
+
+        return res.json({
+            likedReplyIds: rows.map((r) => Number(r.reply_id))
+        });
+    } catch (err) {
+        console.error("REPLIES LIKE STATUS ERROR:", err);
+        return res.status(500).json({ error: "Error obteniendo likes de respuestas" });
+    }
+});
+
 
 /*
 ====================================
@@ -487,5 +639,6 @@ router.get("/:id/replies", async (req, res) => {
         });
     }
 });
+
 
 module.exports = router;
