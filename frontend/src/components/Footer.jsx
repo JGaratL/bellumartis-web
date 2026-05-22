@@ -13,63 +13,89 @@ function Footer() {
       <footer className="footer">
         <div className="footer-container">
 
-          {/* PARTE 1 */}
-          <div className="footer-column footer-logo-column">
-            <img src="/escudo.png" alt="BellumArtis" className="footer-logo" />
+          {/* COLUMN 1 */}
+          <div className="footer-col footer-col--brand">
+
+            <div className="footer-col__top footer-col__top--left">
+              <img
+                src="/bellumartisLogo.png"
+                alt="BellumArtis"
+                className="footer-logo"
+              />
+            </div>
+
+            <div className="footer-col__bottom footer-col__location">
+              <img src="/asturias.webp" alt="Asturias" className="footer-flag" />
+              <img src="/espana.webp" alt="España" className="footer-flag" />
+
+              <div className="footer-location-text">
+                <strong>Oviedo, Asturias</strong>
+              </div>
+            </div>
+
           </div>
 
-          {/* PARTE 2 */}
-          <div className="footer-column">
-            <h3 className="footer-title">Enlaces de interés</h3>
+          {/* COLUMN 2 */}
+          <div className="footer-col footer-col--links">
 
             <div className="footer-links">
+              <a href="#">Política de privacidad</a>
               <a href="#">Aviso legal</a>
               <a href="#">Política de cookies</a>
-              <a href="#">Política de privacidad</a>
               <a href="#">Condiciones de uso</a>
             </div>
+
           </div>
 
-          {/* PARTE 3 */}
-          <div className="footer-column">
-            <h3 className="footer-title">Contacto</h3>
+          {/* COLUMN 3 */}
+          <div className="footer-col footer-col--legal">
 
-            <div className="footer-contact">
-              <p>© 2026 Bellumartis.</p>
-              <p>Todos los derechos reservados.</p>
+            <div>©2026. Francisco García Campa.</div>
+            <div>Todos los derechos reservados.</div>
+            <div><strong>E-mail:</strong></div>
+            <div>info@bellumartis.com</div>
+
+          </div>
+
+          {/* COLUMN 4 */}
+          <div className="footer-col footer-col--social">
+
+            <div className="footer-col__top footer-col__top--right">
+              <img
+                src="/escudo.png"
+                alt="BellumArtis"
+                className="footer-logo-right"
+              />
             </div>
-          </div>
 
-          {/* PARTE 4 */}
-          <div className="footer-column footer-social-column">
-            <img src="/bellumartisLogo.png" alt="BellumArtis" className="footer-logo-right" />
+            <div className="footer-col__bottom footer-socials">
 
-            <div className="footer-socials">
-              <a href="#" aria-label="X">
-                <FaXTwitter />
-              </a>
-
-              <a href="#" aria-label="Facebook">
-                <FaFacebookF />
-              </a>
-
-              <a href="#" aria-label="YouTube">
+              <a href="https://youtube.com/@BELLUMARTISHISTORIAMILITAR" target="_blank" rel="noopener noreferrer">
                 <FaYoutube />
               </a>
 
-              <a href="#" aria-label="Instagram">
+              <a href="https://x.com/bellumartis" target="_blank" rel="noopener noreferrer">
+                <FaXTwitter />
+              </a>
+
+              <a href="https://www.facebook.com/bellumartishistoriamilitar/" target="_blank" rel="noopener noreferrer">
+                <FaFacebookF />
+              </a>
+
+              <a href="https://www.instagram.com/bellumartis_historia_militar/" target="_blank" rel="noopener noreferrer">
                 <FaInstagram />
               </a>
+
             </div>
+
           </div>
 
         </div>
       </footer>
 
-      {/* 👇 FRANJA NEGRA (FUERA DEL FOOTER, CORRECTO) */}
       <div className="footer-bottom">
-        <div className="footer-bottom-left">@unsitiogenial</div>
-        <div className="footer-bottom-right">
+        <div className="footer-bottom__left">@unsitiogenial</div>
+        <div className="footer-bottom__right">
           Copyright by Cani Garat. All rights reserved.
         </div>
       </div>

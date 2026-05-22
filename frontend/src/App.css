@@ -484,15 +484,15 @@ body {
   font-size: 21px;
   font-weight: 700;
   color: #111;
-  margin: 0;
+  margin-top: 5px;
   text-align: right;
+  
 }
 
 .journey-role {
   font-family: "Agrandir", "Avenir Next", sans-serif;
   font-size: 21px;
   color: #111;
-  margin: 0;
   text-align: right;
 }
 
@@ -573,11 +573,7 @@ body {
     margin-top: 54px;
   }
 
-  .journey-name {
-    font-size: 24px;
-  }
-
-  .journey-role {
+    .journey-role {
     font-size: 18px;
   }
 }

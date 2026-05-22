@@ -83,10 +83,10 @@ function App() {
                     />
 
                     <div className="social-icons">
-                      <a href="#"><FaXTwitter /></a>
-                      <a href="#"><FaFacebookF /></a>
-                      <a href="#"><FaYoutube /></a>
-                      <a href="#"><FaInstagram /></a>
+                      <a href="https://x.com/bellumartis" target="_blank" rel="noopener noreferrer"><FaXTwitter /></a>
+                      <a href="https://www.facebook.com/bellumartishistoriamilitar/" target="_blank" rel="noopener noreferrer"><FaFacebookF /></a>
+                      <a href="https://youtube.com/@BELLUMARTISHISTORIAMILITAR" target="_blank" rel="noopener noreferrer"><FaYoutube /></a>
+                      <a href="https://www.instagram.com/bellumartis_historia_militar/" target="_blank" rel="noopener noreferrer"><FaInstagram /></a>
                     </div>
                   </div>
 

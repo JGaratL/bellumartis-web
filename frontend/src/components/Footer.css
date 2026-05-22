@@ -4,15 +4,13 @@
 .footer {
   width: 100%;
 
-  background: linear-gradient(
-    0deg,
-    #0c3d3f 0%,
-    #0f6970 100%
-  );
+  background: linear-gradient(0deg,
+      #0c3d3f 30%,
+      #0f6970 80%);
 
   border-top: 1px solid rgba(255, 255, 255, 0.08);
 
-  padding: 20px 70px 0;
+  padding: 0px 70px 0;
 
   box-sizing: border-box;
 }
@@ -28,7 +26,7 @@
   grid-template-columns: repeat(4, 1fr);
 
   gap: 50px;
-  align-items: start;
+  align-items: stretch;
 
   padding-bottom: 15px;
 }
@@ -39,6 +37,13 @@
 .footer-column {
   display: flex;
   flex-direction: column;
+  text-align: center;
+}
+
+.footer-links-column,
+.footer-col-3,
+.footer-legal {
+  justify-content: center;
 }
 
 /* =========================
@@ -69,10 +74,11 @@
 
   transition: transform 0.25s ease;
 }
+
 .footer-logo-right {
   width: 130px;
 
-  object-fit: contain;  
+  object-fit: contain;
 
   filter: contrast(1.05) saturate(0.95);
 
@@ -91,6 +97,12 @@
   display: flex;
   flex-direction: column;
   gap: 5px;
+  text-align: right;
+}
+
+.footer-links-column {
+  display: flex;
+  align-items: center;
 }
 
 .footer-links a {
@@ -132,9 +144,9 @@
 
 .footer-socials {
   display: flex;
+  justify-content: center;
   gap: 16px;
   padding: 10px 0;
-  margin-top: 18px;
 }
 
 .footer-socials a {
@@ -186,3 +198,194 @@
   margin-right: 50px;
   font-size: 12px;
 }
+
+
+.footer-flag {
+  width: 30px;
+  height: 20px;
+  object-fit: cover;
+  margin: 0 5px;
+}
+
+.footer-column {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font: 14px 'Arial', sans-serif;
+  color: rgba(255, 255, 255, 0.82);
+  align-items: center;
+
+}
+
+.footer-col-3 {
+  align-items: flex-start;
+  text-align: left;
+}
+
+.footer-legal,
+.footer-legal div {
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 14px;
+  text-align: left;
+}
+
+.footer-col-4 .footer-socials {
+  width: 100%;
+  justify-content: center;
+}
+
+
+
+
+
+
+
+
+
+
+
+/* BASE COLUMN */
+.footer-col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 14px;
+}
+
+/* FLEX HELPERS (NO HERENCIA ROTA) */
+.footer-col--brand,
+.footer-col--social {
+  justify-content: space-between;
+}
+
+.footer-col--links {
+  justify-content: center;
+}
+
+.footer-col--legal {
+  justify-content: flex-start;
+  padding-top: 27px;
+  line-height: 2.25;
+
+}
+
+/* TOP / BOTTOM SPLIT */
+.footer-col__top,
+.footer-col__bottom {
+  display: flex;
+  align-items: center;
+}
+
+.footer-col__top--left {
+  justify-content: flex-start;
+}
+
+.footer-col__top--right {
+  justify-content: flex-end;
+}
+
+/* BRAND */
+.footer-logo {
+  width: 130px;
+  object-fit: contain;
+}
+
+.footer-logo-right {
+  width: 130px;
+  object-fit: contain;
+  padding-top: 30px;
+
+}
+
+/* LOCATION */
+.footer-col__location {
+  display: flex;
+  align-items: center;
+}
+
+.footer-location-text {
+  font-weight: 200;
+  color: #fff;
+}
+
+/* LINKS */
+.footer-col--links {
+  align-items: flex-end;
+}
+
+.footer-links {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.footer-links a {
+  color: rgba(255, 255, 255, 0.85);
+  text-decoration: none;
+}
+
+/* LEGAL */
+.footer-col--legal {
+  align-items: flex-start;
+}
+
+/* SOCIAL */
+.footer-socials {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  width: 100%;
+}
+
+.footer-socials a {
+  color: #fff;
+  font-size: 20px;
+}
+
+/* BOTTOM BAR */
+.footer-bottom {
+  width: 100%;
+  background: #000;
+  height: 50px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 70px;
+  box-sizing: border-box;
+}
+
+.footer-bottom__left,
+.footer-bottom__right {
+  color: #fff;
+  font-size: 12px;
+}
+
+.footer-col--links .footer-links {
+  gap: 18px;
+}
+
+.footer-col--brand .footer-col__top,
+.footer-col--social .footer-col__top {
+  justify-content: center;
+}
+
+
+.footer-col__location {
+  width: 100%;
+  justify-content: center;
+  align-items: center;
+}
+
+.footer-col--links {
+  margin-right: 10px;
+}
+
+.footer-col--legal {
+  margin-left: 10px;
+}
+
+.footer-col__location {
+  transform: translateY(-16px);
+}
+
