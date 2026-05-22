@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import ProfileCard from "../components/ProfileCard";
 import api from "../api";
 
 function MyProfile() {
   const [user, setUser] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -20,7 +22,13 @@ function MyProfile() {
 
   if (!user) return <div>Cargando...</div>;
 
-  return <ProfileCard user={user} editable={false} />;
+  return (
+    <ProfileCard
+      user={user}
+      editable={false}
+      onClose={() => navigate("/")}
+    />
+  );
 }
 
 export default MyProfile;

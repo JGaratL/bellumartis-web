@@ -1,122 +1,252 @@
-.profile-card {
-  width: 100%;
-  max-width: 720px;
-  margin: 40px auto;
-  background: #111;
-  border-radius: 16px;
-  padding: 24px;
-  color: #fff;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+.pc-external {
+  background: #ececec;
+  margin-top: 140px;
+  margin-bottom: 80px;
+  padding: 12px;
+  border-radius: 14px;
+  max-width: 760px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.pc-internal {
+  background: white;
+  border-radius: 12px;
   display: flex;
-  gap: 20px;
+  padding: 12px;
+  min-height: 260px;
+}
+
+/* =========================
+   IZQUIERDA (AVATAR)
+========================= */
+
+.pc-left {
+  display: flex;
+  justify-content: center;
   align-items: flex-start;
 }
 
-/* Avatar */
-.profile-avatar {
-  width: 90px;
-  height: 90px;
+.pc-avatar-wrapper {
+  position: relative;
+}
+
+.pc-avatar {
+  width: 240px;
+  height: 240px;
   border-radius: 50%;
-  background: #222;
-  overflow: hidden;
-  flex-shrink: 0;
-  border: 2px solid #333;
-}
-
-.profile-avatar img {
-  width: 100%;
-  height: 100%;
   object-fit: cover;
+  padding: 10px 10px;
 }
 
-/* Info */
-.profile-info {
+.pc-camera {
+  position: absolute;
+  bottom: 24px;
+  right: 13px;
+  background: white;
+  border-radius: 50%;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+/* =========================
+   DERECHA
+========================= */
+
+.pc-right {
+  flex: 1.6;
+  display: flex;
+  flex-direction: column;
+  padding-left: 12px;
+}
+
+/* top + bottom */
+.pc-right-top {
+  flex: 2;
+  display: flex;
+  gap: 20px; /* 2 columnas */
+}
+
+.pc-right-bottom {
   flex: 1;
 }
 
-.profile-header {
+/* separador */
+.pc-divider {
+  height: 1px;
+  background: #ddd;
+  margin: 8px 0;
+}
+
+/* =========================
+   COLUMNAS INTERNAS
+========================= */
+
+.pc-col {
+  flex: 1;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.profile-name {
-  font-size: 20px;
-  font-weight: 600;
+/* cada bloque de campo */
+.pc-cell {
+  display: flex;
+  flex-direction: column;
 }
 
-.profile-nickname {
-  font-size: 14px;
-  color: #aaa;
-}
-
-/* Edit icon */
-.profile-edit {
-  cursor: pointer;
-  opacity: 0.7;
-  transition: 0.2s;
-}
-
-.profile-edit:hover {
-  opacity: 1;
-}
-
-/* Fields */
-.profile-field {
-  margin-top: 12px;
-  font-size: 14px;
-  color: #ddd;
-}
-
-.profile-field span {
+/* etiqueta pequeña */
+.pc-label-small {
+  font-size: 12px;
   color: #888;
 }
 
-/* Socials */
-.profile-socials {
-  display: flex;
-  gap: 12px;
-  margin-top: 16px;
+/* texto normal */
+.pc-value-text {
+  font-size: 14px;
+  color: #111;
 }
 
-.profile-socials a {
-  color: #aaa;
+/* nickname destacado */
+.pc-value-big {
   font-size: 18px;
+  font-weight: 600;
+  color: #111;
+}
+
+/* inline (texto + iconos) */
+.pc-inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* =========================
+   ICONOS
+========================= */
+
+.pc-icon {
+  font-size: 16px;
+  cursor: pointer;
+  color: #0f6970; /* más visible */
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+}
+
+
+/* =========================
+   BOTONES
+========================= */
+
+.pc-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.pc-btn {
+  background: #0f6970;
+  color: white;
+  border: none;
+  padding: 8px 20px;
+  border-radius: 10px;
+  cursor: pointer;
   transition: 0.2s;
 }
 
-.profile-socials a:hover {
-  color: #fff;
+.pc-btn:hover {
+  background: #13808a;
 }
 
-/* Inputs (modo editable) */
-.profile-input {
-  width: 100%;
-  background: #1a1a1a;
-  border: 1px solid #333;
-  border-radius: 8px;
-  padding: 8px 10px;
-  color: #fff;
-  margin-top: 6px;
+.pc-btn-cancel {
+  background: #bdbdbd;
+}
+
+.pc-btn-cancel:hover {
+  background: #a6a6a6;
+}
+
+/* =========================
+   SELECTS (PAÍS / PROVINCIA)
+========================= */
+
+.pc-cell select {
+  padding: 4px 6px;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+  font-size: 13px;
   outline: none;
 }
 
-.profile-input:focus {
-  border-color: #555;
+/* =========================
+   UTILIDADES
+========================= */
+
+/* espacios vacíos columna derecha */
+.pc-empty {
+  height: 52px; /* mantiene alineación visual */
 }
 
-/* Save button */
-.profile-save {
-  margin-top: 16px;
-  padding: 8px 14px;
-  background: #fff;
-  color: #000;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
+.pc-empty {
+  min-height: 42px; /* clave para alineación */
 }
 
-.profile-save:hover {
-  opacity: 0.9;
+.pc-rrss-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.pc-rrss-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #333;
+  padding: 4px 6px;
+  border-radius: 6px;
+  transition: 0.2s;
+}
+
+.pc-rrss-item:hover {
+  background: #f2f2f2;
+}
+
+.pc-rrss-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.pc-rrss-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #333;
+  padding: 4px 6px;
+  border-radius: 6px;
+  transition: 0.2s;
+}
+
+.pc-rrss-item:hover {
+  background: #f2f2f2;
+}
+
+.pc-rrss-icon {
+  font-size: 16px;
+}
+
+/* colores por red */
+.pc-rrss-icon.youtube { color: #ff0000; }
+.pc-rrss-icon.x { color: #111; }
+.pc-rrss-icon.facebook { color: #1877f2; }
+.pc-rrss-icon.instagram { color: #e4405f; }
+
+.pc-error {
+  font-size: 11px;
+  color: #d93025;
+  margin-top: 2px;
 }

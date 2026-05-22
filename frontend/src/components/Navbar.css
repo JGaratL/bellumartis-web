@@ -227,10 +227,12 @@
 }
 
 .dropdown p {
+  display: flex;
+  align-items: left;
   margin: 0;
   padding: 8px 12px;
-
-  text-align: center;
+  gap: 10px;
+  text-align: left;
 
   color: rgba(255, 255, 255, 0.92);
   cursor: pointer;
@@ -245,6 +247,14 @@
 
 .dropdown p+p {
   border-top: 1px solid rgba(217, 233, 233, 0.15);
+}
+
+.dropdown-icon {
+  color: white;
+  font-size: 18px;
+  flex-shrink: 0;
+  margin-top: 4px;
+  margin-left: 3px;
 }
 
 .notif-wrapper {

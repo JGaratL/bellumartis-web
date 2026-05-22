@@ -1,73 +1,535 @@
-import { useState } from "react";
 import "./ProfileCard.css";
-import { FaPen } from "react-icons/fa";
+import { useState, useEffect } from "react";
+import { BiSolidPencil, BiSolidCamera } from "react-icons/bi";
+import { FaYoutube, FaFacebook, FaInstagram } from "react-icons/fa";
+import { FaXTwitter } from "react-icons/fa6";
 
-function ProfileCard({ user, editable, onSave }) {
-  const [form, setForm] = useState(user);
-  const [editingField, setEditingField] = useState(null);
+const countries = [
+    "Alemania",
+    "Argentina",
+    "Australia",
+    "Belgica",
+    "Brasil",
+    "Canada",
+    "Chile",
+    "China",
+    "Colombia",
+    "Corea del Sur",
+    "Cuba",
+    "Dinamarca",
+    "Ecuador",
+    "España",
+    "Estados Unidos",
+    "Finlandia",
+    "Francia",
+    "Grecia",
+    "Irlanda",
+    "Italia",
+    "Japon",
+    "Mexico",
+    "Noruega",
+    "Paises Bajos",
+    "Peru",
+    "Polonia",
+    "Portugal",
+    "Reino Unido",
+    "Republica Checa",
+    "Rumania",
+    "Suecia",
+    "Suiza",
+    "Uruguay",
+    "Venezuela",
+];
 
-  const handleChange = (field, value) => {
-    setForm((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
+const provincesES = [
+    "A Coruna",
+    "Alava",
+    "Albacete",
+    "Alicante",
+    "Almeria",
+    "Asturias",
+    "Avila",
+    "Badajoz",
+    "Baleares",
+    "Barcelona",
+    "Burgos",
+    "Caceres",
+    "Cadiz",
+    "Cantabria",
+    "Castellon",
+    "Ceuta",
+    "Ciudad Real",
+    "Cordoba",
+    "Cuenca",
+    "Girona",
+    "Granada",
+    "Guadalajara",
+    "Gipuzkoa",
+    "Huelva",
+    "Huesca",
+    "Jaen",
+    "La Rioja",
+    "Las Palmas",
+    "Leon",
+    "Lleida",
+    "Lugo",
+    "Madrid",
+    "Malaga",
+    "Melilla",
+    "Murcia",
+    "Navarra",
+    "Ourense",
+    "Palencia",
+    "Pontevedra",
+    "Salamanca",
+    "Santa Cruz de Tenerife",
+    "Segovia",
+    "Sevilla",
+    "Soria",
+    "Tarragona",
+    "Teruel",
+    "Toledo",
+    "Valencia",
+    "Valladolid",
+    "Bizkaia",
+    "Zamora",
+    "Zaragoza",
+];
 
-  const saveField = async (field) => {
-    setEditingField(null);
-    if (onSave) onSave(form);
-  };
+function ProfileCard({ user, editable, onClose, onSave }) {
+    if (!user) return null;
 
-  const Field = ({ label, field }) => (
-    <div className="pc-field">
-      <span className="pc-label">{label}</span>
+    const resolveAvatarSrc = (value) => {
+        if (!value || typeof value !== "string") return null;
+        const avatar = value.trim();
+        if (!avatar) return null;
 
-      {editingField === field && editable ? (
-        <input
-          className="pc-input"
-          value={form[field] || ""}
-          onChange={(e) => handleChange(field, e.target.value)}
-          onBlur={() => saveField(field)}
-          autoFocus
-        />
-      ) : (
-        <div className="pc-value">
-          {form[field] || "-"}
+        if (avatar.startsWith("http://") || avatar.startsWith("https://")) {
+            return avatar;
+        }
+
+        if (avatar.startsWith("/uploads/")) {
+            return `http://localhost:5000${avatar}`;
+        }
+
+        if (avatar.startsWith("uploads/")) {
+            return `http://localhost:5000/${avatar}`;
+        }
+
+        return avatar;
+    };
+
+    const [form, setForm] = useState(user);
+    const [showPassword, setShowPassword] = useState(false);
+    const [errors, setErrors] = useState({});
+
+    useEffect(() => {
+        setForm(user);
+    }, [user]);
+
+    const isValidUrl = (value) => {
+        if (!value) return true;
+
+        try {
+            const url = new URL(value);
+            return url.protocol === "http:" || url.protocol === "https:";
+        } catch {
+            return false;
+        }
+    };
+
+    const handleChange = (field, value) => {
+        setForm(prev => ({ ...prev, [field]: value }));
+
+        if (["x_url", "instagram_url", "facebook_url", "youtube_url"].includes(field)) {
+            setErrors(prev => ({
+                ...prev,
+                [field]: isValidUrl(value)
+                    ? null
+                    : "Introduce una URL válida (https://...)"
+            }));
+        }
+    };
+
+    return (
+        <div className="pc-external">
+            <div className="pc-internal">
+
+                {/* IZQUIERDA */}
+                <div className="pc-left">
+                    <div className="pc-avatar-wrapper">
+
+                        <img
+                            src={resolveAvatarSrc(form.profile_image) || "/BHM.webp"}
+                            className="pc-avatar"
+                            alt="avatar"
+                            referrerPolicy="no-referrer"
+                            onError={(e) => {
+                                e.currentTarget.onerror = null;
+                                e.currentTarget.src = "/BHM.webp";
+                            }}
+                        />
+
+                        <input
+                            type="file"
+                            accept="image/*"
+                            id="avatarInput"
+                            style={{ display: "none" }}
+                            onChange={(e) => {
+                                const file = e.target.files[0];
+                                if (!file) return;
+
+                                // límite 5MB
+                                if (file.size > 5 * 1024 * 1024) {
+                                    alert("La imagen no puede superar 5MB");
+                                    return;
+                                }
+
+                                const reader = new FileReader();
+
+                                reader.onload = (event) => {
+                                    const img = new Image();
+
+                                    img.onload = () => {
+
+                                        const canvas = document.createElement("canvas");
+                                        const ctx = canvas.getContext("2d");
+
+                                        const MAX_SIZE = 500;
+
+                                        let width = img.width;
+                                        let height = img.height;
+
+                                        // redimensionar
+                                        if (width > height) {
+                                            if (width > MAX_SIZE) {
+                                                height *= MAX_SIZE / width;
+                                                width = MAX_SIZE;
+                                            }
+                                        } else {
+                                            if (height > MAX_SIZE) {
+                                                width *= MAX_SIZE / height;
+                                                height = MAX_SIZE;
+                                            }
+                                        }
+
+                                        canvas.width = width;
+                                        canvas.height = height;
+
+                                        ctx.drawImage(img, 0, 0, width, height);
+
+                                        // comprimir jpeg
+                                        const compressedBase64 = canvas.toDataURL(
+                                            "image/jpeg",
+                                            0.75
+                                        );
+
+                                        setForm(prev => ({
+                                            ...prev,
+                                            profile_image: compressedBase64
+                                        }));
+                                    };
+
+                                    img.src = event.target.result;
+                                };
+
+                                reader.readAsDataURL(file);
+                            }}
+                        />
+
+                        <div
+                            className="pc-camera"
+                            onClick={() => document.getElementById("avatarInput").click()}
+                        >
+                            <BiSolidCamera />
+                        </div>
+
+                    </div>
+                </div>
+
+                {/* DERECHA */}
+                <div className="pc-right">
+
+                    <div className="pc-right-top">
+
+                        {/* COLUMNA IZQUIERDA */}
+                        <div className="pc-col">
+
+                            {/* NICKNAME */}
+                            <div className="pc-cell">
+                                <div className="pc-label-small pc-label-row">
+                                    Nickname
+
+                                    {editable && (
+                                        <BiSolidPencil
+                                            className="pc-icon"
+                                            onClick={() =>
+                                                setForm(prev => ({
+                                                    ...prev,
+                                                    editingNickname: true
+                                                }))
+                                            }
+                                        />
+                                    )}
+                                </div>
+
+                                {editable && form.editingNickname ? (
+                                    <input
+                                        autoFocus
+                                        value={form.nickname || ""}
+                                        onChange={(e) =>
+                                            setForm(prev => ({
+                                                ...prev,
+                                                nickname: e.target.value
+                                            }))
+                                        }
+                                        onBlur={() =>
+                                            setForm(prev => ({
+                                                ...prev,
+                                                editingNickname: false
+                                            }))
+                                        }
+                                        onKeyDown={(e) => {
+                                            if (e.key === "Enter") {
+                                                setForm(prev => ({
+                                                    ...prev,
+                                                    editingNickname: false
+                                                }));
+                                            }
+
+                                            if (e.key === "Escape") {
+                                                setForm(prev => ({
+                                                    ...prev,
+                                                    nickname: user.nickname,
+                                                    editingNickname: false
+                                                }));
+                                            }
+                                        }}
+                                    />
+                                ) : (
+                                    <div
+                                        onClick={() => {
+                                            if (!editable) return;
+
+                                            setForm(prev => ({
+                                                ...prev,
+                                                editingNickname: true
+                                            }));
+                                        }}
+                                        style={{ cursor: editable ? "pointer" : "default" }}
+                                    >
+                                        {form.nickname}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* EMAIL */}
+                            <div className="pc-cell">
+                                <div className="pc-label-small">Email</div>
+                                <div>{form.email}</div>
+                            </div>
+
+                            {/* PASSWORD */}
+                            <div className="pc-cell">
+                                <div className="pc-label-small pc-label-row">
+                                    Password
+                                    {editable && <BiSolidPencil className="pc-icon" />}
+                                </div>
+
+                                <div className="pc-inline">
+                                    <div>
+                                        {showPassword ? form.password : "********"}
+                                    </div>
+
+                                </div>
+                            </div>
+
+                            {/* PAÍS */}
+                            <div className="pc-cell">
+                                <div className="pc-label-small">País</div>
+
+                                {editable ? (
+                                    <select
+                                        value={form.country || ""}
+                                        onChange={(e) => handleChange("country", e.target.value)}
+                                    >
+                                        {countries.map(c => (
+                                            <option key={c} value={c}>{c}</option>
+                                        ))}
+                                    </select>
+                                ) : (
+                                    <div>{form.country || "-"}</div>
+                                )}
+                            </div>
+
+                        </div>
+
+                        {/* COLUMNA DERECHA */}
+                        <div className="pc-col">
+
+                            <div className="pc-cell pc-empty"></div>
+                            <div className="pc-cell pc-empty"></div>
+
+                            {/* FECHA */}
+                            <div className="pc-cell">
+                                <div className="pc-label-small">
+                                    Fecha de registro
+                                </div>
+                                <div>
+                                    {form.created_at
+                                        ? new Date(form.created_at).toLocaleDateString()
+                                        : "-"}
+                                </div>
+                            </div>
+
+                            {/* PROVINCIA */}
+                            {form.country === "España" ? (
+                                <div className="pc-cell">
+                                    <div className="pc-label-small">Provincia</div>
+
+                                    {editable ? (
+                                        <select
+                                            value={form.province || ""}
+                                            onChange={(e) => handleChange("province", e.target.value)}
+                                        >
+                                            {provincesES.map(p => (
+                                                <option key={p} value={p}>{p}</option>
+                                            ))}
+                                        </select>
+                                    ) : (
+                                        <div>{form.province || "-"}</div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="pc-cell pc-empty"></div>
+                            )}
+
+                        </div>
+
+                    </div>
+
+                    <div className="pc-divider" />
+
+                    {/* RRSS */}
+                    <div className="pc-right-bottom">
+
+                        <div className="pc-rrss-grid">
+
+                            {/* YOUTUBE */}
+                            <div className="pc-rrss-item">
+                                <FaYoutube className="pc-rrss-icon youtube" />
+
+                                {editable ? (
+                                    <>
+                                        <input
+                                            value={form.youtube_url || ""}
+                                            onChange={(e) => handleChange("youtube_url", e.target.value)}
+                                            placeholder="YouTube URL"
+                                        />
+                                        {errors.youtube_url && (
+                                            <div className="pc-error">{errors.youtube_url}</div>
+                                        )}
+                                    </>
+                                ) : (
+                                    <span>{form.youtube_url || "-"}</span>
+                                )}
+                            </div>
+
+                            {/* X */}
+                            <div className="pc-rrss-item">
+                                <FaXTwitter className="pc-rrss-icon x" />
+
+                                {editable ? (
+                                    <>
+                                        <input
+                                            value={form.x_url || ""}
+                                            onChange={(e) => handleChange("x_url", e.target.value)}
+                                            placeholder="X URL"
+                                        />
+                                        {errors.x_url && (
+                                            <div className="pc-error">{errors.x_url}</div>
+                                        )}
+                                    </>
+                                ) : (
+                                    <span>{form.x_url || "-"}</span>
+                                )}
+                            </div>
+
+                            {/* FACEBOOK */}
+                            <div className="pc-rrss-item">
+                                <FaFacebook className="pc-rrss-icon facebook" />
+
+                                {editable ? (
+                                    <>
+                                        <input
+                                            value={form.facebook_url || ""}
+                                            onChange={(e) => handleChange("facebook_url", e.target.value)}
+                                            placeholder="Facebook URL"
+                                        />
+                                        {errors.facebook_url && (
+                                            <div className="pc-error">{errors.facebook_url}</div>
+                                        )}
+                                    </>
+                                ) : (
+                                    <span>{form.facebook_url || "-"}</span>
+                                )}
+                            </div>
+
+                            {/* INSTAGRAM */}
+                            <div className="pc-rrss-item">
+                                <FaInstagram className="pc-rrss-icon instagram" />
+
+                                {editable ? (
+                                    <>
+                                        <input
+                                            value={form.instagram_url || ""}
+                                            onChange={(e) => handleChange("instagram_url", e.target.value)}
+                                            placeholder="Instagram URL"
+                                        />
+                                        {errors.instagram_url && (
+                                            <div className="pc-error">{errors.instagram_url}</div>
+                                        )}
+                                    </>
+                                ) : (
+                                    <span>{form.instagram_url || "-"}</span>
+                                )}
+                            </div>
+
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            {/* BOTONES */}
+            <div className="pc-actions">
+                {editable ? (
+                    <>
+                        <button
+                            className="pc-btn"
+                            onClick={() => onSave?.(form)}
+                        >
+                            Guardar
+                        </button>
+
+                        <button
+                            className="pc-btn pc-btn-cancel"
+                            onClick={onClose}
+                        >
+                            Cancelar
+                        </button>
+                    </>
+                ) : (
+                    <button
+                        className="pc-btn"
+                        onClick={onClose}
+                    >
+                        Cerrar
+                    </button>
+                )}
+            </div>
         </div>
-      )}
-
-      {editable && (
-        <FaPen
-          className="pc-icon"
-          onClick={() => setEditingField(field)}
-        />
-      )}
-    </div>
-  );
-
-  return (
-    <div className="profile-card">
-      <div className="pc-header">
-        <img
-          src={form.profile_image || "/BHM.webp"}
-          alt="avatar"
-          className="pc-avatar"
-        />
-        <h2>{form.nickname}</h2>
-      </div>
-
-      <div className="pc-body">
-        <Field label="Nickname" field="nickname" />
-        <Field label="Provincia" field="province" />
-        <Field label="País" field="country" />
-
-        <Field label="X (Twitter)" field="x_url" />
-        <Field label="Instagram" field="instagram_url" />
-        <Field label="Facebook" field="facebook_url" />
-        <Field label="YouTube" field="youtube_url" />
-      </div>
-    </div>
-  );
+    );
 }
 
 export default ProfileCard;

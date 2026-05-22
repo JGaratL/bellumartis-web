@@ -1,4 +1,9 @@
 ﻿import { useState, useRef, useEffect, useContext } from "react";
+
+import { MdLogout } from "react-icons/md";
+import { VscSettingsGear } from "react-icons/vsc";
+import { CgProfile } from "react-icons/cg";
+
 import "./Navbar.css";
 
 import {
@@ -342,7 +347,7 @@ function Navbar() {
               {notifications.length === 0 ? (
                 <p className="notif-empty">Sin notificaciones</p>
               ) : (
-              notifications.map((n) => (
+                notifications.map((n) => (
                   <div
                     key={n.id}
                     className={`notif-item ${n.is_read ? "read" : ""}`}
@@ -372,10 +377,10 @@ function Navbar() {
                       <p className="notif-snippet">{formatRelativeTime(n.created_at)}</p>
                     </div>
                   </div>
-              ))
-            )}
-          </div>
-        )}
+                ))
+              )}
+            </div>
+          )}
         </div>
 
         <div className="user" ref={userRef}>
@@ -393,41 +398,32 @@ function Navbar() {
               {!user ? (
                 <>
                   <p
-                    className={
-                      location.pathname === "/login"
-                        ? "active"
-                        : ""
-                    }
-                    onMouseDown={(e) =>
-                      e.preventDefault()
-                    }
+                    className={location.pathname === "/login" ? "active" : ""}
+                    onMouseDown={(e) => e.preventDefault()}
                     onClick={() => goTo("/login")}
                   >
+                    <CgProfile className="dropdown-icon" />
                     Iniciar sesión
                   </p>
 
                   <p
-                    className={
-                      location.pathname === "/register"
-                        ? "active"
-                        : ""
-                    }
-                    onMouseDown={(e) =>
-                      e.preventDefault()
-                    }
+                    className={location.pathname === "/register" ? "active" : ""}
+                    onMouseDown={(e) => e.preventDefault()}
                     onClick={() => goTo("/register")}
                   >
+                    <CgProfile className="dropdown-icon" />
                     Registrarse
                   </p>
                 </>
               ) : (
                 <>
-
                   <p onClick={() => goTo("/profile")}>
+                    <CgProfile className="dropdown-icon" />
                     Mi perfil
                   </p>
 
                   <p onClick={() => goTo("/settings")}>
+                    <VscSettingsGear className="dropdown-icon" />
                     Ajustes
                   </p>
 
@@ -435,13 +431,10 @@ function Navbar() {
                   {isOwner() && <p className="role">Owner</p>}
                   {isModerator() && <p className="role">Moderator</p>}
 
-                  <p
-                    onClick={handleLogout}
-                    className="logout"
-                  >
+                  <p onClick={handleLogout} className="logout">
+                    <MdLogout className="dropdown-icon" />
                     Cerrar sesión
                   </p>
-
                 </>
               )}
 

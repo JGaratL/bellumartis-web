@@ -107,6 +107,22 @@ export function AuthProvider({ children }) {
 
   /*
   ============================
+  UPDATE USER SESSION
+  ============================
+  */
+  const updateUser = (partialUser) => {
+    setUser((prev) => {
+      const nextUser = {
+        ...(prev || {}),
+        ...(partialUser || {}),
+      };
+      localStorage.setItem("user", JSON.stringify(nextUser));
+      return nextUser;
+    });
+  };
+
+  /*
+  ============================
   ROLES HELPERS
   ============================
   */
@@ -135,6 +151,7 @@ export function AuthProvider({ children }) {
         login,
         googleLogin,
         logout,
+        updateUser,
         hasRole,
         isAdmin,
         isOwner,

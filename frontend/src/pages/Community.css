@@ -17,7 +17,7 @@ CREATE POST
   border-radius: 14px;
   padding: 12px 14px;
   margin-bottom: 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 .create-post-top {
@@ -351,7 +351,7 @@ POST CARD
   border-radius: 14px;
   margin-bottom: 20px;
   overflow: visible;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 .post-header {

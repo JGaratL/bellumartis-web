@@ -10,6 +10,8 @@ const { OAuth2Client } = require("google-auth-library");
 
 const multer = require("multer");
 const path = require("path");
+const sharp = require("sharp");
+const fs = require("fs");
 
 const notificationsRoutes = require("./routes/notifications");
 
@@ -356,6 +358,7 @@ app.post("/auth/google", async (req, res) => {
 
     if (emailUser || googleUser) {
       user = emailUser || googleUser;
+      let resolvedProfileImage = user.profile_image || null;
 
       if (!user.google_id) {
         await pool.query(
@@ -368,11 +371,12 @@ app.post("/auth/google", async (req, res) => {
         ]);
       }
 
-      if (googlePicture) {
+      if (googlePicture && (!user.profile_image || !user.profile_image.trim())) {
         await pool.query(
           "UPDATE users SET profile_image = ? WHERE id = ?",
           [googlePicture, user.id]
         );
+        resolvedProfileImage = googlePicture;
       }
 
       user = {
@@ -381,7 +385,7 @@ app.post("/auth/google", async (req, res) => {
         email: user.email,
         role: user.role || "user",
         provider: "google",
-        profile_image: googlePicture || user.profile_image || null,
+        profile_image: resolvedProfileImage,
       };
     }
 
@@ -448,7 +452,7 @@ GET PROFILE
 
 app.get("/users/me", verifyToken, async (req, res) => {
   const [rows] = await pool.query(
-    `SELECT id, nickname, province, country, profile_image,
+    `SELECT id, nickname, email, province, country, created_at, profile_image,
             x_url, facebook_url, instagram_url, youtube_url
      FROM users
      WHERE id = ?`,
@@ -469,47 +473,144 @@ EDIT PROFILE
 */
 
 app.put("/users/me", verifyToken, async (req, res) => {
-  const {
-    nickname,
-    province,
-    country,
-    x_url,
-    facebook_url,
-    instagram_url,
-    youtube_url
-  } = req.body;
-
-  await pool.query(
-    `UPDATE users SET
-      nickname = ?,
-      province = ?,
-      country = ?,
-      x_url = ?,
-      facebook_url = ?,
-      instagram_url = ?,
-      youtube_url = ?
-     WHERE id = ?`,
-    [
+  try {
+    const {
       nickname,
       province,
       country,
+      profile_image,
       x_url,
       facebook_url,
       instagram_url,
-      youtube_url,
-      req.user.id
-    ]
-  );
+      youtube_url
+    } = req.body;
 
-  res.json({ message: "Perfil actualizado correctamente" });
+    let nextProfileImage = profile_image ?? null;
+    let oldProfileImage = null;
+
+    const [currentRows] = await pool.query(
+      "SELECT profile_image FROM users WHERE id = ?",
+      [req.user.id]
+    );
+    if (currentRows.length > 0) {
+      oldProfileImage = currentRows[0].profile_image || null;
+    }
+
+    if (
+      typeof nextProfileImage === "string" &&
+      nextProfileImage.startsWith("data:image/")
+    ) {
+      const matches = nextProfileImage.match(/^data:image\/[a-zA-Z0-9.+-]+;base64,(.+)$/);
+
+      if (!matches || !matches[1]) {
+        return res.status(400).json({ error: "Imagen de perfil inválida" });
+      }
+
+      const buffer = Buffer.from(matches[1], "base64");
+      const avatarsDir = path.join(__dirname, "uploads", "avatars");
+      fs.mkdirSync(avatarsDir, { recursive: true });
+
+      const filename = `avatar-${req.user.id}-${Date.now()}.webp`;
+      const outputPath = path.join(avatarsDir, filename);
+
+      await sharp(buffer)
+        .resize(500, 500, { fit: "cover" })
+        .webp({ quality: 82 })
+        .toFile(outputPath);
+
+      nextProfileImage = `/uploads/avatars/${filename}`;
+
+      if (
+        oldProfileImage &&
+        typeof oldProfileImage === "string" &&
+        (oldProfileImage.startsWith("/uploads/avatars/") ||
+          oldProfileImage.startsWith("uploads/avatars/"))
+      ) {
+        const oldRelative = oldProfileImage.replace(/^\/+/, "");
+        const oldAbsolutePath = path.join(__dirname, oldRelative);
+
+        if (fs.existsSync(oldAbsolutePath) && oldAbsolutePath !== outputPath) {
+          fs.unlinkSync(oldAbsolutePath);
+        }
+      }
+    }
+
+    await pool.query(
+      `UPDATE users SET
+        nickname = ?,
+        province = ?,
+        country = ?,
+        profile_image = ?,
+        x_url = ?,
+        facebook_url = ?,
+        instagram_url = ?,
+        youtube_url = ?
+      WHERE id = ?`,
+      [
+        nickname ?? null,
+        province ?? null,
+        country ?? null,
+        nextProfileImage,
+        x_url ?? null,
+        facebook_url ?? null,
+        instagram_url ?? null,
+        youtube_url ?? null,
+        req.user.id
+      ]
+    );
+
+    return res.json({ message: "Perfil actualizado correctamente" });
+  } catch (error) {
+    console.error("UPDATE PROFILE ERROR:", error);
+    return res.status(500).json({ error: "No se pudo actualizar el perfil" });
+  }
 });
 
+/*
+====================================
+UPLOAD AVATAR
+====================================
+*/
 
+app.post("/upload-avatar", upload.single("avatar"), async (req, res) => {
+    const userId = req.body.userId;
+
+    const user = await User.findById(userId);
+
+    // 1. borrar anterior si existe
+    if (user.profile_image && !user.profile_image.includes("default")) {
+        const oldPath = path.join(
+            "uploads",
+            path.basename(user.profile_image)
+        );
+
+        if (fs.existsSync(oldPath)) {
+            fs.unlinkSync(oldPath);
+        }
+    }
+
+    // 2. procesar nueva imagen (sharp ya lo haces aquí)
+    const filename = Date.now() + ".webp";
+    const outputPath = path.join("uploads", filename);
+
+    await sharp(req.file.buffer)
+        .resize(500, 500)
+        .webp({ quality: 80 })
+        .toFile(outputPath);
+
+    const newUrl = `/uploads/${filename}`;
+
+    // 3. guardar en BD
+    user.profile_image = newUrl;
+    await user.save();
+
+    res.json({ url: newUrl });
+});
 
 
 app.get("/users/:id", verifyToken, async (req, res) => {
   const [rows] = await pool.query(
-    `SELECT id, nickname, province, country, profile_image,
+    `SELECT id, nickname, email, province, country, created_at, profile_image,
             x_url, facebook_url, instagram_url, youtube_url
      FROM users
      WHERE id = ?`,

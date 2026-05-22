@@ -25,7 +25,7 @@ const COUNTRIES = [
   "Cuba",
   "Dinamarca",
   "Ecuador",
-  "Espana",
+  "España",
   "Estados Unidos",
   "Finlandia",
   "Francia",
