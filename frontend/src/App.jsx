@@ -11,6 +11,13 @@ import Events from "./pages/Events";
 import About from "./pages/About";
 import MyProfile from "./pages/MyProfile";
 import Settings from "./pages/Settings";
+import PrivacyPolicy from "./pages/Legal/PrivacyPolicy";
+import LegalNotice from "./pages/Legal/LegalNotice"; 
+
+import Cookies from "./pages/Legal/Cookies";
+import Terms from "./pages/Legal/Terms"; 
+
+import "./styles/legal.css";
 
 import AuthPage from "./pages/Auth/AuthPage";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -280,6 +287,10 @@ function App() {
         <Route path="/about" element={<About />} />
         <Route path="/profile" element={<MyProfile />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/legal" element={<LegalNotice />} />
+        <Route path="/cookies" element={<Cookies />} />
+        <Route path="/terms" element={<Terms />} />  
 
         {/* PROTECTED */}
         <Route

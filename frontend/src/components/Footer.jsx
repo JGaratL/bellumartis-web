@@ -1,4 +1,6 @@
 import "./Footer.css";
+import { NavLink } from "react-router-dom";
+
 
 import {
   FaFacebookF,
@@ -39,10 +41,10 @@ function Footer() {
           <div className="footer-col footer-col--links">
 
             <div className="footer-links">
-              <a href="#">Política de privacidad</a>
-              <a href="#">Aviso legal</a>
-              <a href="#">Política de cookies</a>
-              <a href="#">Condiciones de uso</a>
+              <NavLink to="/privacy">Política de privacidad</NavLink>
+              <NavLink to="/legal">Aviso legal</NavLink>
+              <NavLink to="/cookies">Política de cookies</NavLink>
+              <NavLink to="/terms">Condiciones de uso</NavLink>
             </div>
 
           </div>
