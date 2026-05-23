@@ -3,12 +3,19 @@ import { useLocation } from "react-router-dom";
 import CreatePost from "../components/community/CreatePost";
 import PostCard from "../components/community/PostCard";
 import "./Community.css";
+import ProfileCard from "../components/ProfileCard";
 
 const Community = () => {
   const location = useLocation();
 
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [showProfile, setShowProfile] = useState(false);
+
+  console.log("showProfile:", showProfile);
+  console.log("selectedUser:", selectedUser);
 
   const params = useMemo(
     () => new URLSearchParams(location.search),
@@ -54,6 +61,28 @@ const Community = () => {
     }
   };
 
+  const handleAvatarClick = async (userId) => {
+    try {
+      const token = localStorage.getItem("token");
+
+      const res = await fetch(`http://localhost:5000/api/users/${userId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      if (!res.ok) throw new Error("Error cargando usuario");
+
+      const data = await res.json();
+
+      setSelectedUser(data);
+      setShowProfile(true);
+
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   useEffect(() => {
 
     fetchPosts();
@@ -89,32 +118,39 @@ const Community = () => {
   }
 
   return (
-
     <div className="community">
 
-      <CreatePost
-        onPostCreated={fetchPosts}
-      />
+      <CreatePost onPostCreated={fetchPosts} />
 
       {posts.length === 0 ? (
-
-        <div>
-          No hay posts todavía
-        </div>
-
+        <div>No hay posts todavía</div>
       ) : (
-
         posts.map((post) =>
-
           post ? (
             <PostCard
               key={post.id}
               post={post}
               targetReplyId={targetPostId === post.id ? targetReplyId : null}
+              onAvatarClick={handleAvatarClick}
             />
           ) : null
         )
+      )}
 
+      {console.log("RENDER PROFILE CHECK", showProfile, selectedUser)}
+
+      {showProfile && selectedUser && (
+        <div
+          className="pc-modal-overlay"
+          onClick={() => setShowProfile(false)}
+        >
+          <div onClick={(e) => e.stopPropagation()}>
+            <ProfileCard
+              user={selectedUser}
+              onClose={() => setShowProfile(false)}
+            />
+          </div>
+        </div>
       )}
 
     </div>

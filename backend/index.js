@@ -608,7 +608,7 @@ app.post("/upload-avatar", upload.single("avatar"), async (req, res) => {
 });
 
 
-app.get("/users/:id", verifyToken, async (req, res) => {
+app.get("/api/users/:id", verifyToken, async (req, res) => {
   const [rows] = await pool.query(
     `SELECT id, nickname, email, province, country, created_at, profile_image,
             x_url, facebook_url, instagram_url, youtube_url

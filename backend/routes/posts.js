@@ -85,60 +85,52 @@ GET POSTS (likes + avatar + images)
 router.get("/", async (req, res) => {
     try {
         const [rows] = await pool.query(`
-            SELECT 
-                p.id,
-                p.content,
-                p.images,
-                p.created_at,
-                p.likes_count,
-                u.nickname,
-                u.profile_image AS avatar,
-                COUNT(r.id) AS replies_count
-            FROM posts p
-            JOIN users u ON p.user_id = u.id
-            LEFT JOIN post_replies r ON r.post_id = p.id
-            GROUP BY 
-                p.id,
-                p.content,
-                p.images,
-                p.created_at,
-                p.likes_count,
-                u.nickname,
-                u.profile_image
-            ORDER BY p.id DESC
-        `);
-        const formatted = rows.map((post) => {
+      SELECT 
+        p.id,
+        p.user_id,
+        p.content,
+        p.images,
+        p.created_at,
+        p.likes_count,
+        u.nickname,
+        u.profile_image AS avatar,
+        COUNT(r.id) AS replies_count
+      FROM posts p
+      JOIN users u ON p.user_id = u.id
+      LEFT JOIN post_replies r ON r.post_id = p.id
+      GROUP BY 
+        p.id,
+        p.user_id,
+        p.content,
+        p.images,
+        p.created_at,
+        p.likes_count,
+        u.nickname,
+        u.profile_image
+      ORDER BY p.id DESC
+    `);
 
+        const formatted = rows.map((post) => {
             let parsedImages = [];
 
             try {
-
                 if (!post.images) {
-
                     parsedImages = [];
-
                 } else if (Array.isArray(post.images)) {
-
                     parsedImages = post.images;
-
                 } else if (typeof post.images === "string") {
-
                     parsedImages = JSON.parse(post.images);
-
                 } else {
-
                     parsedImages = post.images;
                 }
-
             } catch (e) {
-
                 console.error("JSON PARSE ERROR:", e);
-
                 parsedImages = [];
             }
 
             return {
                 id: post.id,
+                user_id: post.user_id, // 👈 IMPORTANTE
                 content: post.content,
                 created_at: post.created_at,
                 likes_count: post.likes_count,
@@ -155,12 +147,8 @@ router.get("/", async (req, res) => {
         return res.json(formatted);
 
     } catch (err) {
-
         console.error("GET POSTS ERROR:", err);
-
-        return res.status(500).json({
-            error: "Error obteniendo posts"
-        });
+        return res.status(500).json({ error: "Error obteniendo posts" });
     }
 });
 

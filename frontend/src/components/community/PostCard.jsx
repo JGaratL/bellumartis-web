@@ -67,7 +67,8 @@ const formatPostDateTime = (value) => {
   return `${date} a las ${time}`;
 };
 
-const PostCard = ({ post = {}, onDelete, targetReplyId = null }) => {
+const PostCard = ({ post = {}, onDelete, targetReplyId = null, onAvatarClick }) => {
+  
   const [likes, setLikes] = useState(post.likes_count || 0);
   const [liked, setLiked] = useState(false);
 
@@ -421,6 +422,11 @@ const PostCard = ({ post = {}, onDelete, targetReplyId = null }) => {
           src={resolveAvatarSrc(post.avatar) || "/BHM.webp"}
           alt="avatar"
           referrerPolicy="no-referrer"
+          style={{ cursor: "pointer" }}
+          onClick={() => {
+            console.log("CLICK AVATAR", post.user_id);
+            onAvatarClick?.(post.user_id);
+          }}
           onError={(e) => {
             e.currentTarget.onerror = null;
             e.currentTarget.src = "/BHM.webp";
