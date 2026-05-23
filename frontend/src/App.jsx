@@ -17,6 +17,8 @@ import LegalNotice from "./pages/Legal/LegalNotice";
 import Cookies from "./pages/Legal/Cookies";
 import Terms from "./pages/Legal/Terms"; 
 
+import ScrollToTop from "./components/common/ScrollToTop";
+
 import "./styles/legal.css";
 
 import AuthPage from "./pages/Auth/AuthPage";
@@ -42,6 +44,9 @@ function App() {
     <div className="app">
 
       {!hideLayout && <Navbar />}
+
+      <ScrollToTop />
+
 
       <Routes>
 

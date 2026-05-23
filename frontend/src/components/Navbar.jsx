@@ -41,6 +41,26 @@ const formatRelativeTime = (value) => {
   return years === 1 ? "1 año" : `${years} años`;
 };
 
+const resolveAvatarSrc = (value) => {
+  if (!value || typeof value !== "string") return null;
+  const avatar = value.trim();
+  if (!avatar) return null;
+
+  if (avatar.startsWith("http://") || avatar.startsWith("https://")) {
+    return avatar;
+  }
+
+  if (avatar.startsWith("/uploads/")) {
+    return `http://localhost:5000${avatar}`;
+  }
+
+  if (avatar.startsWith("uploads/")) {
+    return `http://localhost:5000/${avatar}`;
+  }
+
+  return avatar;
+};
+
 function Navbar() {
   const { user, logout, isAdmin, isOwner, isModerator } =
     useContext(AuthContext);
@@ -354,9 +374,14 @@ function Navbar() {
                     onClick={() => handleNotificationClick(n)}
                   >
                     <img
-                      src={n.from_avatar || "/BHM.webp"}
+                      src={resolveAvatarSrc(n.from_avatar) || "/BHM.webp"}
                       alt={n.from_nickname || "usuario"}
                       className="notif-avatar"
+                      referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = "/BHM.webp";
+                      }}
                     />
 
                     <div className="notif-content">
