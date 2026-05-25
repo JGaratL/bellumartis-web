@@ -274,3 +274,63 @@
 
   z-index: 999999;
 }
+
+/* ===== MODAL EDITOR DEL AVATAR ===== */
+
+.avatar-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+.avatar-modal {
+    background: #ebe9e9;
+    padding: 20px;
+    border-radius: 12px;
+}
+
+.avatar-preview-wrapper {
+    width: 300px;
+    height: 300px;
+    overflow: hidden;
+    margin: 0 auto;
+    border-radius: 8px;
+    background: #000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.avatar-preview {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform-origin: center;
+}
+
+.avatar-buttons {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 15px;
+}
+
+.avatar-buttons button {
+    padding: 8px 12px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.avatar-buttons button:first-child {
+    background: #b0afaf;
+    color: white;
+}
+
+.avatar-buttons button:last-child {
+    background: #0f6970;
+    color: white;
+}

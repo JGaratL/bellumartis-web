@@ -1,8 +1,8 @@
-import { Routes, Route, useLocation, NavLink } from "react-router-dom";
-import { useContext } from "react";
+﻿import { Routes, Route, useLocation, NavLink } from "react-router-dom";
 import { AuthContext } from "./context/AuthContext";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
+import { useContext, useEffect, useRef } from "react";
 
 import Articles from "./pages/Articles";
 import Shop from "./pages/Shop";
@@ -12,10 +12,10 @@ import About from "./pages/About";
 import MyProfile from "./pages/MyProfile";
 import Settings from "./pages/Settings";
 import PrivacyPolicy from "./pages/Legal/PrivacyPolicy";
-import LegalNotice from "./pages/Legal/LegalNotice"; 
+import LegalNotice from "./pages/Legal/LegalNotice";
 
 import Cookies from "./pages/Legal/Cookies";
-import Terms from "./pages/Legal/Terms"; 
+import Terms from "./pages/Legal/Terms";
 
 import ScrollToTop from "./components/common/ScrollToTop";
 
@@ -37,12 +37,37 @@ function App() {
   const location = useLocation();
   const { user } = useContext(AuthContext);
 
+  const aboutRef = useRef(null);
+  const appRef = useRef(null);
 
   const hideLayout = ["/login", "/register"].includes(location.pathname);
 
-  return (
-    <div className="app">
+  useEffect(() => {
+    if (location.pathname !== "/") return;
+    const sections = document.querySelectorAll(".section");
 
+    sections.forEach((section) => section.classList.remove("is-active"));
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("is-active");
+          }
+        });
+      },
+      {
+        threshold: 0.05,
+      }
+    );
+
+    sections.forEach((section) => observer.observe(section));
+
+    return () => observer.disconnect();
+  }, [location.pathname]);
+
+  return (
+    <div className="app" ref={appRef}>
       {!hideLayout && <Navbar />}
 
       <ScrollToTop />
@@ -72,7 +97,11 @@ function App() {
                 </div>
               </section>
 
-              <section className="about-section section" data-section="about">
+              <section
+                ref={aboutRef}
+                className="about-section section"
+                data-section="about"
+              >
                 <div className="about-container">
                   <div className="about-left">
                     <h2 className="about-title">
@@ -108,168 +137,125 @@ function App() {
                 </div>
               </section>
 
-              <section className="journey-section section" data-section="journey">
+              {/* ===================== SECTION 1 ===================== */}
+              <section className="journey-section section" data-section="journey-1">
                 <div className="journey-container">
 
-                  {/* =========================
-        BLOQUE 1 (HERO)
-    ========================= */}
+                  {/* HERO 1 */}
                   <div className="journey-hero">
-
-                    {/* LEFT */}
                     <div className="journey-hero-left">
-                      <img
-                        src="/vectorStar.svg"
-                        alt=""
-                        className="journey-svg"
-                        aria-hidden="true"
-                      />
+                      <img src="/vectorStar.svg" className="journey-svg" aria-hidden="true" />
                     </div>
 
-                    {/* RIGHT */}
                     <div className="journey-hero-right">
-
-                      {/* 👇 ESTA ES LA LÍNEA CORRECTA (HORIZONTAL) */}
                       <div className="journey-hero-line"></div>
 
                       <h2 className="journey-title">
                         <span>De abogado a divulgador</span>
                         <span>histórico militar</span>
                       </h2>
-
                     </div>
                   </div>
 
-                  {/* =========================
-        BLOQUE 2 (TEXTO OCUPA TODO)
-    ========================= */}
+                  {/* TEXTO 1 */}
                   <div className="journey-copy">
-
                     <p>
                       Soy un ovetense apasionado por la <strong>Historia</strong>, especialmente la <strong>Historia Militar</strong>, que ha marcado mi forma de entender el pasado y el presente.
                     </p>
 
                     <p>
-                      Aunque mi vocación inicial me llevó a las <strong>Ciencias Jurídicas</strong>, me licencié en Derecho y me diplomé en Relaciones Laborales por la Universidad de Oviedo.                    </p>
-
-                    <p>
-                      He desarrollado mi carrera profesional en el ámbito de la <strong>docencia</strong>, como profesor de Formación y Orientación Laboral, compaginando esta labor con mi actividad en el ámbito de la enseñanza concertada en Asturias.
+                      Aunque mi vocación inicial me llevó a las <strong>Ciencias Jurídicas</strong>, me licencié en Derecho y me diplomé en Relaciones Laborales por la Universidad de Oviedo.
                     </p>
 
                     <p>
-                      Con el tiempo, y persiguiendo una vocación que siempre estuvo presente, me gradué en <strong>Geografía e Historia por la UNED</strong>, lo que me permitió dedicarme plenamente a la <strong>divulgación histórico-militar</strong> a través de mi proyecto <strong>Bellumartis Historia Militar</strong>, activo desde 2011.
+                      He desarrollado mi carrera profesional en el ámbito de la <strong>docencia</strong>, como profesor de Formación y Orientación Laboral.
                     </p>
 
+                    <p>
+                      Con el tiempo me gradué en <strong>Geografía e Historia por la UNED</strong>, dedicándome a la divulgación histórico-militar.
+                    </p>
                   </div>
+                  <div className="journey-inline-line" aria-hidden="true"></div>
 
-                  {/* =========================
-        BLOQUE 3 (FOOTER FINAL)
-    ========================= */}
-                  <div className="journey-footer">
-
-                    {/* LEFT: línea gruesa */}
-                    <div className="journey-footer-left">
-                      <div className="journey-footer-line"></div>
-                    </div>
-
-                    {/* RIGHT: 2 bloques verticales */}
-                    <div className="journey-footer-right">
+                </div>
+              </section>
 
 
-
-
-
-                    </div>
-
-                  </div>
+              {/* ===================== IMAGE SECTION ===================== */}
+              <section className="journey-section section" data-section="journey-image">
+                <div className="journey-container">
 
                   <div className="journey-image-divider">
-                    <img
-                      src="/stalingrado.jpg"
-                      alt=""
-                      aria-hidden="true"
-                    />
+                    <img src="/stalingrado.webp" alt="" aria-hidden="true" />
+
+                    <p className="journey-image-caption">
+                      Soldados soviéticos en el centro de la ciudad de Stalingrado, 2 de febrero de 1943.
+                    </p>
                   </div>
+                  <img src="/culDeLampe.webp" alt="" aria-hidden="true" className="journey-culdelampe" />
+
+                </div>
+              </section>
 
 
+              {/* ===================== SECTION 3 ===================== */}
+              <section className="journey-section section" data-section="journey-3">
+                <div className="journey-container">
 
+                  {/* HERO 2 */}
                   <div className="journey-hero">
-
-                    {/* LEFT */}
                     <div className="journey-hero-left">
                       <img
                         src="/vectorStar.svg"
-                        alt=""
                         className="journey-svg"
                         aria-hidden="true"
                       />
                     </div>
 
-                    {/* RIGHT */}
                     <div className="journey-hero-right">
-
-                      {/* 👇 ESTA ES LA LÍNEA CORRECTA (HORIZONTAL) */}
                       <div className="journey-hero-line"></div>
 
                       <h2 className="journey-title">
                         <span>Bellumartis</span>
                         <span>Historia y Actualidad militar</span>
                       </h2>
-
                     </div>
                   </div>
 
-                  {/* =========================
-        BLOQUE 2 (TEXTO OCUPA TODO)
-    ========================= */}
+                  {/* TEXTO 2 */}
                   <div className="journey-copy">
-
                     <p>
-                      Bellumartis es un proyecto de divulgación dedicado a la historia militar, la geopolítica y el análisis de los conflictos pasados y presentes. Nacido en 2011 como un blog personal, ha evolucionado hasta convertirse en una amplia plataforma de contenidos que integra artículos, podcasts y canales de vídeo, con una comunidad consolidada de miles de seguidores interesados en comprender la historia y su relación con el mundo actual.                    </p>
-
-                    <p>
-                      El proyecto esta dirigido por Francisco García Campa, profesor y divulgador especializado en historia militar y relaciones internacionales. Su enfoque combina el rigor histórico con una narrativa accesible.
-                    </p>
-                    <p>
-
-                      <strong>Bellumartis</strong> se estructura en historia militar y actualidad geopolítica, ofreciendo una visión contextualizada de los grandes desafíos internacionales.
-
+                      Bellumartis es un proyecto de divulgación dedicado a la historia militar, la geopolítica y el análisis de los conflictos pasados y presentes.
                     </p>
 
                     <p>
-                      Con <strong>más de 6.000 contenidos</strong> publicados, Bellumartis se ha consolidado como un espacio de referencia en divulgación histórica.
-
+                      Nacido en 2011 como blog personal, ha evolucionado a plataforma de contenidos con comunidad consolidada.
                     </p>
 
+                    <p>
+                      El proyecto está dirigido por Francisco García Campa, profesor y divulgador especializado.
+                    </p>
+
+                    <p>
+                      Con más de 6.000 contenidos, se ha consolidado como referencia en divulgación histórica.
+                    </p>
                   </div>
 
-                  {/* =========================
-        BLOQUE 3 (FOOTER FINAL)
-    ========================= */}
+                  {/* FOOTER */}
                   <div className="journey-footer">
-
-                    {/* LEFT: línea gruesa */}
                     <div className="journey-footer-left">
                       <div className="journey-footer-line"></div>
                     </div>
 
-                    {/* RIGHT: 2 bloques verticales */}
                     <div className="journey-footer-right">
-
                       <div className="journey-footer-top">
-                        <p className="journey-name">
-                          Francisco García Campa
-                        </p>
+                        <p className="journey-name">Francisco García Campa</p>
                       </div>
 
                       <div className="journey-footer-bottom">
-                        <p className="journey-role">
-                          Director de Bellumartis
-                        </p>
+                        <p className="journey-role">Director de Bellumartis</p>
                       </div>
-
                     </div>
-
                   </div>
 
                 </div>
@@ -295,7 +281,7 @@ function App() {
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/legal" element={<LegalNotice />} />
         <Route path="/cookies" element={<Cookies />} />
-        <Route path="/terms" element={<Terms />} />  
+        <Route path="/terms" element={<Terms />} />
 
         {/* PROTECTED */}
         <Route

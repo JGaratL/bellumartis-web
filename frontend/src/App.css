@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Roboto:wght@400;700&display=swap");
+﻿@import url("https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Roboto:wght@400;700&display=swap");
 
 /* =========================
    APP BASE
@@ -22,6 +22,7 @@ body {
 .home,
 .about-section,
 .journey-section {
+  min-height: 100vh;
   scroll-snap-align: start;
   scroll-snap-stop: normal;
 }
@@ -347,6 +348,133 @@ body {
   object-fit: cover;
   border-radius: 6px;
 }
+/* =========================
+   ABOUT ANIMATIONS (OVERLAY)
+========================= */
+
+/* estado inicial SOLO para animaciÃ³n */
+.about-section .about-right img {
+  opacity: 0;
+  transform: translateX(40px) scale(1.05);
+  transition: none;
+}
+
+.about-section .about-text,
+.about-section .signature {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: none;
+}
+
+.about-section .about-line {
+  width: 0;
+  transition: none;
+}
+
+/* =========================
+   ACTIVE STATE
+========================= */
+
+.about-section.is-active .about-right img {
+  opacity: 1;
+  transform: translateX(0) scale(1);
+
+  transition: all 1.4s cubic-bezier(0.22, 1, 0.36, 1) 0.6s;
+}
+
+.about-section.is-active .about-line {
+  width: 260px;
+
+  transition: width 1.2s cubic-bezier(0.22, 1, 0.36, 1) 0.2s;
+}
+
+.about-section.is-active .about-text {
+  opacity: 1;
+  transform: translateY(0);
+
+  transition: all 1.1s cubic-bezier(0.22, 1, 0.36, 1) 0.35s;
+}
+
+.about-section.is-active .signature {
+  opacity: 1;
+  transform: translateY(0);
+
+  transition: all 1.1s cubic-bezier(0.22, 1, 0.36, 1) 0.55s;
+}
+
+/* =========================
+   TITLE MASK REVEAL
+========================= */
+
+.about-title span {
+  position: relative;
+  overflow: hidden;
+}
+
+.about-title span::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: #e0e4e4;
+
+  transform: translateX(0);
+}
+
+.about-section.is-active .about-title span::after {
+  animation: maskReveal 1.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.about-section.is-active .about-title span:nth-child(2)::after {
+  animation-delay: 0.2s;
+}
+
+@keyframes maskReveal {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* =========================
+   SOCIAL ICONS SEQUENCE
+========================= */
+
+.social-icons a {
+  opacity: 0;
+  transform: translateX(-35px);
+}
+
+/* activaciÃ³n */
+.about-section.is-active .social-icons a:nth-child(1) {
+  animation: socialReveal 0.45s ease forwards;
+  animation-delay: 1s;
+}
+
+.about-section.is-active .social-icons a:nth-child(2) {
+  animation: socialReveal 0.45s ease forwards;
+  animation-delay: 1.45s;
+}
+
+.about-section.is-active .social-icons a:nth-child(3) {
+  animation: socialReveal 0.45s ease forwards;
+  animation-delay: 1.9s;
+}
+
+.about-section.is-active .social-icons a:nth-child(4) {
+  animation: socialReveal 0.45s ease forwards;
+  animation-delay: 2.35s;
+}
+
+@keyframes socialReveal {
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+
+
+
+
 
 /* =========================
    JOURNEY SECTION
@@ -354,7 +482,7 @@ body {
 .journey-section {
   width: 100%;
   background: #e0e4e4;
-  padding: 30px 24px 120px;
+  padding: 80px 24px 100px;
   box-sizing: border-box;
 
   display: flex;
@@ -467,6 +595,14 @@ body {
   border-radius: 6px;
 }
 
+.journey-inline-line {
+  width: 100%;
+  height: 10px;
+  background: #0f6970;
+  border-radius: 6px;
+  margin-top: 8px;
+}
+
 /* RIGHT */
 .journey-footer-right {
   display: flex;
@@ -495,6 +631,179 @@ body {
   color: #111;
   text-align: right;
 }
+
+
+
+
+/* =========================
+   JOURNEY ANIMATIONS (3 SECCIONES)
+========================= */
+
+/* =========================
+   ESTADO INICIAL
+========================= */
+
+/* HERO line */
+.journey-section .journey-hero-line {
+  width: 0;
+  transition: none;
+}
+
+/* tÃ­tulos */
+.journey-section .journey-title span {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: none;
+}
+
+/* textos */
+.journey-section .journey-copy p {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: none;
+}
+
+/* imagen */
+.journey-section .journey-image-divider img {
+  opacity: 0;
+  transform: scale(1.05);
+  transition: none;
+}
+
+/* footer */
+.journey-section .journey-footer-line {
+  width: 0;
+  transition: none;
+}
+
+.journey-section .journey-inline-line {
+  width: 0;
+  transition: none;
+}
+
+.journey-section .journey-culdelampe {
+  opacity: 0;
+  transform: translateY(12px) scale(1.75);
+  transition: none;
+}
+
+.journey-section .journey-name,
+.journey-section .journey-role {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: none;
+}
+
+/* =========================
+   ACTIVACIÃ“N POR SECCIÃ“N
+========================= */
+
+/* ===== SECTION 1 ===== */
+.journey-section[data-section="journey-1"].is-active .journey-hero-line {
+  width: 100%;
+  transition: width 1.1s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.journey-section[data-section="journey-1"].is-active .journey-title span {
+  opacity: 1;
+  transform: translateY(0);
+  transition: all 0.7s ease;
+}
+
+.journey-section[data-section="journey-1"].is-active .journey-copy p:nth-child(1) {
+  opacity: 1;
+  transition: 0.6s ease 0.2s;
+  transform: translateY(0);
+}
+
+.journey-section[data-section="journey-1"].is-active .journey-copy p:nth-child(2) {
+  opacity: 1;
+  transition: 0.6s ease 0.35s;
+  transform: translateY(0);
+}
+
+.journey-section[data-section="journey-1"].is-active .journey-copy p:nth-child(3) {
+  opacity: 1;
+  transition: 0.6s ease 0.5s;
+  transform: translateY(0);
+}
+
+.journey-section[data-section="journey-1"].is-active .journey-copy p:nth-child(4) {
+  opacity: 1;
+  transition: 0.6s ease 0.65s;
+  transform: translateY(0);
+}
+
+.journey-section[data-section="journey-1"].is-active .journey-inline-line {
+  width: 100%;
+  transition: width 1.1s ease 0.5s;
+}
+
+/* ===== IMAGE SECTION ===== */
+.journey-section[data-section="journey-image"].is-active .journey-image-divider img {
+  opacity: 1;
+  transform: scale(1);
+  transition: all 1.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.journey-section[data-section="journey-image"].is-active .journey-culdelampe {
+  opacity: 1;
+  transform: translateY(0) scale(1.8);
+  transition: opacity 1.1s cubic-bezier(0.22, 1, 0.36, 1) 1.05s, transform 1.1s cubic-bezier(0.22, 1, 0.36, 1) 1.05s;
+}
+
+/* ===== SECTION 3 ===== */
+.journey-section[data-section="journey-3"].is-active .journey-copy p {
+  opacity: 1;
+  transform: translateY(0);
+  transition: all 0.8s ease;
+}
+
+.journey-section[data-section="journey-3"].is-active .journey-footer-line {
+  width: 100%;
+  transition: width 1.1s ease;
+}
+
+.journey-section[data-section="journey-3"].is-active .journey-name {
+  opacity: 1;
+  transform: translateY(0);
+  transition: all 0.7s ease 0.3s;
+}
+
+.journey-section[data-section="journey-3"].is-active .journey-role {
+  opacity: 1;
+  transform: translateY(0);
+  transition: all 0.7s ease 0.45s;
+}
+
+/* ===== SECTION 3 HERO ===== */
+.journey-section[data-section="journey-3"].is-active .journey-hero-line {
+  width: 100%;
+  transition: width 1.1s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.journey-section[data-section="journey-3"].is-active .journey-title span {
+  opacity: 1;
+  transform: translateY(0);
+  transition: all 0.8s ease;
+}
+
+.journey-section[data-section="journey-3"] .journey-hero {
+  opacity: 1;
+}
+
+/* animaciÃ³n */
+.journey-section[data-section="journey-image"].is-active .journey-image-caption {
+  opacity: 1;
+  transform: translateY(0);
+
+  transition:
+    opacity 0.9s ease 0.9s,
+    transform 0.9s ease 0.9s;
+}
+
+
+
 
 /* =========================
    RESPONSIVE
@@ -607,16 +916,73 @@ body {
 
 .journey-image-divider {
   display: flex;
+  flex-direction: column;
+
   justify-content: center;
   align-items: center;
 
-  margin: 80px 0;   /* 👈 espacio arriba y abajo */
+  margin: 80px 0;
 }
 
 .journey-image-divider img {
   width: 100%;
-  max-width: 620px;  /* 👈 tamaño pequeño controlado */
+  max-width: 620px;
   height: auto;
 
   display: block;
+}
+
+.journey-culdelampe {
+  width: min(680px, 110%);
+  max-width: 680px;
+  height: auto;
+  margin-top: 40px;
+  margin-bottom: 0;
+  align-self: center;
+  transform-origin: center center;
+  filter: brightness(0) saturate(100%) invert(29%) sepia(44%) saturate(1168%) hue-rotate(141deg) brightness(91%) contrast(90%);
+}
+
+/* =========================
+   CAPTION BASE STATE
+========================= */
+
+.journey-image-caption {
+  margin-top: 10px;
+  font-family: "Agrandir", "Avenir Next", sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #555;
+  text-align: center;
+  max-width: 620px;
+
+  opacity: 0;
+  transform: translateY(16px);
+  transition: none;
+}
+
+.journey-section[data-section="journey-image"].is-active .journey-image-caption {
+  opacity: 1;
+  transform: translateY(0);
+
+  transition: opacity 0.9s ease 0.9s, transform 0.9s ease 0.9s;
+}
+
+.journey-section[data-section="journey-image"] .journey-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100%;
+  gap: 8px;
+  transform: none;
+  overflow: visible;
+}
+
+.journey-image-divider {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  margin: 0;
 }

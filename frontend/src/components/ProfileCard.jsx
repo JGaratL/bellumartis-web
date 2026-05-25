@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { BiSolidPencil, BiSolidCamera } from "react-icons/bi";
 import { FaYoutube, FaFacebook, FaInstagram } from "react-icons/fa";
 import { FaXTwitter } from "react-icons/fa6";
+import AvatarEditor from "./AvatarEditor";
 
 const countries = [
     "Alemania",
@@ -96,8 +97,12 @@ const provincesES = [
     "Zaragoza",
 ];
 
+
 function ProfileCard({ user, editable, onClose, onSave }) {
     if (!user) return null;
+
+    const [tempImage, setTempImage] = useState(null);
+    const [showEditor, setShowEditor] = useState(false);
 
     const resolveAvatarSrc = (value) => {
         if (!value || typeof value !== "string") return null;
@@ -151,6 +156,24 @@ function ProfileCard({ user, editable, onClose, onSave }) {
         }
     };
 
+    const formatSocialUrl = (url) => {
+        if (!url) return "-";
+
+        try {
+            const u = new URL(url);
+
+            let host = u.hostname.replace("www.", "");
+            let path = u.pathname.replace(/\/$/, "");
+
+            // quitar cosas típicas innecesarias
+            if (path === "/") return host;
+
+            return host + path;
+        } catch {
+            return url; // si no es URL válida, lo mostramos tal cual
+        }
+    };
+
     return (
         <div className="pc-external">
             <div className="pc-internal">
@@ -179,71 +202,28 @@ function ProfileCard({ user, editable, onClose, onSave }) {
                                 const file = e.target.files[0];
                                 if (!file) return;
 
-                                // límite 5MB
-                                if (file.size > 5 * 1024 * 1024) {
-                                    alert("La imagen no puede superar 5MB");
-                                    return;
-                                }
-
                                 const reader = new FileReader();
 
                                 reader.onload = (event) => {
-                                    const img = new Image();
-
-                                    img.onload = () => {
-
-                                        const canvas = document.createElement("canvas");
-                                        const ctx = canvas.getContext("2d");
-
-                                        const MAX_SIZE = 500;
-
-                                        let width = img.width;
-                                        let height = img.height;
-
-                                        // redimensionar
-                                        if (width > height) {
-                                            if (width > MAX_SIZE) {
-                                                height *= MAX_SIZE / width;
-                                                width = MAX_SIZE;
-                                            }
-                                        } else {
-                                            if (height > MAX_SIZE) {
-                                                width *= MAX_SIZE / height;
-                                                height = MAX_SIZE;
-                                            }
-                                        }
-
-                                        canvas.width = width;
-                                        canvas.height = height;
-
-                                        ctx.drawImage(img, 0, 0, width, height);
-
-                                        // comprimir jpeg
-                                        const compressedBase64 = canvas.toDataURL(
-                                            "image/jpeg",
-                                            0.75
-                                        );
-
-                                        setForm(prev => ({
-                                            ...prev,
-                                            profile_image: compressedBase64
-                                        }));
-                                    };
-
-                                    img.src = event.target.result;
+                                    setTempImage(event.target.result);
+                                    setShowEditor(true);
                                 };
 
                                 reader.readAsDataURL(file);
+
+                                // 🔥 CLAVE
+                                e.target.value = null;
                             }}
                         />
 
-                        <div
-                            className="pc-camera"
-                            onClick={() => document.getElementById("avatarInput").click()}
-                        >
-                            <BiSolidCamera />
-                        </div>
-
+                        {editable && (
+                            <div
+                                className="pc-camera"
+                                onClick={() => document.getElementById("avatarInput").click()}
+                            >
+                                <BiSolidCamera />
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -431,7 +411,17 @@ function ProfileCard({ user, editable, onClose, onSave }) {
                                         )}
                                     </>
                                 ) : (
-                                    <span>{form.youtube_url || "-"}</span>
+                                    form.youtube_url ? (
+                                        <a
+                                            href={form.youtube_url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                        >
+                                            {formatSocialUrl(form.youtube_url)}
+                                        </a>
+                                    ) : (
+                                        "-"
+                                    )
                                 )}
                             </div>
 
@@ -451,7 +441,17 @@ function ProfileCard({ user, editable, onClose, onSave }) {
                                         )}
                                     </>
                                 ) : (
-                                    <span>{form.x_url || "-"}</span>
+                                    form.x_url ? (
+                                        <a
+                                            href={form.x_url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                        >
+                                            {formatSocialUrl(form.x_url)}
+                                        </a>
+                                    ) : (
+                                        "-"
+                                    )
                                 )}
                             </div>
 
@@ -471,7 +471,17 @@ function ProfileCard({ user, editable, onClose, onSave }) {
                                         )}
                                     </>
                                 ) : (
-                                    <span>{form.facebook_url || "-"}</span>
+                                    form.facebook_url ? (
+                                        <a
+                                            href={form.facebook_url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                        >
+                                            {formatSocialUrl(form.facebook_url)}
+                                        </a>
+                                    ) : (
+                                        "-"
+                                    )
                                 )}
                             </div>
 
@@ -491,7 +501,17 @@ function ProfileCard({ user, editable, onClose, onSave }) {
                                         )}
                                     </>
                                 ) : (
-                                    <span>{form.instagram_url || "-"}</span>
+                                    form.instagram_url ? (
+                                        <a
+                                            href={form.instagram_url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                        >
+                                            {formatSocialUrl(form.instagram_url)}
+                                        </a>
+                                    ) : (
+                                        "-"
+                                    )
                                 )}
                             </div>
 
@@ -500,6 +520,25 @@ function ProfileCard({ user, editable, onClose, onSave }) {
 
                 </div>
             </div>
+
+            {showEditor && tempImage && (
+                <AvatarEditor
+                    image={tempImage}
+                    onCancel={() => {
+                        setTempImage(null);
+                        setShowEditor(false);
+                    }}
+                    onSave={(img) => {
+                        setForm(prev => ({
+                            ...prev,
+                            profile_image: img
+                        }));
+
+                        setTempImage(null);
+                        setShowEditor(false);
+                    }}
+                />
+            )}
 
             {/* BOTONES */}
             <div className="pc-actions">

@@ -68,7 +68,7 @@ const formatPostDateTime = (value) => {
 };
 
 const PostCard = ({ post = {}, onDelete, targetReplyId = null, onAvatarClick }) => {
-  
+
   const [likes, setLikes] = useState(post.likes_count || 0);
   const [liked, setLiked] = useState(false);
 
@@ -532,43 +532,53 @@ const PostCard = ({ post = {}, onDelete, targetReplyId = null, onAvatarClick }) 
               <p>Cargando...</p>
             ) : (
               replies.map((reply) => (
-                <div key={reply.id} className="reply-item" id={`reply-${reply.id}`}>
-                  <img
-                    src={resolveAvatarSrc(reply.avatar) || "/BHM.webp"}
-                    alt="avatar"
-                    className="reply-avatar"
-                    referrerPolicy="no-referrer"
-                    onError={(e) => {
-                      e.currentTarget.onerror = null;
-                      e.currentTarget.src = "/BHM.webp";
-                    }}
-                  />
-                  <div className="reply-body">
-                    <div className="reply-user">{reply.nickname}</div>
-                    <div className="reply-content">{reply.content}</div>
-                    <div className="reply-meta">
-                      <div className="post-date">{formatRelativeTime(reply.created_at)}</div>
-                      <div className="reply-actions">
-                        <button
-                          onClick={() => handleReplyLike(reply.id)}
-                          className="reply-like-btn"
-                        >
-                          {replyLikes[reply.id]?.liked ? (
-                            <BiSolidLike color="#0f6970" />
-                          ) : (
-                            <BiLike color="black" />
-                          )}
+                  (console.log(reply),
+                  console.log("REPLY:", reply),
+                  <div key={reply.id} className="reply-item" id={`reply-${reply.id}`}>
+                    <img
+                      src={resolveAvatarSrc(reply.avatar) || "/BHM.webp"}
+                      alt="avatar"
+                      className="reply-avatar"
+                      referrerPolicy="no-referrer"
+                      style={{ cursor: "pointer" }}
+                      onClick={() => onAvatarClick?.(reply.user_id)}
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = "/BHM.webp";
+                      }}
+                    />
 
-                          <span>
-                            {replyLikes[reply.id]?.count ?? reply.likes_count}
-                          </span>
-                        </button>
+                    <div className="reply-body">
+                      <div className="reply-user">{reply.nickname}</div>
+                      <div className="reply-content">{reply.content}</div>
+
+                      <div className="reply-meta">
+                        <div className="post-date">
+                          {formatRelativeTime(reply.created_at)}
+                        </div>
+
+                        <div className="reply-actions">
+                          <button
+                            onClick={() => handleReplyLike(reply.id)}
+                            className="reply-like-btn"
+                          >
+                            {replyLikes[reply.id]?.liked ? (
+                              <BiSolidLike color="#0f6970" />
+                            ) : (
+                              <BiLike color="black" />
+                            )}
+
+                            <span>
+                              {replyLikes[reply.id]?.count ?? reply.likes_count}
+                            </span>
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))
-            )}
+                ))
+              )
+              )}
           </div>
 
           <div className="reply-input-wrapper" ref={replyEmojiRef}>

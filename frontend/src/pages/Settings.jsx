@@ -66,7 +66,10 @@ function Settings() {
             <div className="delete-modal-buttons">
               <button
                 className="pc-btn-modal"
-                onClick={() => setShowSavedModal(false)}
+                onClick={() => {
+                  setShowSavedModal(false);
+                  navigate("/profile");
+                }}
               >
                 Aceptar
               </button>

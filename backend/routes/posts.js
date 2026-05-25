@@ -589,7 +589,7 @@ router.get("/:id/replies", async (req, res) => {
         ============================
         VALIDATE ID
         ============================
-        */
+        */ 
         if (isNaN(postId)) {
             return res.status(400).json({
                 error: "ID inválido"
@@ -600,6 +600,7 @@ router.get("/:id/replies", async (req, res) => {
             `
             SELECT 
                 r.id,
+                r.user_id,
                 r.content,
                 r.created_at,
                 r.likes_count,
