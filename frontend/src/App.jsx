@@ -160,7 +160,7 @@ function App() {
                   {/* TEXTO 1 */}
                   <div className="journey-copy">
                     <p>
-                      Soy un ovetense apasionado por la <strong>Historia</strong>, especialmente la <strong>Historia Militar</strong>, que ha marcado mi forma de entender el pasado y el presente.
+                      Ovetense, apasionado por la <strong>Historia</strong>, especialmente la <strong>Historia Militar</strong>, que ha marcado mi forma de entender el pasado y el presente.
                     </p>
 
                     <p>
@@ -229,15 +229,15 @@ function App() {
                     </p>
 
                     <p>
-                      Nacido en 2011 como blog personal, ha evolucionado a plataforma de contenidos con comunidad consolidada.
+                      Nacido en <strong>2011</strong> como blog personal, ha evolucionado a plataforma de contenidos con comunidad consolidada.
                     </p>
 
                     <p>
-                      El proyecto está dirigido por Francisco García Campa, profesor y divulgador especializado.
+                      El proyecto está dirigido por <strong>Francisco García Campa</strong>, profesor y divulgador especializado.
                     </p>
 
                     <p>
-                      Con más de 6.000 contenidos, se ha consolidado como referencia en divulgación histórica.
+                      Con <strong>más de 6.000 contenidos</strong>, se ha consolidado como referencia en divulgación histórica.
                     </p>
                   </div>
 

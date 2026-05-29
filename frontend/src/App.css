@@ -348,6 +348,7 @@ body {
   object-fit: cover;
   border-radius: 6px;
 }
+
 /* =========================
    ABOUT ANIMATIONS (OVERLAY)
 ========================= */
@@ -445,23 +446,23 @@ body {
 
 /* activaciÃ³n */
 .about-section.is-active .social-icons a:nth-child(1) {
-  animation: socialReveal 0.45s ease forwards;
-  animation-delay: 1s;
+  animation: socialReveal 0.45s cubic-bezier(0, 0, 0, 1) forwards;
+  animation-delay: 0.8s;
 }
 
 .about-section.is-active .social-icons a:nth-child(2) {
-  animation: socialReveal 0.45s ease forwards;
-  animation-delay: 1.45s;
+  animation: socialReveal 0.45s cubic-bezier(0, 0, 0, 1) forwards;
+  animation-delay: 1.1s;
 }
 
 .about-section.is-active .social-icons a:nth-child(3) {
-  animation: socialReveal 0.45s ease forwards;
-  animation-delay: 1.9s;
+  animation: socialReveal 0.45s cubic-bezier(0, 0, 0, 1) forwards;
+  animation-delay: 1.4s;
 }
 
 .about-section.is-active .social-icons a:nth-child(4) {
-  animation: socialReveal 0.45s ease forwards;
-  animation-delay: 2.35s;
+  animation: socialReveal 0.45s cubic-bezier(0, 0, 0, 1) forwards;
+  animation-delay: 1.7s;
 }
 
 @keyframes socialReveal {
@@ -622,13 +623,13 @@ body {
   color: #111;
   margin-top: 5px;
   text-align: right;
-  
+
 }
 
 .journey-role {
   font-family: "Agrandir", "Avenir Next", sans-serif;
-  font-size: 21px;
-  color: #111;
+  font-size: 16px;
+  color: #979696;
   text-align: right;
 }
 
@@ -743,13 +744,13 @@ body {
 .journey-section[data-section="journey-image"].is-active .journey-image-divider img {
   opacity: 1;
   transform: scale(1);
-  transition: all 1.2s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: all 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.5s;
 }
 
 .journey-section[data-section="journey-image"].is-active .journey-culdelampe {
   opacity: 1;
   transform: translateY(0) scale(1.8);
-  transition: opacity 1.1s cubic-bezier(0.22, 1, 0.36, 1) 1.05s, transform 1.1s cubic-bezier(0.22, 1, 0.36, 1) 1.05s;
+  transition: opacity 1.1s cubic-bezier(0.22, 1, 0.36, 1) 1.4s, transform 1.1s cubic-bezier(0.22, 1, 0.36, 1) 1.4s;
 }
 
 /* ===== SECTION 3 ===== */
@@ -767,13 +768,13 @@ body {
 .journey-section[data-section="journey-3"].is-active .journey-name {
   opacity: 1;
   transform: translateY(0);
-  transition: all 0.7s ease 0.3s;
+  transition: all 0.9s ease 1.5;
 }
 
 .journey-section[data-section="journey-3"].is-active .journey-role {
   opacity: 1;
   transform: translateY(0);
-  transition: all 0.7s ease 0.45s;
+  transition: all 0.7s ease 1.1s;
 }
 
 /* ===== SECTION 3 HERO ===== */
@@ -798,8 +799,8 @@ body {
   transform: translateY(0);
 
   transition:
-    opacity 0.9s ease 0.9s,
-    transform 0.9s ease 0.9s;
+    opacity 0.9s ease 0.5s,
+    transform 0.9s ease 0.5s;
 }
 
 
@@ -882,7 +883,7 @@ body {
     margin-top: 54px;
   }
 
-    .journey-role {
+  .journey-role {
     font-size: 18px;
   }
 }
@@ -965,7 +966,7 @@ body {
   opacity: 1;
   transform: translateY(0);
 
-  transition: opacity 0.9s ease 0.9s, transform 0.9s ease 0.9s;
+  transition: opacity 0.9s ease 1.2s, transform 0.9s ease 1.2s;
 }
 
 .journey-section[data-section="journey-image"] .journey-container {

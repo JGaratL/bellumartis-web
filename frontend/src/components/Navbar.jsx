@@ -3,6 +3,8 @@
 import { MdLogout } from "react-icons/md";
 import { VscSettingsGear } from "react-icons/vsc";
 import { CgProfile } from "react-icons/cg";
+import { FiUserPlus } from "react-icons/fi";
+import { MdLogin } from "react-icons/md";
 
 import "./Navbar.css";
 
@@ -427,7 +429,7 @@ function Navbar() {
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => goTo("/login")}
                   >
-                    <CgProfile className="dropdown-icon" />
+                    <MdLogin className="dropdown-icon" />
                     Iniciar sesión
                   </p>
 
@@ -436,7 +438,7 @@ function Navbar() {
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => goTo("/register")}
                   >
-                    <CgProfile className="dropdown-icon" />
+                    <FiUserPlus className="dropdown-icon" />
                     Registrarse
                   </p>
                 </>

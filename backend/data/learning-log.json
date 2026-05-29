@@ -1,0 +1,29 @@
+{
+  "guests": [
+    {
+      "name": "David Díaz Cabo",
+      "matchedAliases": [
+        "david diaz cabo",
+        "diaz cabo",
+        "david diaz"
+      ]
+    },
+    {
+      "name": "Javier Benegas",
+      "matchedAliases": [
+        "javier benegas",
+        "benegas"
+      ]
+    },
+    {
+      "name": "Cristóbal Vergara Durán",
+      "matchedAliases": [
+        "cristobal vergara duran",
+        "cristobal vergara"
+      ]
+    }
+  ],
+  "units": [],
+  "conflicts": [],
+  "topics": []
+}
