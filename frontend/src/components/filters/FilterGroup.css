@@ -1,0 +1,64 @@
+.filter-group {
+  position: relative;
+  display: inline-block;
+}
+
+/* BOTÓN */
+.filter-group-btn {
+  all: unset;
+
+  min-width: 140px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  background: white;
+  border: 1px solid #ddd;
+
+  padding: 8px 10px;
+
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.filter-group-btn:hover {
+  background: #f7f7f7;
+}
+
+/* MENÚ */
+.filter-group-menu {
+  position: absolute;
+  top: 110%;
+  left: 0;
+
+  background: white;
+  border: 1px solid #e6e6e6;
+
+  border-radius: 8px;
+
+  box-shadow: 0 10px 25px rgba(0,0,0,0.12);
+
+  min-width: 180px;
+
+  z-index: 1000;
+
+  padding: 6px 0;
+}
+
+/* ITEM */
+.filter-group-item {
+  padding: 8px 10px;
+  cursor: pointer;
+
+  font-size: 13px;
+}
+
+.filter-group-item:hover {
+  background: #f3f3f3;
+}
+
+.filter-group-item.clear {
+  color: #b00020;
+  border-top: 1px solid #eee;
+  margin-top: 6px;
+}

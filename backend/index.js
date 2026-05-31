@@ -7,6 +7,7 @@ const pool = require("./db");
 const checkRole = require("./middleware/role");
 const verifyToken = require("./middleware/auth");
 const { OAuth2Client } = require("google-auth-library");
+const contentRoutes = require("./routes/contentRoutes");
 
 const multer = require("multer");
 const path = require("path");
@@ -837,6 +838,14 @@ app.get("/events/:id/status", verifyToken, async (req, res) => {
     res.status(500).json({ error: "Error obteniendo estado" });
   }
 });
+
+/*
+====================================
+CONTENT VIDEOS
+====================================
+*/
+
+app.use("/api/content", contentRoutes);
 
 /*
 ====================================

@@ -1,0 +1,73 @@
+.search-bar {
+  display: flex;
+  align-items: center;
+
+  width: 320px;
+  height: 48px;
+
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* icono lupa */
+.search-icon {
+  width: 36px;
+  min-width: 36px;
+  height: 100%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-size: 14px;
+  color: #666;
+}
+
+/* input */
+.search-bar input {
+  flex: 1;
+  height: 100%;
+
+  border: none;
+  outline: none;
+
+  padding: 0 8px;
+
+  font-size: 13px;
+  background: transparent;
+
+  min-width: 0;
+}
+
+.search-bar input::placeholder {
+  color: #888;
+}
+
+/* botón X */
+.search-clear {
+  width: 36px;
+  min-width: 36px;
+  height: 100%;
+
+  border: none;
+  background: transparent;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  cursor: pointer;
+
+  font-size: 14px;
+  color: #666;
+
+  transition: background 0.2s ease;
+}
+
+.search-clear:hover {
+  background: #f3f3f3;
+}
