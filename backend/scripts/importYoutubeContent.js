@@ -9,7 +9,7 @@ const YOUTUBE_API_KEY =
 const CHANNEL_ID =
     process.env.YOUTUBE_CHANNEL_ID;
 
-const MAX_RESULTS = 5;
+const MAX_RESULTS = 15;
 
 // -----------------------------------
 // HELPERS
@@ -84,6 +84,7 @@ function cleanDescription(text = "") {
         /privacidad/i,
         /franciscogarciacampa/i,
         /bellumartis26/i,
+        /libros/i,
     ];
 
     const lines = cleaned
@@ -172,21 +173,77 @@ async function fetchUploadsPlaylist() {
         .uploads;
 }
 
-async function fetchVideos() {
-    const uploadsPlaylistId =
-        await fetchUploadsPlaylist();
+async function fetchVideosPaginated() {
+    const uploadsPlaylistId = await fetchUploadsPlaylist();
 
-    const url =
-        `https://www.googleapis.com/youtube/v3/playlistItems` +
-        `?part=snippet,contentDetails` +
-        `&playlistId=${uploadsPlaylistId}` +
-        `&maxResults=${MAX_RESULTS}` +
-        `&key=${YOUTUBE_API_KEY}`;
+    let allVideos = [];
+    let nextPageToken = null;
 
-    const res = await fetch(url);
-    const data = await res.json();
+    let pageCount = 0;
+    const MAX_PAGES = 50;
 
-    return data.items;
+
+    do {
+        console.log("📥 Cargando página...");
+
+        if (++pageCount > MAX_PAGES) {
+            console.log("🛑 Corte de seguridad activado");
+            break;
+        }
+
+        const url =
+            `https://www.googleapis.com/youtube/v3/playlistItems` +
+            `?part=snippet,contentDetails` +
+            `&playlistId=${uploadsPlaylistId}` +
+            `&maxResults=50` +
+            `&pageToken=${nextPageToken || ""}` +
+            `&key=${YOUTUBE_API_KEY}`;
+
+        const res = await fetch(url);
+
+        // ❌ CONTROL HTTP
+        if (!res.ok) {
+            const text = await res.text();
+            console.error("❌ Error YouTube API:");
+            console.error(text);
+            break;
+        }
+
+        // ⚠️ EVITAR CRASH HTML/XML
+        const text = await res.text();
+
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch (err) {
+            console.error("❌ Respuesta no JSON (YouTube devolvió HTML):");
+            console.error(text);
+            break;
+        }
+
+        if (!data.items || data.items.length === 0) {
+            console.log("⚠️ Sin más vídeos");
+            break;
+        }
+
+        allVideos = allVideos.concat(data.items);
+
+        nextPageToken = data.nextPageToken || null;
+
+        console.log(`📦 Página cargada: ${data.items.length} vídeos`);
+
+        if (!nextPageToken) {
+            console.log("🏁 Última página alcanzada");
+            break;
+        }
+
+        // 🧠 pequeña pausa anti rate limit
+        await sleep(200);
+
+    } while (true);
+    console.log(`📚 Total vídeos obtenidos: ${allVideos.length}`);
+
+    return allVideos;
 }
 
 async function fetchVideoDetails(videoIds) {
@@ -201,7 +258,22 @@ async function fetchVideoDetails(videoIds) {
         `&key=${YOUTUBE_API_KEY}`;
 
     const res = await fetch(url);
-    const data = await res.json();
+
+    if (!res.ok) {
+        const text = await res.text();
+        console.error("❌ Error YouTube API (videos):", text);
+        return {};
+    }
+
+    const text = await res.text();
+
+    let data;
+    try {
+        data = JSON.parse(text);
+    } catch (e) {
+        console.error("❌ Respuesta no JSON (videos):", text);
+        return {};
+    }
 
     console.log(
         "\nDEBUG VIDEO DETAILS:",
@@ -231,6 +303,15 @@ async function fetchVideoDetails(videoIds) {
 
 async function saveVideo(video, durationMap) {
     const snippet = video.snippet;
+
+    
+
+    let theme = null;
+
+
+    if (CHANNEL_ID === "UCTNFDvqGq_zZ_spphDCQaHg") {
+        theme = "actualidad_militar";
+    }
 
     const title =
         snippet.title?.trim();
@@ -284,6 +365,19 @@ async function saveVideo(video, durationMap) {
             ? parseISODuration(durationIso)
             : null;
 
+
+    // omitir shorts / vídeos cortos
+    if (
+        durationSeconds !== null &&
+        durationSeconds < 180
+    ) {
+        console.log(
+            "⏭️ Omitido (<3 min):",
+            title
+        );
+        return;
+    }
+
     const contentType =
         detectType(
             title,
@@ -316,7 +410,7 @@ async function saveVideo(video, durationMap) {
             title,
             slug(title),
             description,
-            null, // theme
+            theme,
             contentType,
             "youtube",
             `https://youtube.com/watch?v=${youtubeVideoId}`,
@@ -351,8 +445,7 @@ async function main() {
             "📥 Obteniendo vídeos..."
         );
 
-        const videos =
-            await fetchVideos();
+        const videos = await fetchVideosPaginated();
 
         const ids = videos.map(
             v =>
@@ -360,10 +453,20 @@ async function main() {
                     .videoId
         );
 
-        const durationMap =
-            await fetchVideoDetails(
-                ids
-            );
+        let durationMap = {};
+
+        for (let i = 0; i < ids.length; i += 50) {
+            const batch = ids.slice(i, i + 50);
+
+            const partial = await fetchVideoDetails(batch);
+
+            durationMap = {
+                ...durationMap,
+                ...partial
+            };
+
+            await sleep(200); // anti rate limit
+        }
 
         for (const video of videos) {
             await saveVideo(

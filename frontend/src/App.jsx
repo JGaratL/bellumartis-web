@@ -11,6 +11,7 @@ import Events from "./pages/Events";
 import About from "./pages/About";
 import MyProfile from "./pages/MyProfile";
 import Settings from "./pages/Settings";
+import AdminDashboard from "./pages/Admin/AdminDashboard";
 import PrivacyPolicy from "./pages/Legal/PrivacyPolicy";
 import LegalNotice from "./pages/Legal/LegalNotice";
 
@@ -22,6 +23,9 @@ import ScrollToTop from "./components/common/ScrollToTop";
 import "./styles/legal.css";
 
 import AuthPage from "./pages/Auth/AuthPage";
+import ForgotPasswordPage from "./pages/Auth/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/Auth/ResetPasswordPage";
+import VerifyEmailPage from "./pages/Auth/VerifyEmailPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 import "./App.css";
@@ -40,7 +44,10 @@ function App() {
   const aboutRef = useRef(null);
   const appRef = useRef(null);
 
-  const hideLayout = ["/login", "/register"].includes(location.pathname);
+  const hideLayout =
+    ["/login", "/register", "/forgot-password", "/verify-email"].includes(
+      location.pathname
+    ) || location.pathname.startsWith("/reset-password");
 
   useEffect(() => {
     if (location.pathname !== "/") return;
@@ -269,6 +276,9 @@ function App() {
         {/* AUTH */}
         <Route path="/login" element={<AuthPage />} />
         <Route path="/register" element={<AuthPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
+        <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
 
         {/* PUBLIC */}
         <Route path="/articles" element={<Articles />} />
@@ -288,7 +298,7 @@ function App() {
           path="/admin"
           element={
             <ProtectedRoute roles={["admin", "owner"]}>
-              <div>Admin Panel (en desarrollo)</div>
+              <AdminDashboard />
             </ProtectedRoute>
           }
         />

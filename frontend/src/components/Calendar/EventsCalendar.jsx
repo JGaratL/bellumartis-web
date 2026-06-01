@@ -1,7 +1,12 @@
 import { useEffect, useMemo, useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
+import api from "../../api";
 import "./Events.css";
 
 function Events() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [events, setEvents] = useState([]);
 
   const today = new Date();
@@ -17,6 +22,11 @@ function Events() {
   // MODAL STATE
   // =========================
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const [selectedEventJoined, setSelectedEventJoined] = useState(false);
+  const [selectedEventLoading, setSelectedEventLoading] = useState(false);
+  const [selectedEventActionLoading, setSelectedEventActionLoading] = useState(false);
+  const [selectedEventError, setSelectedEventError] = useState("");
+  const [selectedEventNotice, setSelectedEventNotice] = useState("");
 
   // =========================
   // FETCH EVENTS
@@ -34,6 +44,53 @@ function Events() {
 
     fetchEvents();
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadSelectedEventState = async () => {
+      if (!selectedEvent) {
+        setSelectedEventJoined(false);
+        setSelectedEventError("");
+        setSelectedEventNotice("");
+        setSelectedEventLoading(false);
+        return;
+      }
+
+      if (!user) {
+        setSelectedEventJoined(false);
+        setSelectedEventError("");
+        setSelectedEventNotice("");
+        setSelectedEventLoading(false);
+        return;
+      }
+
+      try {
+        setSelectedEventLoading(true);
+        setSelectedEventError("");
+
+        const res = await api.get(`/events/${selectedEvent.id}/status`);
+
+        if (cancelled) return;
+
+        setSelectedEventJoined(Boolean(res.data?.joined));
+      } catch (err) {
+        if (cancelled) return;
+        console.error("Error cargando estado del evento:", err);
+        setSelectedEventError("No se pudo comprobar tu estado en el evento.");
+      } finally {
+        if (!cancelled) {
+          setSelectedEventLoading(false);
+        }
+      }
+    };
+
+    loadSelectedEventState();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedEvent, user]);
 
   useEffect(() => {
     function handleClickOutside(e) {
@@ -162,6 +219,51 @@ function Events() {
     });
   }
 
+  function isEventEnded(event) {
+    if (!event?.date) return false;
+
+    const eventDate = new Date(event.date);
+    const startOfToday = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate()
+    );
+
+    return eventDate < startOfToday;
+  }
+
+  const handleEventAction = async () => {
+    if (!selectedEvent || selectedEventLoading || selectedEventActionLoading) return;
+
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+
+    try {
+      setSelectedEventActionLoading(true);
+      setSelectedEventError("");
+      setSelectedEventNotice("");
+
+      if (selectedEventJoined) {
+        const res = await api.delete(`/events/${selectedEvent.id}/join`);
+        setSelectedEventJoined(false);
+        setSelectedEventNotice(res.data?.message || "Te has desapuntado correctamente.");
+      } else {
+        const res = await api.post(`/events/${selectedEvent.id}/join`);
+        setSelectedEventJoined(true);
+        setSelectedEventNotice(res.data?.message || "Te has apuntado correctamente.");
+      }
+    } catch (err) {
+      console.error("Error cambiando asistencia:", err);
+      setSelectedEventError(
+        err?.response?.data?.error || "No se pudo actualizar tu asistencia."
+      );
+    } finally {
+      setSelectedEventActionLoading(false);
+    }
+  };
+
   return (
     <section className="events-page">
 
@@ -287,7 +389,7 @@ function Events() {
               <div
                 key={`${currentYear}-${currentMonth}-${day}`}
                 className={`calendar-cell ${isPastDay(day) ? "past-day" : "future-day"
-                  }`}
+                  } ${event && isEventEnded(event) ? "event-ended" : ""}`}
               >
 
                 <div className="day-number">{day}</div>
@@ -360,14 +462,36 @@ function Events() {
               {selectedEvent.description}
             </p>
 
+            {selectedEventNotice && (
+              <p className="modal-success">{selectedEventNotice}</p>
+            )}
+
+            {selectedEventError && (
+              <p className="modal-error">{selectedEventError}</p>
+            )}
+
             {/* BOTONES ORDENADOS */}
             <div className="modal-buttons">
 
               <button
                 className="modal-join-btn"
-                disabled
+                onClick={handleEventAction}
+                disabled={
+                  selectedEventLoading ||
+                  selectedEventActionLoading ||
+                  isEventEnded(selectedEvent) ||
+                  !user
+                }
               >
-                Apuntarme
+                {selectedEventLoading
+                  ? "Comprobando..."
+                  : isEventEnded(selectedEvent)
+                    ? "Evento finalizado"
+                    : !user
+                      ? "Inicia sesión para apuntarte"
+                      : selectedEventJoined
+                        ? "Desapuntarme"
+                        : "Apuntarme"}
               </button>
 
               <button

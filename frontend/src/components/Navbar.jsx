@@ -5,6 +5,7 @@ import { VscSettingsGear } from "react-icons/vsc";
 import { CgProfile } from "react-icons/cg";
 import { FiUserPlus } from "react-icons/fi";
 import { MdLogin } from "react-icons/md";
+import { RiAdminLine } from "react-icons/ri";
 
 import "./Navbar.css";
 
@@ -335,12 +336,6 @@ function Navbar() {
           CONTACTO
         </NavLink>
 
-        {user && (isAdmin() || isOwner()) && (
-          <NavLink to="/admin">
-            Admin
-          </NavLink>
-        )}
-
         {user && isModerator() && (
           <NavLink to="/moderation">
             Moderación
@@ -454,7 +449,13 @@ function Navbar() {
                     Ajustes
                   </p>
 
-                  {isAdmin() && <p className="role">Admin</p>}
+                  {(isAdmin() || isOwner()) && (
+                    <p onClick={() => goTo("/admin")}>
+                      <RiAdminLine className="dropdown-icon" />
+                      Dashboard
+                    </p>
+                  )}
+
                   {isOwner() && <p className="role">Owner</p>}
                   {isModerator() && <p className="role">Moderator</p>}
 

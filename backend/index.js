@@ -8,6 +8,13 @@ const checkRole = require("./middleware/role");
 const verifyToken = require("./middleware/auth");
 const { OAuth2Client } = require("google-auth-library");
 const contentRoutes = require("./routes/contentRoutes");
+const {
+  createResetToken,
+  hashToken,
+  sendPasswordResetEmail,
+  sendVerificationEmail,
+  verifyEmailVerificationToken,
+} = require("./services/authEmail");
 
 const multer = require("multer");
 const path = require("path");
@@ -108,6 +115,32 @@ const buildUniqueNickname = async (rawNickname) => {
 const normalizeEmail = (email) => (email || "").toString().trim().toLowerCase();
 const isStrongPassword = (password) =>
   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/.test(password || "");
+const isSpainCountry = (country) =>
+  (country || "")
+    .toString()
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase() === "espana";
+const UNVERIFIED_ACCOUNT_TTL_DAYS = Number(process.env.UNVERIFIED_ACCOUNT_TTL_DAYS || 7);
+
+const cleanupExpiredUnverifiedUsers = async () => {
+  if (!Number.isFinite(UNVERIFIED_ACCOUNT_TTL_DAYS) || UNVERIFIED_ACCOUNT_TTL_DAYS <= 0) {
+    return 0;
+  }
+
+  const [result] = await pool.query(
+    `
+    DELETE FROM users
+    WHERE provider = 'local'
+      AND email_verified_at IS NULL
+      AND created_at < DATE_SUB(NOW(), INTERVAL ? DAY)
+    `,
+    [UNVERIFIED_ACCOUNT_TTL_DAYS]
+  );
+
+  return result.affectedRows || 0;
+};
 
 /*
 ====================================
@@ -116,12 +149,14 @@ REGISTRO
 */
 app.post("/register", async (req, res) => {
   try {
+    await cleanupExpiredUnverifiedUsers();
+
     const { nickname, email, password, province, country } = req.body;
     const normalizedEmail = normalizeEmail(email);
     const normalizedNickname = (nickname || "").toString().trim();
     const normalizedCountry = (country || "").toString().trim();
     const normalizedProvince =
-      normalizedCountry === "Espana"
+      isSpainCountry(normalizedCountry)
         ? (province || "").toString().trim()
         : null;
 
@@ -158,7 +193,7 @@ app.post("/register", async (req, res) => {
         await pool.query(
           `
           UPDATE users
-          SET nickname = ?, password = ?, province = ?, country = ?, last_login = NOW()
+          SET nickname = ?, password = ?, province = ?, country = ?, last_login = NOW(), email_verified_at = NOW(), status = 'active'
           WHERE id = ?
           `,
           [
@@ -207,8 +242,8 @@ app.post("/register", async (req, res) => {
     const [result] = await pool.query(
       `
       INSERT INTO users
-      (nickname, email, password, province, country, provider)
-      VALUES (?, ?, ?, ?, ?, 'local')
+      (nickname, email, password, province, country, provider, status, email_verified_at)
+      VALUES (?, ?, ?, ?, ?, 'local', 'inactive', NULL)
       `,
       [
         normalizedNickname,
@@ -225,14 +260,15 @@ app.post("/register", async (req, res) => {
       email: normalizedEmail,
       role: "user",
     };
-    const token = generateToken(user);
 
-    await pool.query("UPDATE users SET last_login = NOW() WHERE id = ?", [result.insertId]);
+    try {
+      await sendVerificationEmail(user);
+    } catch (mailError) {
+      console.error("EMAIL VERIFICATION ERROR:", mailError);
+    }
 
     res.json({
-      message: "Usuario registrado correctamente",
-      token,
-      user,
+      message: "Usuario registrado correctamente. Revisa tu email para activar la cuenta.",
     });
   } catch (error) {
     console.error(error);
@@ -247,6 +283,8 @@ LOGIN LOCAL
 */
 app.post("/login", async (req, res) => {
   try {
+    await cleanupExpiredUnverifiedUsers();
+
     const { email, password } = req.body;
     const normalizedEmail = normalizeEmail(email);
 
@@ -281,6 +319,13 @@ app.post("/login", async (req, res) => {
       });
     }
 
+    if (!user.email_verified_at || user.status === "inactive") {
+      return res.status(403).json({
+        error: "Tu email aun no esta verificado. Revisa tu correo o solicita un nuevo enlace.",
+        code: "EMAIL_NOT_VERIFIED",
+      });
+    }
+
     const token = generateToken(user);
 
     await pool.query(
@@ -301,6 +346,249 @@ app.post("/login", async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Error en el servidor" });
+  }
+});
+
+/*
+====================================
+UNVERIFIED ACCOUNT CLEANUP
+====================================
+*/
+const runUnverifiedCleanup = async (reason = "scheduled") => {
+  try {
+    const deletedCount = await cleanupExpiredUnverifiedUsers();
+
+    if (deletedCount > 0) {
+      console.log(
+        `[auth-cleanup:${reason}] deleted ${deletedCount} expired unverified account(s)`
+      );
+    }
+  } catch (error) {
+    console.error(`[auth-cleanup:${reason}] error:`, error);
+  }
+};
+
+runUnverifiedCleanup("startup");
+setInterval(() => {
+  runUnverifiedCleanup("interval");
+}, 24 * 60 * 60 * 1000);
+
+/*
+====================================
+RESEND EMAIL VERIFICATION
+====================================
+*/
+app.post("/auth/resend-verification", async (req, res) => {
+  try {
+    await cleanupExpiredUnverifiedUsers();
+
+    const normalizedEmail = normalizeEmail(req.body.email);
+
+    if (!normalizedEmail) {
+      return res.status(400).json({ error: "Email obligatorio" });
+    }
+
+    const [rows] = await pool.query(
+      "SELECT id, nickname, email, email_verified_at, status FROM users WHERE email = ?",
+      [normalizedEmail]
+    );
+
+    if (rows.length === 0) {
+      return res.json({
+        message: "Si el email existe, enviaremos un nuevo enlace de verificacion.",
+      });
+    }
+
+    const user = rows[0];
+
+    if (user.email_verified_at || user.status === "active") {
+      return res.json({
+        message: "Tu email ya estaba verificado.",
+      });
+    }
+
+    try {
+      await sendVerificationEmail(user);
+    } catch (mailError) {
+      console.error("RESEND VERIFICATION MAIL ERROR:", mailError);
+    }
+
+    return res.json({
+      message: "Te hemos enviado un nuevo enlace de verificacion.",
+    });
+  } catch (error) {
+    console.error("RESEND VERIFICATION ERROR:", error);
+    return res.status(500).json({ error: "No se pudo reenviar la verificacion" });
+  }
+});
+
+/*
+====================================
+VERIFY EMAIL
+====================================
+*/
+app.post("/auth/verify-email", async (req, res) => {
+  try {
+    const { token } = req.body;
+
+    if (!token) {
+      return res.status(400).json({ error: "Token obligatorio" });
+    }
+
+    let payload;
+    try {
+      payload = verifyEmailVerificationToken(token);
+    } catch (error) {
+      const message =
+        error.name === "TokenExpiredError"
+          ? "El enlace de verificacion ha caducado"
+          : "El enlace de verificacion no es valido";
+
+      return res.status(400).json({ error: message });
+    }
+
+    const userId = Number(payload.sub);
+    const normalizedEmail = normalizeEmail(payload.email);
+
+    const [rows] = await pool.query(
+      "SELECT id, email, email_verified_at FROM users WHERE id = ? AND email = ?",
+      [userId, normalizedEmail]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: "Usuario no encontrado" });
+    }
+
+    if (rows[0].email_verified_at) {
+      return res.json({
+        message: "Tu email ya estaba verificado.",
+      });
+    }
+
+    await pool.query(
+      "UPDATE users SET email_verified_at = NOW(), status = 'active' WHERE id = ?",
+      [userId]
+    );
+
+    return res.json({
+      message: "Email verificado correctamente",
+    });
+  } catch (error) {
+    console.error("VERIFY EMAIL ERROR:", error);
+    return res.status(500).json({ error: "No se pudo verificar el email" });
+  }
+});
+
+/*
+====================================
+FORGOT PASSWORD
+====================================
+*/
+app.post("/auth/forgot-password", async (req, res) => {
+  try {
+    const normalizedEmail = normalizeEmail(req.body.email);
+
+    if (!normalizedEmail) {
+      return res.status(400).json({ error: "Email obligatorio" });
+    }
+
+    const [rows] = await pool.query(
+      "SELECT id, nickname, email, password FROM users WHERE email = ?",
+      [normalizedEmail]
+    );
+
+    if (rows.length === 0 || !rows[0].password) {
+      return res.json({
+        message:
+          "Si existe una cuenta local con ese email, recibirás un enlace para cambiar la contraseña.",
+      });
+    }
+
+    const user = rows[0];
+    const resetTokenData = createResetToken();
+    const resetPasswordExpires = new Date(Date.now() + 60 * 60 * 1000);
+
+    await pool.query(
+      `
+      UPDATE users
+      SET reset_password_token = ?, reset_password_expires = ?
+      WHERE id = ?
+      `,
+      [resetTokenData.hash, resetPasswordExpires, user.id]
+    );
+
+    try {
+      await sendPasswordResetEmail(user, resetTokenData.token);
+    } catch (mailError) {
+      console.error("RESET PASSWORD MAIL ERROR:", mailError);
+    }
+
+    return res.json({
+      message: "Te hemos enviado un enlace para restablecer la contrasena.",
+    });
+  } catch (error) {
+    console.error("FORGOT PASSWORD ERROR:", error);
+    return res.status(500).json({ error: "No se pudo enviar el enlace" });
+  }
+});
+
+/*
+====================================
+RESET PASSWORD
+====================================
+*/
+app.post("/auth/reset-password", async (req, res) => {
+  try {
+    const { token, password } = req.body;
+
+    if (!token || !password) {
+      return res.status(400).json({ error: "Token y contrasena obligatorios" });
+    }
+
+    if (!isStrongPassword(password)) {
+      return res.status(400).json({
+        error:
+          "La contrasena debe tener minimo 8 caracteres, una mayuscula, una minuscula, un numero y un simbolo",
+      });
+    }
+
+    const tokenHash = hashToken(token);
+
+    const [rows] = await pool.query(
+      `
+      SELECT id
+      FROM users
+      WHERE reset_password_token = ?
+        AND reset_password_expires IS NOT NULL
+        AND reset_password_expires > NOW()
+      LIMIT 1
+      `,
+      [tokenHash]
+    );
+
+    if (rows.length === 0) {
+      return res.status(400).json({
+        error: "El enlace ha caducado o no es valido",
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    await pool.query(
+      `
+      UPDATE users
+      SET password = ?, reset_password_token = NULL, reset_password_expires = NULL
+      WHERE id = ?
+      `,
+      [hashedPassword, rows[0].id]
+    );
+
+    return res.json({
+      message: "Contrasena actualizada correctamente",
+    });
+  } catch (error) {
+    console.error("RESET PASSWORD ERROR:", error);
+    return res.status(500).json({ error: "No se pudo cambiar la contrasena" });
   }
 });
 
@@ -363,13 +651,14 @@ app.post("/auth/google", async (req, res) => {
 
       if (!user.google_id) {
         await pool.query(
-          "UPDATE users SET google_id = ?, provider = 'google' WHERE id = ?",
+          "UPDATE users SET google_id = ?, provider = 'google', email_verified_at = NOW(), status = 'active' WHERE id = ?",
           [googleId, user.id]
         );
       } else if (user.provider !== "google") {
-        await pool.query("UPDATE users SET provider = 'google' WHERE id = ?", [
-          user.id,
-        ]);
+        await pool.query(
+          "UPDATE users SET provider = 'google', email_verified_at = NOW(), status = 'active' WHERE id = ?",
+          [user.id]
+        );
       }
 
       if (googlePicture && (!user.profile_image || !user.profile_image.trim())) {
@@ -400,8 +689,8 @@ app.post("/auth/google", async (req, res) => {
       const [result] = await pool.query(
         `
         INSERT INTO users
-        (nickname, email, password, provider, google_id, profile_image, province, country)
-        VALUES (?, ?, NULL, 'google', ?, ?, NULL, NULL)
+        (nickname, email, password, provider, google_id, profile_image, province, country, status, email_verified_at)
+        VALUES (?, ?, NULL, 'google', ?, ?, NULL, NULL, 'active', NOW())
         `,
         [safeNickname, email, googleId, googlePicture]
       );
@@ -466,6 +755,243 @@ app.get("/users/me", verifyToken, async (req, res) => {
 
   res.json(rows[0]);
 });
+
+/*
+====================================
+ADMIN USERS LIST
+====================================
+*/
+app.get(
+  "/admin/users",
+  verifyToken,
+  checkRole(["admin", "owner"]),
+  async (req, res) => {
+    try {
+      const [rows] = await pool.query(
+        `
+        SELECT
+          u.id,
+          u.nickname,
+          u.email,
+          u.role,
+          u.province,
+          u.country,
+          u.created_at,
+          u.last_login,
+          u.status,
+          COUNT(p.id) AS posts_count
+        FROM users u
+        LEFT JOIN posts p ON p.user_id = u.id
+        GROUP BY
+          u.id,
+          u.nickname,
+          u.email,
+          u.role,
+          u.province,
+          u.country,
+          u.created_at,
+          u.last_login,
+          u.status
+        ORDER BY u.created_at DESC
+        `
+      );
+
+      return res.json(rows);
+    } catch (err) {
+      console.error("ADMIN USERS LIST ERROR:", err);
+      return res.status(500).json({ error: "No se pudo obtener la lista de usuarios" });
+    }
+  }
+);
+
+/*
+====================================
+ADMIN USERS STATS
+====================================
+*/
+app.get(
+  "/admin/users/stats",
+  verifyToken,
+  checkRole(["admin", "owner"]),
+  async (req, res) => {
+    try {
+      const [rows] = await pool.query(
+        `
+        SELECT
+          COUNT(*) AS total_users,
+          SUM(CASE WHEN last_login >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 ELSE 0 END) AS active_users,
+          SUM(CASE WHEN created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 ELSE 0 END) AS new_users,
+          SUM(CASE WHEN last_login IS NULL OR last_login < DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 ELSE 0 END) AS inactive_users
+        FROM users
+        `
+      );
+
+      return res.json(rows[0] || {
+        total_users: 0,
+        active_users: 0,
+        new_users: 0,
+        inactive_users: 0,
+      });
+    } catch (err) {
+      console.error("ADMIN USERS STATS ERROR:", err);
+      return res.status(500).json({ error: "No se pudieron obtener las métricas de usuarios" });
+    }
+  }
+);
+
+/*
+====================================
+DELETE ADMIN USER
+====================================
+*/
+app.delete(
+  "/admin/users/:id",
+  verifyToken,
+  checkRole(["admin", "owner"]),
+  async (req, res) => {
+    const targetId = Number(req.params.id);
+    const currentUserId = Number(req.user?.id);
+    const currentRole = req.user?.role || "user";
+
+    if (!Number.isInteger(targetId) || targetId <= 0) {
+      return res.status(400).json({ error: "ID de usuario inválido" });
+    }
+
+    if (targetId === currentUserId) {
+      return res.status(400).json({
+        error: "No puedes eliminar tu propio usuario",
+      });
+    }
+
+    const connection = await pool.getConnection();
+
+    try {
+      await connection.beginTransaction();
+
+      const [targetRows] = await connection.query(
+        "SELECT id, role, profile_image FROM users WHERE id = ? LIMIT 1",
+        [targetId]
+      );
+
+      if (targetRows.length === 0) {
+        await connection.rollback();
+        return res.status(404).json({ error: "Usuario no encontrado" });
+      }
+
+      const targetUser = targetRows[0];
+
+      if (currentRole === "admin" && targetUser.role === "owner") {
+        await connection.rollback();
+        return res.status(403).json({
+          error: "No tienes permisos para eliminar a un owner",
+        });
+      }
+
+      await connection.query(
+        `
+        DELETE FROM notifications
+        WHERE user_id = ? OR from_user_id = ?
+        `,
+        [targetId, targetId]
+      );
+
+      await connection.query(
+        `
+        DELETE prl
+        FROM post_reply_likes prl
+        LEFT JOIN post_replies pr ON pr.id = prl.reply_id
+        LEFT JOIN posts p ON p.id = pr.post_id
+        WHERE prl.user_id = ?
+           OR pr.user_id = ?
+           OR p.user_id = ?
+        `,
+        [targetId, targetId, targetId]
+      );
+
+      await connection.query(
+        `
+        DELETE pl
+        FROM post_likes pl
+        LEFT JOIN posts p ON p.id = pl.post_id
+        WHERE pl.user_id = ?
+           OR p.user_id = ?
+        `,
+        [targetId, targetId]
+      );
+
+      await connection.query(
+        `
+        DELETE pr
+        FROM post_replies pr
+        LEFT JOIN posts p ON p.id = pr.post_id
+        WHERE pr.user_id = ?
+           OR p.user_id = ?
+        `,
+        [targetId, targetId]
+      );
+
+      await connection.query(
+        `
+        DELETE ue
+        FROM user_events ue
+        WHERE ue.user_id = ?
+        `,
+        [targetId]
+      );
+
+      await connection.query(
+        `
+        DELETE p
+        FROM posts p
+        WHERE p.user_id = ?
+        `,
+        [targetId]
+      );
+
+      await connection.query(
+        `
+        DELETE FROM users
+        WHERE id = ?
+        `,
+        [targetId]
+      );
+
+      await connection.commit();
+
+      if (
+        typeof targetUser.profile_image === "string" &&
+        (targetUser.profile_image.startsWith("/uploads/avatars/") ||
+          targetUser.profile_image.startsWith("uploads/avatars/"))
+      ) {
+        const relativePath = targetUser.profile_image.replace(/^\/+/, "");
+        const absolutePath = path.join(__dirname, relativePath);
+
+        if (fs.existsSync(absolutePath)) {
+          try {
+            fs.unlinkSync(absolutePath);
+          } catch (fileError) {
+            console.error("DELETE USER AVATAR FILE ERROR:", fileError);
+          }
+        }
+      }
+
+      return res.json({
+        message: "Usuario eliminado correctamente",
+      });
+    } catch (err) {
+      try {
+        await connection.rollback();
+      } catch (rollbackError) {
+        console.error("DELETE USER ROLLBACK ERROR:", rollbackError);
+      }
+
+      console.error("DELETE ADMIN USER ERROR:", err);
+      return res.status(500).json({ error: "No se pudo eliminar el usuario" });
+    } finally {
+      connection.release();
+    }
+  }
+);
 
 /*
 ====================================
@@ -564,6 +1090,67 @@ app.put("/users/me", verifyToken, async (req, res) => {
   } catch (error) {
     console.error("UPDATE PROFILE ERROR:", error);
     return res.status(500).json({ error: "No se pudo actualizar el perfil" });
+  }
+});
+
+/*
+====================================
+CHANGE PASSWORD
+====================================
+*/
+app.put("/users/me/password", verifyToken, async (req, res) => {
+  try {
+    const { current_password, new_password } = req.body;
+
+    if (!current_password || !new_password) {
+      return res.status(400).json({ error: "La contraseña actual y la nueva son obligatorias" });
+    }
+
+    if (!isStrongPassword(new_password)) {
+      return res.status(400).json({
+        error:
+          "La contrasena debe tener minimo 8 caracteres, una mayuscula, una minuscula, un numero y un simbolo",
+      });
+    }
+
+    const [rows] = await pool.query(
+      "SELECT id, password, provider FROM users WHERE id = ?",
+      [req.user.id]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: "Usuario no encontrado" });
+    }
+
+    const user = rows[0];
+
+    if (!user.password) {
+      return res.status(400).json({
+        error: "Este usuario no tiene contraseña local configurada",
+      });
+    }
+
+    const validCurrentPassword = await bcrypt.compare(current_password, user.password);
+
+    if (!validCurrentPassword) {
+      return res.status(400).json({
+        error: "La contraseña actual no es correcta",
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(new_password, 10);
+
+    await pool.query(
+      "UPDATE users SET password = ? WHERE id = ?",
+      [hashedPassword, user.id]
+    );
+
+    return res.json({
+      message: "Contraseña actualizada correctamente",
+    });
+  } catch (error) {
+    console.error("CHANGE PASSWORD ERROR:", error);
+    return res.status(500).json({ error: "No se pudo cambiar la contraseña" });
   }
 });
 
@@ -745,8 +1332,8 @@ app.post("/events/:id/join", verifyToken, async (req, res) => {
 
     await pool.query(
       `
-      INSERT INTO user_events (user_id, event_id, status)
-      VALUES (?, ?, 'going')
+      INSERT INTO user_events (user_id, event_id)
+      VALUES (?, ?)
       `,
       [userId, eventId]
     );
@@ -818,7 +1405,7 @@ app.get("/events/:id/status", verifyToken, async (req, res) => {
 
     const [rows] = await pool.query(
       `
-      SELECT status
+      SELECT id
       FROM user_events
       WHERE user_id = ? AND event_id = ?
       `,
@@ -831,7 +1418,6 @@ app.get("/events/:id/status", verifyToken, async (req, res) => {
 
     res.json({
       joined: true,
-      status: rows[0].status,
     });
   } catch (err) {
     console.error(err);

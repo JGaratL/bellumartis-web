@@ -111,6 +111,19 @@ function validatePassword(password) {
   return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/.test(password);
 }
 
+function isSpainCountry(country) {
+  return (country || "")
+    .toString()
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase() === "espana";
+}
+
+function normalizeCountryLabel(country) {
+  return isSpainCountry(country) ? "España" : country;
+}
+
 function AuthPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -133,16 +146,25 @@ function AuthPage() {
   });
 
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [errorCode, setErrorCode] = useState("");
+  const [pendingVerificationEmail, setPendingVerificationEmail] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
   const googleInitializedRef = useRef(false);
 
-  const sortedCountries = useMemo(() => [...COUNTRIES].sort(), []);
+  const sortedCountries = useMemo(
+    () => [...COUNTRIES].map(normalizeCountryLabel).sort(),
+    []
+  );
   const sortedProvinces = useMemo(() => [...SPAIN_PROVINCES].sort(), []);
 
   useEffect(() => {
     setError("");
+    setSuccess("");
+    setErrorCode("");
+    setPendingVerificationEmail("");
     setFieldErrors({});
     if (isLogin) {
       setLoginData((prev) => ({ ...prev, password: "" }));
@@ -168,7 +190,11 @@ function AuthPage() {
         [name]: value,
       };
 
-      if (name === "country" && value !== "Espana") {
+      if (name === "country") {
+        next.country = isSpainCountry(value) ? "Espana" : value;
+      }
+
+      if (name === "country" && !isSpainCountry(value)) {
         next.province = "";
       }
 
@@ -181,6 +207,8 @@ function AuthPage() {
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
+    setSuccess("");
+    setErrorCode("");
 
     const email = loginData.email.trim().toLowerCase();
     if (!validateEmail(email)) {
@@ -200,7 +228,14 @@ function AuthPage() {
 
       const data = await response.json();
 
-      if (!response.ok) return setError(data.error || "Error al iniciar sesion");
+      if (!response.ok) {
+        if (data.code === "EMAIL_NOT_VERIFIED") {
+          setErrorCode(data.code);
+          setPendingVerificationEmail(email);
+        }
+
+        return setError(data.error || "Error al iniciar sesion");
+      }
 
       login(data);
       navigate("/");
@@ -213,6 +248,8 @@ function AuthPage() {
   const handleRegister = async (e) => {
     e.preventDefault();
     setError("");
+    setSuccess("");
+    setErrorCode("");
 
     const email = registerData.email.trim().toLowerCase();
     const nickname = registerData.nickname.trim();
@@ -265,29 +302,39 @@ function AuthPage() {
         return setError(data.error || "Error al registrarse");
       }
 
-      if (data?.token && data?.user) {
-        login(data);
-        navigate("/");
-        return;
-      }
+      setSuccess(
+        data.message ||
+          "Cuenta creada. Revisa tu email para verificarla antes de iniciar sesion."
+      );
+      setRegisterData((prev) => ({ ...prev, password: "" }));
+    } catch (err) {
+      console.error(err);
+      setError("Error de conexion");
+    }
+  };
 
-      // Fallback: autologin con credenciales recien registradas
-      const loginResponse = await fetch(`${API_URL}/login`, {
+  const handleResendVerification = async () => {
+    if (!pendingVerificationEmail) return;
+
+    try {
+      setError("");
+      setSuccess("");
+
+      const response = await fetch(`${API_URL}/auth/resend-verification`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email,
-          password,
+          email: pendingVerificationEmail,
         }),
       });
-      const loginDataResponse = await loginResponse.json();
 
-      if (!loginResponse.ok) {
-        return setError(loginDataResponse.error || "Cuenta creada, pero no se pudo iniciar sesion");
+      const data = await response.json();
+
+      if (!response.ok) {
+        return setError(data.error || "No se pudo reenviar la verificacion");
       }
 
-      login(loginDataResponse);
-      navigate("/");
+      setSuccess(data.message || "Hemos reenviado el email de verificacion.");
     } catch (err) {
       console.error(err);
       setError("Error de conexion");
@@ -385,6 +432,7 @@ function AuthPage() {
         </div>
 
         {error && <p className="auth-error">{error}</p>}
+        {success && <p className="auth-success">{success}</p>}
 
         {isLogin ? (
           <form className="auth-form" onSubmit={handleLogin} autoComplete="on">
@@ -422,9 +470,27 @@ function AuthPage() {
               </button>
             </div>
 
+            <button
+              type="button"
+              className="auth-link"
+              onClick={() => navigate("/forgot-password")}
+            >
+              ¿Has olvidado tu contraseña?
+            </button>
+
             <button type="submit" className="btn-primary">
               Iniciar sesion
             </button>
+
+            {errorCode === "EMAIL_NOT_VERIFIED" && pendingVerificationEmail && (
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={handleResendVerification}
+              >
+                Reenviar verificacion
+              </button>
+            )}
 
             <button
               type="button"

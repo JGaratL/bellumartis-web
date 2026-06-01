@@ -179,6 +179,7 @@
   height: 95px;
   padding: 6px;
   position: relative;
+  overflow: hidden;
 }
 
 .calendar-cell.empty {
@@ -201,6 +202,27 @@
 
 .future-day {
   opacity: 1;
+}
+
+.event-ended::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: -18%;
+  width: 136%;
+  height: 8px;
+  background: #d93025;
+  border-radius: 999px;
+  transform: rotate(-45deg);
+  transform-origin: center;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.event-ended .day-number,
+.event-ended .event-preview {
+  position: relative;
+  z-index: 4;
 }
 
 /* EVENT */
@@ -445,4 +467,23 @@
 .modal-close-btn:hover {
   background: #b8bcc3;
   color: white;
+}
+
+.modal-error {
+  margin-top: 12px;
+  color: #d93025;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.modal-success {
+  margin-top: 12px;
+  color: #0f6970;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.modal-join-btn:enabled {
+  cursor: pointer;
+  opacity: 1;
 }

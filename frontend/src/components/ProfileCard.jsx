@@ -1,9 +1,11 @@
 import "./ProfileCard.css";
 import { useState, useEffect } from "react";
 import { BiSolidPencil, BiSolidCamera } from "react-icons/bi";
+import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { FaYoutube, FaFacebook, FaInstagram } from "react-icons/fa";
 import { FaXTwitter } from "react-icons/fa6";
 import AvatarEditor from "./AvatarEditor";
+import api from "../api";
 
 const countries = [
     "Alemania",
@@ -125,12 +127,43 @@ function ProfileCard({ user, editable, onClose, onSave }) {
     };
 
     const [form, setForm] = useState(user);
-    const [showPassword, setShowPassword] = useState(false);
     const [errors, setErrors] = useState({});
+    const [showPasswordModal, setShowPasswordModal] = useState(false);
+    const [passwordForm, setPasswordForm] = useState({
+        current_password: "",
+        new_password: "",
+        confirm_password: "",
+    });
+    const [showPasswordFields, setShowPasswordFields] = useState({
+        current_password: false,
+        new_password: false,
+        confirm_password: false,
+    });
+    const [passwordErrors, setPasswordErrors] = useState({});
+    const [passwordSaving, setPasswordSaving] = useState(false);
+    const [passwordSuccess, setPasswordSuccess] = useState("");
 
     useEffect(() => {
         setForm(user);
     }, [user]);
+
+    useEffect(() => {
+        if (!showPasswordModal) {
+            setPasswordForm({
+                current_password: "",
+                new_password: "",
+                confirm_password: "",
+            });
+            setShowPasswordFields({
+                current_password: false,
+                new_password: false,
+                confirm_password: false,
+            });
+            setPasswordErrors({});
+            setPasswordSuccess("");
+            setPasswordSaving(false);
+        }
+    }, [showPasswordModal]);
 
     const isValidUrl = (value) => {
         if (!value) return true;
@@ -153,6 +186,53 @@ function ProfileCard({ user, editable, onClose, onSave }) {
                     ? null
                     : "Introduce una URL válida (https://...)"
             }));
+        }
+    };
+
+    const validatePasswordStrength = (value) =>
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/.test(value || "");
+
+    const handlePasswordSubmit = async (e) => {
+        e.preventDefault();
+        setPasswordErrors({});
+        setPasswordSuccess("");
+
+        const nextErrors = {};
+
+        if (!passwordForm.current_password) {
+            nextErrors.current_password = "Introduce tu contraseña actual";
+        }
+
+        if (!validatePasswordStrength(passwordForm.new_password)) {
+            nextErrors.new_password =
+                "Minimo 8 caracteres, mayuscula, minuscula, numero y simbolo";
+        }
+
+        if (passwordForm.new_password !== passwordForm.confirm_password) {
+            nextErrors.confirm_password = "Las contraseñas no coinciden";
+        }
+
+        setPasswordErrors(nextErrors);
+        if (Object.keys(nextErrors).length > 0) return;
+
+        try {
+            setPasswordSaving(true);
+
+            await api.put("/users/me/password", {
+                current_password: passwordForm.current_password,
+                new_password: passwordForm.new_password,
+            });
+
+            setPasswordSuccess("Contraseña actualizada correctamente");
+            setTimeout(() => {
+                setShowPasswordModal(false);
+            }, 900);
+        } catch (err) {
+            console.error("Error cambiando contraseña:", err);
+            const apiError = err?.response?.data?.error || "No se pudo cambiar la contraseña";
+            setPasswordErrors({ form: apiError });
+        } finally {
+            setPasswordSaving(false);
         }
     };
 
@@ -313,14 +393,20 @@ function ProfileCard({ user, editable, onClose, onSave }) {
                             <div className="pc-cell">
                                 <div className="pc-label-small pc-label-row">
                                     Password
-                                    {editable && <BiSolidPencil className="pc-icon" />}
+                                    {editable && (
+                                        <button
+                                            type="button"
+                                            className="pc-icon-button"
+                                            onClick={() => setShowPasswordModal(true)}
+                                            aria-label="Cambiar contraseña"
+                                        >
+                                            <BiSolidPencil className="pc-icon" />
+                                        </button>
+                                    )}
                                 </div>
 
                                 <div className="pc-inline">
-                                    <div>
-                                        {showPassword ? form.password : "********"}
-                                    </div>
-
+                                    <div>********</div>
                                 </div>
                             </div>
 
@@ -538,6 +624,149 @@ function ProfileCard({ user, editable, onClose, onSave }) {
                         setShowEditor(false);
                     }}
                 />
+            )}
+
+            {showPasswordModal && editable && (
+                <div className="pc-modal-overlay">
+                    <div className="pc-modal">
+                        <div className="pc-modal-title">Cambiar contraseña</div>
+                        <div className="pc-modal-message">
+                            Introduce tu contraseña actual y una nueva contraseña segura.
+                        </div>
+
+                        {passwordErrors.form && (
+                            <div className="pc-password-error">{passwordErrors.form}</div>
+                        )}
+                        {passwordSuccess && (
+                            <div className="pc-password-success">{passwordSuccess}</div>
+                        )}
+
+                        <form className="pc-password-form" onSubmit={handlePasswordSubmit}>
+                            <div className="pc-password-field">
+                                <input
+                                    type={showPasswordFields.current_password ? "text" : "password"}
+                                    placeholder="Contraseña actual"
+                                    value={passwordForm.current_password}
+                                    onChange={(e) =>
+                                        setPasswordForm((prev) => ({
+                                            ...prev,
+                                            current_password: e.target.value,
+                                        }))
+                                    }
+                                    autoComplete="current-password"
+                                />
+                                <button
+                                    type="button"
+                                    className="pc-password-toggle"
+                                    onClick={() =>
+                                        setShowPasswordFields((prev) => ({
+                                            ...prev,
+                                            current_password: !prev.current_password,
+                                        }))
+                                    }
+                                    aria-label={
+                                        showPasswordFields.current_password
+                                            ? "Ocultar contraseña actual"
+                                            : "Mostrar contraseña actual"
+                                    }
+                                >
+                                    {showPasswordFields.current_password ? <FaEye /> : <FaEyeSlash />}
+                                </button>
+                            </div>
+                            {passwordErrors.current_password && (
+                                <div className="pc-password-error">{passwordErrors.current_password}</div>
+                            )}
+
+                            <div className="pc-password-field">
+                                <input
+                                    type={showPasswordFields.new_password ? "text" : "password"}
+                                    placeholder="Nueva contraseña"
+                                    value={passwordForm.new_password}
+                                    onChange={(e) =>
+                                        setPasswordForm((prev) => ({
+                                            ...prev,
+                                            new_password: e.target.value,
+                                        }))
+                                    }
+                                    autoComplete="new-password"
+                                />
+                                <button
+                                    type="button"
+                                    className="pc-password-toggle"
+                                    onClick={() =>
+                                        setShowPasswordFields((prev) => ({
+                                            ...prev,
+                                            new_password: !prev.new_password,
+                                        }))
+                                    }
+                                    aria-label={
+                                        showPasswordFields.new_password
+                                            ? "Ocultar nueva contraseña"
+                                            : "Mostrar nueva contraseña"
+                                    }
+                                >
+                                    {showPasswordFields.new_password ? <FaEye /> : <FaEyeSlash />}
+                                </button>
+                            </div>
+                            {passwordErrors.new_password && (
+                                <div className="pc-password-error">{passwordErrors.new_password}</div>
+                            )}
+
+                            <div className="pc-password-field">
+                                <input
+                                    type={showPasswordFields.confirm_password ? "text" : "password"}
+                                    placeholder="Repite la nueva contraseña"
+                                    value={passwordForm.confirm_password}
+                                    onChange={(e) =>
+                                        setPasswordForm((prev) => ({
+                                            ...prev,
+                                            confirm_password: e.target.value,
+                                        }))
+                                    }
+                                    autoComplete="new-password"
+                                />
+                                <button
+                                    type="button"
+                                    className="pc-password-toggle"
+                                    onClick={() =>
+                                        setShowPasswordFields((prev) => ({
+                                            ...prev,
+                                            confirm_password: !prev.confirm_password,
+                                        }))
+                                    }
+                                    aria-label={
+                                        showPasswordFields.confirm_password
+                                            ? "Ocultar confirmación de contraseña"
+                                            : "Mostrar confirmación de contraseña"
+                                    }
+                                >
+                                    {showPasswordFields.confirm_password ? <FaEye /> : <FaEyeSlash />}
+                                </button>
+                            </div>
+                            {passwordErrors.confirm_password && (
+                                <div className="pc-password-error">{passwordErrors.confirm_password}</div>
+                            )}
+
+                            <div className="pc-modal-buttons">
+                                <button
+                                    type="submit"
+                                    className="pc-btn-modal"
+                                    disabled={passwordSaving}
+                                >
+                                    {passwordSaving ? "Guardando..." : "Guardar contraseña"}
+                                </button>
+
+                                <button
+                                    type="button"
+                                    className="pc-btn-modal pc-btn-modal-secondary"
+                                    onClick={() => setShowPasswordModal(false)}
+                                >
+                                    Cancelar
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
             )}
 
             {/* BOTONES */}
