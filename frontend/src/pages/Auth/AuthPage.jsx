@@ -5,6 +5,7 @@ import { FcGoogle } from "react-icons/fc";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 
 import { AuthContext } from "../../context/AuthContext";
+import { SPAIN_PROVINCES } from "../../utils/spainProvinces";
 
 import "./Auth.css";
 
@@ -46,61 +47,6 @@ const COUNTRIES = [
   "Suiza",
   "Uruguay",
   "Venezuela",
-];
-
-const SPAIN_PROVINCES = [
-  "A Coruna",
-  "Alava",
-  "Albacete",
-  "Alicante",
-  "Almeria",
-  "Asturias",
-  "Avila",
-  "Badajoz",
-  "Baleares",
-  "Barcelona",
-  "Burgos",
-  "Caceres",
-  "Cadiz",
-  "Cantabria",
-  "Castellon",
-  "Ceuta",
-  "Ciudad Real",
-  "Cordoba",
-  "Cuenca",
-  "Girona",
-  "Granada",
-  "Guadalajara",
-  "Gipuzkoa",
-  "Huelva",
-  "Huesca",
-  "Jaen",
-  "La Rioja",
-  "Las Palmas",
-  "Leon",
-  "Lleida",
-  "Lugo",
-  "Madrid",
-  "Malaga",
-  "Melilla",
-  "Murcia",
-  "Navarra",
-  "Ourense",
-  "Palencia",
-  "Pontevedra",
-  "Salamanca",
-  "Santa Cruz de Tenerife",
-  "Segovia",
-  "Sevilla",
-  "Soria",
-  "Tarragona",
-  "Teruel",
-  "Toledo",
-  "Valencia",
-  "Valladolid",
-  "Bizkaia",
-  "Zamora",
-  "Zaragoza",
 ];
 
 function validateEmail(email) {

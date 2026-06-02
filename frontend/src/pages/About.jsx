@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { FaInstagram, FaYoutube, FaSpotify } from "react-icons/fa";
 import { FaXTwitter } from "react-icons/fa6";
+import { LuRadioTower } from "react-icons/lu";
+
 import "./About.css";
 
 function About() {
@@ -54,10 +56,10 @@ function About() {
     <div className="about-page-wrap">
 
       {/* TITULO */}
-      <h1 className="about-page-title">
+      <h1 className="about-page-title page-title">
+        <LuRadioTower className="title-icon" />
         Centro de comunicaciones
       </h1>
-
       {/* SUBTÍTULO */}
       <p className="about-subtitle">
         Envía un informe, consulta o reporte a la administración

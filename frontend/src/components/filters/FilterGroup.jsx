@@ -2,7 +2,11 @@ import { useState, useRef, useEffect } from "react";
 import { useFiltersStore } from "../../store/filtersStore";
 import "./FilterGroup.css";
 
-export default function FilterGroup({ label, filterKey }) {
+export default function FilterGroup({
+    label,
+    filterKey,
+    icon: Icon
+}) {
     const [open, setOpen] = useState(false);
     const ref = useRef();
 
@@ -25,14 +29,24 @@ export default function FilterGroup({ label, filterKey }) {
 
     useEffect(() => {
         const handleClickOutside = (e) => {
-            if (ref.current && !ref.current.contains(e.target)) {
+            if (
+                ref.current &&
+                !ref.current.contains(e.target)
+            ) {
                 setOpen(false);
             }
         };
 
-        document.addEventListener("mousedown", handleClickOutside);
+        document.addEventListener(
+            "mousedown",
+            handleClickOutside
+        );
+
         return () =>
-            document.removeEventListener("mousedown", handleClickOutside);
+            document.removeEventListener(
+                "mousedown",
+                handleClickOutside
+            );
     }, []);
 
     return (
@@ -41,8 +55,19 @@ export default function FilterGroup({ label, filterKey }) {
                 className="filter-group-btn"
                 onClick={() => setOpen(!open)}
             >
-                {label}
-                <span style={{ fontSize: "10px" }}>▼</span>
+                <div className="filter-group-label">
+                    {Icon && (
+                        <Icon className="filter-group-icon" />
+                    )}
+
+                    <span>{label}</span>
+                </div>
+
+                <span
+                    style={{ fontSize: "10px" }}
+                >
+                    ▼
+                </span>
             </button>
 
             {open && (
@@ -52,7 +77,10 @@ export default function FilterGroup({ label, filterKey }) {
                             key={opt}
                             className="filter-group-item"
                             onClick={() => {
-                                setFilter(filterKey, opt);
+                                setFilter(
+                                    filterKey,
+                                    opt
+                                );
                                 setOpen(false);
                             }}
                         >
@@ -63,7 +91,10 @@ export default function FilterGroup({ label, filterKey }) {
                     <div
                         className="filter-group-item clear"
                         onClick={() => {
-                            setFilter(filterKey, null);
+                            setFilter(
+                                filterKey,
+                                null
+                            );
                             setOpen(false);
                         }}
                     >

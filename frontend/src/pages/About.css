@@ -19,9 +19,9 @@
 .about-page-title {
   font-size: 52px;
   text-align: center;
-  font-family: "Agrandir", sans-serif;
   color: #111;
   margin-top: 60px;
+  margin-bottom: 0;
 }
 
 /* =========================

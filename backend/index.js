@@ -767,6 +767,68 @@ app.get(
   checkRole(["admin", "owner"]),
   async (req, res) => {
     try {
+      const rawQuery = (req.query.q || "").toString().trim();
+      const role = (req.query.role || "").toString().trim();
+      const province = (req.query.province || "").toString().trim();
+      const status = (req.query.status || "").toString().trim();
+      const lastLogin = (req.query.lastLogin || "").toString().trim();
+      const limit = Math.min(
+        Math.max(Number.parseInt(req.query.limit || "20", 10) || 20, 1),
+        50
+      );
+      const offset = Math.max(Number.parseInt(req.query.offset || "0", 10) || 0, 0);
+
+      const where = [];
+      const params = [];
+
+      if (rawQuery) {
+        where.push("(u.nickname LIKE ? OR u.email LIKE ?)");
+        params.push(`%${rawQuery}%`, `%${rawQuery}%`);
+      }
+
+      if (["user", "moderator", "admin", "owner"].includes(role)) {
+        where.push("u.role = ?");
+        params.push(role);
+      }
+
+      if (province) {
+        where.push("u.province = ?");
+        params.push(province);
+      }
+
+      if (status === "active") {
+        where.push("u.status = 'active'");
+        where.push("u.last_login >= DATE_SUB(NOW(), INTERVAL 30 DAY)");
+      } else if (status === "inactive") {
+        where.push("u.status = 'active'");
+        where.push(
+          "(u.last_login IS NULL OR u.last_login < DATE_SUB(NOW(), INTERVAL 30 DAY))"
+        );
+      } else if (status === "blocked") {
+        where.push("u.status = 'inactive'");
+      }
+
+      if (lastLogin === "7d") {
+        where.push("u.last_login >= DATE_SUB(NOW(), INTERVAL 7 DAY)");
+      } else if (lastLogin === "30d") {
+        where.push("u.last_login >= DATE_SUB(NOW(), INTERVAL 30 DAY)");
+      } else if (lastLogin === "older") {
+        where.push(
+          "(u.last_login IS NULL OR u.last_login < DATE_SUB(NOW(), INTERVAL 30 DAY))"
+        );
+      }
+
+      const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+
+      const [countRows] = await pool.query(
+        `
+        SELECT COUNT(*) AS total
+        FROM users u
+        ${whereSql}
+        `,
+        params
+      );
+
       const [rows] = await pool.query(
         `
         SELECT
@@ -779,24 +841,27 @@ app.get(
           u.created_at,
           u.last_login,
           u.status,
-          COUNT(p.id) AS posts_count
+          (
+            SELECT COUNT(*)
+            FROM posts p
+            WHERE p.user_id = u.id
+          ) AS posts_count
         FROM users u
-        LEFT JOIN posts p ON p.user_id = u.id
-        GROUP BY
-          u.id,
-          u.nickname,
-          u.email,
-          u.role,
-          u.province,
-          u.country,
-          u.created_at,
-          u.last_login,
-          u.status
+        ${whereSql}
         ORDER BY u.created_at DESC
+        LIMIT ? OFFSET ?
         `
+        ,
+        [...params, limit, offset]
       );
 
-      return res.json(rows);
+      return res.json({
+        users: rows,
+        total: Number(countRows?.[0]?.total || 0),
+        limit,
+        offset,
+        hasMore: offset + rows.length < Number(countRows?.[0]?.total || 0),
+      });
     } catch (err) {
       console.error("ADMIN USERS LIST ERROR:", err);
       return res.status(500).json({ error: "No se pudo obtener la lista de usuarios" });

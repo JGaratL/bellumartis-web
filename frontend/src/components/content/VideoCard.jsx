@@ -10,10 +10,10 @@ export default function VideoCard({ video }) {
             <div className="video-info">
                 <h3 className="video-title">{video.title}</h3>
 
-                <div className="video-meta">
+{/*                <div className="video-meta">
                     {video.theme && <span>{video.theme}</span>}
                     {video.period && <span>• {video.period}</span>}
-                </div>
+                </div>*/}
             </div>
         </div>
     );

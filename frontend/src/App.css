@@ -744,7 +744,7 @@ body {
 .journey-section[data-section="journey-image"].is-active .journey-image-divider img {
   opacity: 1;
   transform: scale(1);
-  transition: all 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.5s;
+  transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1) 0.5s;
 }
 
 .journey-section[data-section="journey-image"].is-active .journey-culdelampe {

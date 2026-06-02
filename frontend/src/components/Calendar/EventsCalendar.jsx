@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { FaRegCalendarAlt } from "react-icons/fa";
+
 import api from "../../api";
 import "./Events.css";
 
@@ -268,8 +270,10 @@ function Events() {
     <section className="events-page">
 
       <div className="events-header">
-        <h1 className="events-title">Calendario de eventos</h1>
-        <p className="events-subtitle">
+        <h1 className="events-title">
+          <FaRegCalendarAlt className="title-icon" />
+          Calendario de eventos
+        </h1>        <p className="events-subtitle">
           Pincha en el evento para más información.
         </p>
       </div>

@@ -521,7 +521,7 @@ POST FOOTER
 /* BLOQUE TEXTO */
 .reply-body {
   background: #fff;
-  padding: 8px 10px;
+  padding: 0 10px 8px 10px;
   border-radius: 12px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   max-width: 100%;

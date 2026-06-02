@@ -1,89 +1,43 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  RiAdminLine,
-  RiTeamLine,
-  RiCalendarEventLine,
-  RiMailLine,
-  RiImageLine,
-  RiArticleLine,
-  RiArrowRightSLine,
-  RiEyeLine,
-  RiPencilLine,
-  RiProhibitedLine,
-  RiDeleteBinLine,
-} from "react-icons/ri";
 
 import api from "../../api";
+import AdminSidebar from "./components/AdminSidebar";
+import AdminHero from "./components/AdminHero";
+import DeleteUserModal from "./components/DeleteUserModal";
+import UsersSection from "./sections/UsersSection";
+import EventsSection from "./sections/EventsSection";
+import EmailsSection from "./sections/EmailsSection";
+import BannersSection from "./sections/BannersSection";
+import ArticlesSection from "./sections/ArticlesSection";
+import {
+  ADMIN_MENU,
+  LAST_LOGIN_OPTIONS,
+  PROVINCE_OPTIONS,
+  ROLE_OPTIONS,
+  STATUS_OPTIONS,
+  getActiveAdminSection,
+} from "./utils/adminHelpers";
 
 import "./AdminDashboard.css";
 
-const ADMIN_MENU = [
-  {
-    id: "usuarios",
-    label: "Usuarios",
-    icon: RiTeamLine,
-    description: "Gestiona altas, roles, estados y acceso de usuarios.",
-  },
-  {
-    id: "eventos",
-    label: "Eventos",
-    icon: RiCalendarEventLine,
-    description: "Crea, edita y supervisa eventos del calendario.",
-  },
-  {
-    id: "emails",
-    label: "Emails",
-    icon: RiMailLine,
-    description: "Controla notificaciones, verificacion y plantillas.",
-  },
-  {
-    id: "banners",
-    label: "Banners",
-    icon: RiImageLine,
-    description: "Administra la parte visual promocional de la web.",
-  },
-  {
-    id: "articulos",
-    label: "Articulos",
-    icon: RiArticleLine,
-    description: "Modera publicaciones y contenidos editoriales.",
-  },
-];
-
-const ROLE_LABELS = {
-  user: "User",
-  admin: "Admin",
-  owner: "Owner",
-  moderator: "Mod",
-};
-
-function formatDate(value) {
-  if (!value) return "-";
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "-";
-
-  return date.toLocaleDateString("es-ES");
-}
-
-function getLocation(user) {
-  return user?.province || user?.country || "-";
-}
-
-function getRoleClass(role) {
-  if (role === "admin") return "role-admin";
-  if (role === "owner") return "role-owner";
-  if (role === "moderator") return "role-moderator";
-  return "role-user";
-}
+const USERS_PAGE_SIZE = 20;
 
 function AdminDashboard() {
   const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState("usuarios");
   const [users, setUsers] = useState([]);
   const [usersLoading, setUsersLoading] = useState(false);
+  const [usersLoadingMore, setUsersLoadingMore] = useState(false);
   const [usersError, setUsersError] = useState("");
+  const [usersHasMore, setUsersHasMore] = useState(true);
+  const [usersPage, setUsersPage] = useState(0);
+  const [searchDraft, setSearchDraft] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [roleFilter, setRoleFilter] = useState("");
+  const [provinceFilter, setProvinceFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [lastLoginFilter, setLastLoginFilter] = useState("");
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteMessage, setDeleteMessage] = useState("");
@@ -96,32 +50,161 @@ function AdminDashboard() {
   });
   const [statsLoading, setStatsLoading] = useState(false);
   const [statsError, setStatsError] = useState("");
+  const loadMoreRef = useRef(null);
+  const requestIdRef = useRef(0);
+  const usersCacheRef = useRef(new Map());
 
   const activeMeta = useMemo(
-    () => ADMIN_MENU.find((item) => item.id === activeSection) || ADMIN_MENU[0],
+    () => getActiveAdminSection(activeSection),
     [activeSection]
   );
 
-  const ActiveIcon = activeMeta.icon;
+  const usersFilters = useMemo(
+    () => ({
+      q: searchQuery.trim(),
+      role: roleFilter,
+      province: provinceFilter,
+      status: statusFilter,
+      lastLogin: lastLoginFilter,
+    }),
+    [lastLoginFilter, provinceFilter, roleFilter, searchQuery, statusFilter]
+  );
 
-  const refreshUsers = useCallback(async () => {
+  const usersCacheKey = useMemo(
+    () => JSON.stringify(usersFilters),
+    [usersFilters]
+  );
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setSearchQuery(searchDraft.trim());
+    }, 300);
+
+    return () => clearTimeout(timeout);
+  }, [searchDraft]);
+
+  const loadUsers = useCallback(
+    async ({ page = 0, append = false } = {}) => {
+      if (activeSection !== "usuarios") return;
+
+      const requestId = ++requestIdRef.current;
+      const cacheKey = usersCacheKey;
+
+      if (!append && page === 0) {
+        const cachedEntry = usersCacheRef.current.get(cacheKey);
+        if (cachedEntry) {
+          setUsers(cachedEntry.users);
+          setUsersHasMore(Boolean(cachedEntry.hasMore));
+          setUsersPage(Number(cachedEntry.page || 0));
+          setUsersError("");
+          setUsersLoading(false);
+          setUsersLoadingMore(false);
+          return;
+        }
+      }
+
+      try {
+        if (append) {
+          setUsersLoadingMore(true);
+        } else {
+          setUsersLoading(true);
+          setUsersError("");
+          setUsers([]);
+        }
+
+        const res = await api.get("/admin/users", {
+          params: {
+            q: usersFilters.q || undefined,
+            role: usersFilters.role || undefined,
+            province: usersFilters.province || undefined,
+            status: usersFilters.status || undefined,
+            lastLogin: usersFilters.lastLogin || undefined,
+            limit: USERS_PAGE_SIZE,
+            offset: page * USERS_PAGE_SIZE,
+          },
+        });
+
+        if (requestId !== requestIdRef.current) return;
+
+        const nextUsers = Array.isArray(res.data?.users) ? res.data.users : [];
+        const previousUsers = append
+          ? usersCacheRef.current.get(cacheKey)?.users || []
+          : [];
+        const mergedUsers = append
+          ? [...previousUsers, ...nextUsers]
+          : nextUsers;
+
+        setUsers(mergedUsers);
+        setUsersHasMore(Boolean(res.data?.hasMore));
+        setUsersPage(page);
+        setUsersError("");
+
+        usersCacheRef.current.set(cacheKey, {
+          users: mergedUsers,
+          hasMore: Boolean(res.data?.hasMore),
+          page,
+        });
+      } catch (err) {
+        if (requestId !== requestIdRef.current) return;
+
+        console.error("ADMIN USERS ERROR:", err);
+        setUsersError(
+          err?.response?.data?.error || "No se pudo cargar la lista de usuarios"
+        );
+        setUsersHasMore(false);
+      } finally {
+        if (requestId === requestIdRef.current) {
+          setUsersLoading(false);
+          setUsersLoadingMore(false);
+        }
+      }
+    },
+    [
+      activeSection,
+      usersFilters,
+      usersCacheKey,
+    ]
+  );
+
+  useEffect(() => {
     if (activeSection !== "usuarios") return;
 
-    try {
-      setUsersLoading(true);
-      setUsersError("");
+    loadUsers({ page: 0, append: false });
+  }, [loadUsers, activeSection]);
 
-      const res = await api.get("/admin/users");
-      setUsers(Array.isArray(res.data) ? res.data : []);
-    } catch (err) {
-      console.error("ADMIN USERS ERROR:", err);
-      setUsersError(
-        err?.response?.data?.error || "No se pudo cargar la lista de usuarios"
-      );
-    } finally {
-      setUsersLoading(false);
-    }
-  }, [activeSection]);
+  useEffect(() => {
+    const sentinel = loadMoreRef.current;
+    if (!sentinel || activeSection !== "usuarios") return undefined;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (
+          entry?.isIntersecting &&
+          usersHasMore &&
+          !usersLoading &&
+          !usersLoadingMore
+        ) {
+          loadUsers({ page: usersPage + 1, append: true });
+        }
+      },
+      {
+        root: null,
+        rootMargin: "240px",
+      }
+    );
+
+    observer.observe(sentinel);
+
+    return () => observer.disconnect();
+  }, [
+    activeSection,
+    loadUsers,
+    usersHasMore,
+    usersLoading,
+    usersLoadingMore,
+    usersPage,
+  ]);
 
   const refreshStats = useCallback(async () => {
     if (activeSection !== "usuarios") return;
@@ -148,10 +231,6 @@ function AdminDashboard() {
   }, [activeSection]);
 
   useEffect(() => {
-    refreshUsers();
-  }, [refreshUsers]);
-
-  useEffect(() => {
     refreshStats();
   }, [refreshStats]);
 
@@ -160,6 +239,16 @@ function AdminDashboard() {
     setDeleteMessage("");
     setDeleteError("");
   };
+
+  const clearUserFilters = useCallback(() => {
+    setSearchDraft("");
+    setSearchQuery("");
+    setRoleFilter("");
+    setProvinceFilter("");
+    setStatusFilter("");
+    setLastLoginFilter("");
+    setUsersError("");
+  }, []);
 
   const closeDeleteModal = () => {
     if (deleteLoading) return;
@@ -179,7 +268,15 @@ function AdminDashboard() {
       const res = await api.delete(`/admin/users/${deleteTarget.id}`);
       setDeleteMessage(res.data?.message || "Usuario eliminado correctamente");
       setDeleteTarget(null);
-      await Promise.all([refreshUsers(), refreshStats()]);
+
+      setUsers((current) => current.filter((user) => user.id !== deleteTarget.id));
+      usersCacheRef.current.forEach((entry, key) => {
+        usersCacheRef.current.set(key, {
+          ...entry,
+          users: entry.users.filter((user) => user.id !== deleteTarget.id),
+        });
+      });
+      await refreshStats();
     } catch (err) {
       console.error("DELETE ADMIN USER ERROR:", err);
       setDeleteError(
@@ -190,246 +287,78 @@ function AdminDashboard() {
     }
   };
 
+  const renderContent = () => {
+    switch (activeSection) {
+      case "usuarios":
+        return (
+          <UsersSection
+            users={users}
+            usersLoading={usersLoading}
+            usersLoadingMore={usersLoadingMore}
+            usersError={usersError}
+            deleteMessage={deleteMessage}
+            deleteError={deleteError}
+            hasMore={usersHasMore}
+            loadMoreRef={loadMoreRef}
+            searchValue={searchDraft}
+            onSearchChange={setSearchDraft}
+            roleValue={roleFilter}
+            onRoleChange={setRoleFilter}
+            provinceValue={provinceFilter}
+            onProvinceChange={setProvinceFilter}
+            statusValue={statusFilter}
+            onStatusChange={setStatusFilter}
+            lastLoginValue={lastLoginFilter}
+            onLastLoginChange={setLastLoginFilter}
+      roleOptions={ROLE_OPTIONS}
+      provinceOptions={PROVINCE_OPTIONS}
+      statusOptions={STATUS_OPTIONS}
+      lastLoginOptions={LAST_LOGIN_OPTIONS}
+      onClearFilters={clearUserFilters}
+            onOpenDeleteUser={openDeleteModal}
+          />
+        );
+      case "eventos":
+        return <EventsSection title={activeMeta.label} />;
+      case "emails":
+        return <EmailsSection title={activeMeta.label} />;
+      case "banners":
+        return <BannersSection title={activeMeta.label} />;
+      case "articulos":
+        return <ArticlesSection title={activeMeta.label} />;
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="admin-shell">
-      <aside className="admin-sidebar">
-        <div className="admin-brand">
-          <div className="admin-brand-badge">
-            <RiAdminLine />
-          </div>
-
-          <div>
-            <p className="admin-brand-kicker">Dashboard</p>
-            <h1 className="admin-brand-title">BellumArtis Admin</h1>
-          </div>
-        </div>
-
-        <nav className="admin-menu">
-          {ADMIN_MENU.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeSection === item.id;
-
-            return (
-              <button
-                key={item.id}
-                type="button"
-                className={`admin-menu-item ${isActive ? "active" : ""}`}
-                onClick={() => setActiveSection(item.id)}
-              >
-                <span className="admin-menu-icon">
-                  <Icon />
-                </span>
-
-                <span className="admin-menu-label">{item.label}</span>
-
-                <RiArrowRightSLine className="admin-menu-chevron" />
-              </button>
-            );
-          })}
-        </nav>
-
-        <button
-          type="button"
-          className="admin-back"
-          onClick={() => navigate("/")}
-        >
-          Volver a la web
-        </button>
-      </aside>
+      <AdminSidebar
+        activeSection={activeSection}
+        menuItems={ADMIN_MENU}
+        onSectionChange={setActiveSection}
+        onBack={() => navigate("/")}
+      />
 
       <main className="admin-main">
-        <section className="admin-hero">
-          <div className="admin-hero-head">
-            <div>
-              <h2 className="admin-hero-title">{activeMeta.label}</h2>
-              <p className="admin-hero-copy">{activeMeta.description}</p>
-            </div>
+        <AdminHero
+          title={activeMeta.label}
+          description={activeMeta.description}
+          icon={activeMeta.icon}
+          showMetrics={activeSection === "usuarios"}
+          stats={userStats}
+          statsLoading={statsLoading}
+          statsError={statsError}
+        />
 
-            <div className="admin-hero-icon">
-              <ActiveIcon />
-            </div>
-          </div>
+        {renderContent()}
 
-          {activeSection === "usuarios" && (
-            <>
-              {statsError && <p className="admin-stats-error">{statsError}</p>}
-
-              <div className="admin-metrics">
-                <div className="admin-metric admin-metric-total">
-                  <span className="admin-metric-label">Total</span>
-                  <span className={`admin-metric-value ${statsLoading ? "loading" : ""}`}>
-                    {statsLoading ? "..." : userStats.total_users}
-                  </span>
-                </div>
-
-                <div className="admin-metric admin-metric-active">
-                  <span className="admin-metric-label">Activos</span>
-                  <span className={`admin-metric-value ${statsLoading ? "loading" : ""}`}>
-                    {statsLoading ? "..." : userStats.active_users}
-                  </span>
-                  <span className="admin-metric-note">Ultimos 30 dias</span>
-                </div>
-
-                <div className="admin-metric admin-metric-new">
-                  <span className="admin-metric-label">Nuevos</span>
-                  <span className={`admin-metric-value ${statsLoading ? "loading" : ""}`}>
-                    {statsLoading ? "..." : userStats.new_users}
-                  </span>
-                  <span className="admin-metric-note">Ultimos 7 dias</span>
-                </div>
-
-                <div className="admin-metric admin-metric-inactive">
-                  <span className="admin-metric-label">Inactivos</span>
-                  <span className={`admin-metric-value ${statsLoading ? "loading" : ""}`}>
-                    {statsLoading ? "..." : userStats.inactive_users}
-                  </span>
-                  <span className="admin-metric-note">+30 dias sin login</span>
-                </div>
-              </div>
-            </>
-          )}
-        </section>
-
-        {activeSection === "usuarios" ? (
-          <section className="admin-card admin-users-card">
-            <div className="admin-table-wrap">
-              {usersError && <p className="admin-table-error">{usersError}</p>}
-              {deleteMessage && <p className="admin-table-success">{deleteMessage}</p>}
-              {deleteError && <p className="admin-table-error">{deleteError}</p>}
-
-              {usersLoading ? (
-                <p className="admin-table-loading">Cargando usuarios...</p>
-              ) : (
-                <table className="admin-users-table">
-                  <thead>
-                    <tr>
-                      <th>Nickname</th>
-                      <th>Email</th>
-                      <th>Rol</th>
-                      <th>Ubicacion</th>
-                      <th>Registro</th>
-                      <th>Ultimo Login</th>
-                      <th>Posts</th>
-                      <th>Acciones</th>
-                    </tr>
-                  </thead>
-
-                  <tbody>
-                    {users.map((user) => (
-                      <tr key={user.id}>
-                        <td>
-                          <span className="admin-strong-cell">{user.nickname}</span>
-                        </td>
-                        <td>{user.email}</td>
-                        <td>
-                          <span className={`admin-role-badge ${getRoleClass(user.role)}`}>
-                            {ROLE_LABELS[user.role] || "User"}
-                          </span>
-                        </td>
-                        <td>{getLocation(user)}</td>
-                        <td>{formatDate(user.created_at)}</td>
-                        <td>{formatDate(user.last_login)}</td>
-                        <td className="admin-posts-cell">{user.posts_count ?? ""}</td>
-                        <td>
-                          <div className="admin-actions">
-                            <button
-                              type="button"
-                              className="admin-action-btn"
-                              aria-label="Ver usuario"
-                            >
-                              <RiEyeLine />
-                            </button>
-                            <button
-                              type="button"
-                              className="admin-action-btn"
-                              aria-label="Editar usuario"
-                            >
-                              <RiPencilLine />
-                            </button>
-                            <button
-                              type="button"
-                              className="admin-action-btn"
-                              aria-label="Bloquear usuario"
-                            >
-                              <RiProhibitedLine />
-                            </button>
-                            <button
-                              type="button"
-                              className="admin-action-btn danger"
-                              aria-label="Eliminar usuario"
-                              onClick={() => openDeleteModal(user)}
-                            >
-                              <RiDeleteBinLine />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          </section>
-        ) : (
-          <section className="admin-content">
-            <div className="admin-card">
-              <h3>{activeMeta.label}</h3>
-              <p>
-                Este espacio queda preparado para tus herramientas de gestion de{" "}
-                {activeMeta.label.toLowerCase()}. Podemos conectar aqui tablas,
-                filtros, edicion y acciones masivas cuando quieras.
-              </p>
-            </div>
-
-            <div className="admin-card admin-card-soft">
-              <p className="admin-stat-label">Estado actual</p>
-              <p className="admin-stat-value">Seccion activa: {activeMeta.label}</p>
-            </div>
-          </section>
-        )}
-
-        {deleteTarget && (
-          <div
-            className="admin-modal-backdrop"
-            role="presentation"
-            onClick={closeDeleteModal}
-          >
-            <div
-              className="admin-modal"
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="delete-user-title"
-              onClick={(event) => event.stopPropagation()}
-            >
-              <p className="admin-modal-kicker">Eliminar usuario</p>
-              <h3 id="delete-user-title">
-                ¿Seguro que quieres eliminar a {deleteTarget.nickname}?
-              </h3>
-              <p className="admin-modal-copy">
-                Esta accion borrara su cuenta y sus datos asociados. No se puede deshacer.
-              </p>
-
-              <div className="admin-modal-actions">
-                <button
-                  type="button"
-                  className="admin-modal-btn secondary"
-                  onClick={closeDeleteModal}
-                  disabled={deleteLoading}
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="button"
-                  className="admin-modal-btn danger"
-                  onClick={handleDeleteUser}
-                  disabled={deleteLoading}
-                >
-                  {deleteLoading ? "Eliminando..." : "Si, eliminar"}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <DeleteUserModal
+          user={deleteTarget}
+          loading={deleteLoading}
+          onClose={closeDeleteModal}
+          onConfirm={handleDeleteUser}
+        />
       </main>
     </div>
   );

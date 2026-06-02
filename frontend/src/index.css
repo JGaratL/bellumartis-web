@@ -1,4 +1,3 @@
-
 /* =========================
    VARIABLES
 ========================= */
@@ -17,7 +16,7 @@
     rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
 
   --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --heading: "DM Serif Display", serif;
   --mono: ui-monospace, Consolas, monospace;
 
   font: 18px/145% var(--sans);
@@ -60,12 +59,14 @@
 /* =========================
    RESET GLOBAL (FIX SCROLL)
 ========================= */
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
 
   width: 100%;
-  height: 100%;          /* 🔥 clave */
+  height: 100%;
+  /* 🔥 clave */
   min-height: 100%;
 
   overflow: hidden;
@@ -77,8 +78,10 @@ html, body {
    ROOT FIX (IMPORTANTE)
 ========================= */
 #root {
-  width: 100%;           /* 🔥 FULL WIDTH REAL */
-  margin: 0;             /* 🔥 elimina caja centrada */
+  width: 100%;
+  /* 🔥 FULL WIDTH REAL */
+  margin: 0;
+  /* 🔥 elimina caja centrada */
 
   min-height: 100vh;
   display: flex;

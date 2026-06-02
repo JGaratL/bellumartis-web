@@ -1,6 +1,8 @@
 import "./Shop.css";
 import { PiTShirt, PiBooksLight } from "react-icons/pi";
 import { FiArrowRight } from "react-icons/fi";
+import { MdOutlineShoppingCart } from "react-icons/md";
+
 import { useEffect, useState, useRef } from "react";
 
 function Shop() {
@@ -115,8 +117,10 @@ function Shop() {
 
   return (
     <div className="page-container">
-      <h1>Tienda Bellumartis</h1>
-
+      <h1 className="page-title">
+        <MdOutlineShoppingCart className="title-icon" />
+        Tienda Bellumartis
+      </h1>
       <section className="shop-container">
 
         <div className="shop-bg"></div>
