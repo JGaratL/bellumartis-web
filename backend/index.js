@@ -791,7 +791,7 @@ app.get(
         params.push(role);
       }
 
-      if (province) {
+      if (province && province !== "all") {
         where.push("u.province = ?");
         params.push(province);
       }

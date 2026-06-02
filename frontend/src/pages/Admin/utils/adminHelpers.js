@@ -41,7 +41,7 @@ export const ADMIN_MENU = [
 ];
 
 export const ROLE_OPTIONS = [
-  { value: "", label: "Todos" },
+  { value: "all", label: "Todos" },
   { value: "user", label: "Usuario" },
   { value: "moderator", label: "Moderador" },
   { value: "admin", label: "Administrador" },
@@ -49,21 +49,21 @@ export const ROLE_OPTIONS = [
 ];
 
 export const STATUS_OPTIONS = [
-  { value: "", label: "Todos" },
+  { value: "all", label: "Todos" },
   { value: "active", label: "Activo" },
   { value: "inactive", label: "Inactivo" },
   { value: "blocked", label: "Bloqueado" },
 ];
 
 export const LAST_LOGIN_OPTIONS = [
-  { value: "", label: "Todos" },
+  { value: "all", label: "Todos" },
   { value: "7d", label: "Últimos 7 días" },
   { value: "30d", label: "Últimos 30 días" },
   { value: "older", label: "Más de 30 días" },
 ];
 
 export const PROVINCE_OPTIONS = [
-  { value: "", label: "Todas" },
+  { value: "all", label: "Todas" },
   ...SPAIN_PROVINCES.map((province) => ({
     value: province,
     label: province,

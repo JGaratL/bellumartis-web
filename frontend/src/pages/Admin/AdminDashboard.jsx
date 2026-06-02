@@ -52,27 +52,22 @@ function AdminDashboard() {
   const [statsError, setStatsError] = useState("");
   const loadMoreRef = useRef(null);
   const requestIdRef = useRef(0);
-  const usersCacheRef = useRef(new Map());
 
   const activeMeta = useMemo(
     () => getActiveAdminSection(activeSection),
     [activeSection]
   );
 
-  const usersFilters = useMemo(
-    () => ({
-      q: searchQuery.trim(),
-      role: roleFilter,
-      province: provinceFilter,
-      status: statusFilter,
-      lastLogin: lastLoginFilter,
-    }),
+  const usersQueryKey = useMemo(
+    () =>
+      [
+        searchQuery.trim(),
+        roleFilter,
+        provinceFilter,
+        statusFilter,
+        lastLoginFilter,
+      ].join("|"),
     [lastLoginFilter, provinceFilter, roleFilter, searchQuery, statusFilter]
-  );
-
-  const usersCacheKey = useMemo(
-    () => JSON.stringify(usersFilters),
-    [usersFilters]
   );
 
   useEffect(() => {
@@ -88,20 +83,6 @@ function AdminDashboard() {
       if (activeSection !== "usuarios") return;
 
       const requestId = ++requestIdRef.current;
-      const cacheKey = usersCacheKey;
-
-      if (!append && page === 0) {
-        const cachedEntry = usersCacheRef.current.get(cacheKey);
-        if (cachedEntry) {
-          setUsers(cachedEntry.users);
-          setUsersHasMore(Boolean(cachedEntry.hasMore));
-          setUsersPage(Number(cachedEntry.page || 0));
-          setUsersError("");
-          setUsersLoading(false);
-          setUsersLoadingMore(false);
-          return;
-        }
-      }
 
       try {
         if (append) {
@@ -114,11 +95,11 @@ function AdminDashboard() {
 
         const res = await api.get("/admin/users", {
           params: {
-            q: usersFilters.q || undefined,
-            role: usersFilters.role || undefined,
-            province: usersFilters.province || undefined,
-            status: usersFilters.status || undefined,
-            lastLogin: usersFilters.lastLogin || undefined,
+            q: searchQuery.trim() || undefined,
+            role: roleFilter || undefined,
+            province: provinceFilter || undefined,
+            status: statusFilter || undefined,
+            lastLogin: lastLoginFilter || undefined,
             limit: USERS_PAGE_SIZE,
             offset: page * USERS_PAGE_SIZE,
           },
@@ -127,23 +108,10 @@ function AdminDashboard() {
         if (requestId !== requestIdRef.current) return;
 
         const nextUsers = Array.isArray(res.data?.users) ? res.data.users : [];
-        const previousUsers = append
-          ? usersCacheRef.current.get(cacheKey)?.users || []
-          : [];
-        const mergedUsers = append
-          ? [...previousUsers, ...nextUsers]
-          : nextUsers;
-
-        setUsers(mergedUsers);
+        setUsers((current) => (append ? [...current, ...nextUsers] : nextUsers));
         setUsersHasMore(Boolean(res.data?.hasMore));
         setUsersPage(page);
         setUsersError("");
-
-        usersCacheRef.current.set(cacheKey, {
-          users: mergedUsers,
-          hasMore: Boolean(res.data?.hasMore),
-          page,
-        });
       } catch (err) {
         if (requestId !== requestIdRef.current) return;
 
@@ -159,18 +127,18 @@ function AdminDashboard() {
         }
       }
     },
-    [
-      activeSection,
-      usersFilters,
-      usersCacheKey,
-    ]
+    [activeSection, lastLoginFilter, provinceFilter, roleFilter, searchQuery, statusFilter]
   );
 
   useEffect(() => {
     if (activeSection !== "usuarios") return;
 
+    setUsers([]);
+    setUsersError("");
+    setUsersHasMore(true);
+    setUsersPage(0);
     loadUsers({ page: 0, append: false });
-  }, [loadUsers, activeSection]);
+  }, [activeSection, loadUsers, usersQueryKey]);
 
   useEffect(() => {
     const sentinel = loadMoreRef.current;
@@ -248,6 +216,7 @@ function AdminDashboard() {
     setStatusFilter("");
     setLastLoginFilter("");
     setUsersError("");
+    setUsersPage(0);
   }, []);
 
   const closeDeleteModal = () => {
@@ -270,12 +239,6 @@ function AdminDashboard() {
       setDeleteTarget(null);
 
       setUsers((current) => current.filter((user) => user.id !== deleteTarget.id));
-      usersCacheRef.current.forEach((entry, key) => {
-        usersCacheRef.current.set(key, {
-          ...entry,
-          users: entry.users.filter((user) => user.id !== deleteTarget.id),
-        });
-      });
       await refreshStats();
     } catch (err) {
       console.error("DELETE ADMIN USER ERROR:", err);
@@ -306,15 +269,15 @@ function AdminDashboard() {
             onRoleChange={setRoleFilter}
             provinceValue={provinceFilter}
             onProvinceChange={setProvinceFilter}
-            statusValue={statusFilter}
-            onStatusChange={setStatusFilter}
-            lastLoginValue={lastLoginFilter}
-            onLastLoginChange={setLastLoginFilter}
-      roleOptions={ROLE_OPTIONS}
-      provinceOptions={PROVINCE_OPTIONS}
-      statusOptions={STATUS_OPTIONS}
-      lastLoginOptions={LAST_LOGIN_OPTIONS}
-      onClearFilters={clearUserFilters}
+          statusValue={statusFilter}
+          onStatusChange={setStatusFilter}
+          lastLoginValue={lastLoginFilter}
+          onLastLoginChange={setLastLoginFilter}
+          roleOptions={ROLE_OPTIONS}
+          provinceOptions={PROVINCE_OPTIONS}
+          statusOptions={STATUS_OPTIONS}
+          lastLoginOptions={LAST_LOGIN_OPTIONS}
+          onClearFilters={clearUserFilters}
             onOpenDeleteUser={openDeleteModal}
           />
         );
