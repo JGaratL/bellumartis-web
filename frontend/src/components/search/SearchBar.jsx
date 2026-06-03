@@ -7,30 +7,33 @@ export default function SearchBar() {
   const setSearch = useFiltersStore((s) => s.setSearch);
 
   return (
-    <div className="search-bar">
-      <span className="search-icon">
+    <div className="search-section">
+      <div className="search-title">
         <FaSearch />
-      </span>
+        <span>Buscar</span>
+      </div>
 
-      <input
-        type="text"
-        value={search}
-        onChange={(e) =>
-          setSearch(e.target.value)
-        }
-        placeholder="Buscar por palabras clave..."
-      />
+      <div className="search-bar">
+        <input
+          type="text"
+          value={search}
+          onChange={(e) =>
+            setSearch(e.target.value)
+          }
+          placeholder="Buscar por palabras clave..."
+        />
 
-      {search.trim() && (
-        <button
-          type="button"
-          className="search-clear"
-          onClick={() => setSearch("")}
-          aria-label="Limpiar búsqueda"
-        >
-          ✕
-        </button>
-      )}
+        {search.trim() && (
+          <button
+            type="button"
+            className="search-clear"
+            onClick={() => setSearch("")}
+            aria-label="Limpiar búsqueda"
+          >
+            ✕
+          </button>
+        )}
+      </div>
     </div>
   );
 }

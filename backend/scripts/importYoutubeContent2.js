@@ -7,7 +7,7 @@ const YOUTUBE_API_KEY =
     process.env.YOUTUBE_API_KEY;
 
 const CHANNEL_ID =
-    process.env.YOUTUBE_CHANNEL_ID;
+    process.env.YOUTUBE_CHANNEL2_ID;
 
 
 // -----------------------------------
@@ -372,12 +372,7 @@ async function saveVideo(video, durationMap) {
 
 
 
-    let theme = null;
-
-
-    if (CHANNEL_ID === "UCTNFDvqGq_zZ_spphDCQaHg") {
-        theme = "actualidad_militar";
-    }
+    const theme = null;
 
     const title =
         snippet.title?.trim();

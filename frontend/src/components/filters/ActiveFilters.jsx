@@ -1,21 +1,32 @@
 import { useFiltersStore } from "../../store/filtersStore";
+import "./ActiveFilters.css";
 
 export default function ActiveFilters() {
   const filters = useFiltersStore((s) => s.filters);
-  const removeFilter = useFiltersStore((s) => s.removeFilter);
+  const setFilter = useFiltersStore((s) => s.setFilter);
+
+  const entries = Object.entries(filters).filter(
+    ([_, value]) => value
+  );
+
+  if (!entries.length) return null;
 
   return (
     <div className="active-filters">
-      {Object.entries(filters).map(([key, value]) => {
-        if (!value) return null;
+      {entries.map(([key, value]) => (
+        <div key={key} className="filter-chip">
+          <span>{value}</span>
 
-        return (
-          <span key={key} className="chip">
-            {value}
-            <button onClick={() => removeFilter(key)}>✕</button>
-          </span>
-        );
-      })}
+          <button
+            className="chip-remove"
+            onClick={() =>
+              setFilter(key, null)
+            }
+          >
+            ✕
+          </button>
+        </div>
+      ))}
     </div>
   );
 }

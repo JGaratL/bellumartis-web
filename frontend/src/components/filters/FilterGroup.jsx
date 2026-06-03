@@ -13,7 +13,8 @@ export default function FilterGroup({
     const setFilter = useFiltersStore((s) => s.setFilter);
     const filters = useFiltersStore((s) => s.filters);
 
-    const currentValue = filters[filterKey];
+    const currentValue =
+        filters?.[filterKey] ?? null;
 
     const optionsMap = {
         theme: ["historia_militar", "actualidad_militar"],
@@ -29,47 +30,47 @@ export default function FilterGroup({
 
     useEffect(() => {
         const handleClickOutside = (e) => {
-            if (
-                ref.current &&
-                !ref.current.contains(e.target)
-            ) {
+            if (ref.current && !ref.current.contains(e.target)) {
                 setOpen(false);
             }
         };
 
-        document.addEventListener(
-            "mousedown",
-            handleClickOutside
-        );
+        document.addEventListener("mousedown", handleClickOutside);
 
         return () =>
-            document.removeEventListener(
-                "mousedown",
-                handleClickOutside
-            );
+            document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
     return (
         <div className="filter-group" ref={ref}>
+            {/* TÍTULO */}
+            <div className="filter-title">
+                {Icon && <Icon className="filter-title-icon" />}
+                <span>{label}</span>
+            </div>
+
+            {/* BOTÓN */}
             <button
-                className="filter-group-btn"
+                type="button"
+                className={`filter-group-btn ${currentValue && currentValue !== ""
+                        ? "active"
+                        : ""
+                    }`}
                 onClick={() => setOpen(!open)}
             >
-                <div className="filter-group-label">
-                    {Icon && (
-                        <Icon className="filter-group-icon" />
-                    )}
-
-                    <span>{label}</span>
-                </div>
+                <span className="filter-placeholder">
+                    {currentValue || "Seleccionar"}
+                </span>
 
                 <span
-                    style={{ fontSize: "10px" }}
+                    className={`filter-arrow ${open ? "open" : ""
+                        }`}
                 >
                     ▼
                 </span>
             </button>
 
+            {/* DROPDOWN */}
             {open && (
                 <div className="filter-group-menu">
                     {options.map((opt) => (
@@ -77,10 +78,7 @@ export default function FilterGroup({
                             key={opt}
                             className="filter-group-item"
                             onClick={() => {
-                                setFilter(
-                                    filterKey,
-                                    opt
-                                );
+                                setFilter(filterKey, opt);
                                 setOpen(false);
                             }}
                         >
@@ -91,10 +89,7 @@ export default function FilterGroup({
                     <div
                         className="filter-group-item clear"
                         onClick={() => {
-                            setFilter(
-                                filterKey,
-                                null
-                            );
+                            setFilter(filterKey, null);
                             setOpen(false);
                         }}
                     >

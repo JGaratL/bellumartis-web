@@ -6,41 +6,74 @@
     margin-bottom: 28px;
 }
 
-.articles-toolbar {
+/* PANEL PRINCIPAL */
+.toolbar-panel {
     width: 100%;
+
+    background: white;
+    border: 1px solid #e3e3e3;
+    border-radius: 12px;
+
+    padding: 26px;
 
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
+
+    margin: 0 auto 40px auto;
+
+    box-sizing: border-box;
 }
 
-/* Buscar arriba */
-.search-row {
-    width: 100%;
-
-    display: flex;
-    justify-content: flex-start;
-
-    margin-bottom: 18px;
-    margin-left: 14px;
-}
-
-/* Filtros debajo */
-.filters-row {
-    width: 100%;
-
+/* HEADER FILTROS */
+.filters-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
 
-    flex-wrap: nowrap;
-
-    margin-bottom: 80px;
+    margin-top: 4px;
+    margin-bottom: -6px;
 }
 
+/* TEXTO "FILTROS" */
+.filters-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #666;
+}
+
+/* BOTÓN LIMPIAR */
+.clear-filters-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    background: transparent;
+    border: none;
+
+    color: #0f6970;
+
+    font-size: 13px;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition: opacity 0.2s ease;
+
+    transform: translateY(-80px);
+
+}
+
+.clear-filters-btn:hover {
+    opacity: 0.7;
+}
+
+.clear-filters-btn svg {
+    font-size: 14px;
+}
+
+/* ICONO TITULO PRINCIPAL */
 .title-icon {
     font-size: 48px;
     transform: translateY(5px);
     margin-right: 12px;
-
 }

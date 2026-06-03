@@ -17,7 +17,7 @@ async function getContent(req, res) {
         FROM content
         WHERE is_visible = 1
         ORDER BY published_at DESC
-        LIMIT 50
+        LIMIT 250
     `);
 
         res.json(rows);
