@@ -1,4 +1,5 @@
 import UserMetrics from "./users/UserMetrics";
+import EventMetrics from "./events/EventMetrics";
 
 export default function AdminHero({
   title,
@@ -8,7 +9,13 @@ export default function AdminHero({
   statsLoading,
   statsError,
   showMetrics = false,
+  metricsVariant = "users",
+  actionNode = null,
+  showIcon = true,
 }) {
+  const MetricsComponent =
+    metricsVariant === "events" ? EventMetrics : UserMetrics;
+
   return (
     <section className="admin-hero">
       <div className="admin-hero-head">
@@ -17,12 +24,21 @@ export default function AdminHero({
           <p className="admin-hero-copy">{description}</p>
         </div>
 
-        <div className="admin-hero-icon">{Icon ? <Icon /> : null}</div>
+        <div className="admin-hero-head-right">
+          {actionNode}
+          {showIcon && (
+            <div className="admin-hero-icon">{Icon ? <Icon /> : null}</div>
+          )}
+        </div>
       </div>
 
       {showMetrics && (
         <div className="admin-hero-metrics">
-          <UserMetrics stats={stats} loading={statsLoading} error={statsError} />
+          <MetricsComponent
+            stats={stats}
+            loading={statsLoading}
+            error={statsError}
+          />
         </div>
       )}
     </section>

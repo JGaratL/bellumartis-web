@@ -100,7 +100,13 @@ const provincesES = [
 ];
 
 
-function ProfileCard({ user, editable, onClose, onSave }) {
+function ProfileCard({
+    user,
+    editable,
+    onClose,
+    onSave,
+    avatarPlacement = "side",
+}) {
     if (!user) return null;
 
     const [tempImage, setTempImage] = useState(null);
@@ -258,57 +264,74 @@ function ProfileCard({ user, editable, onClose, onSave }) {
         <div className="pc-external">
             <div className="pc-internal">
 
-                {/* IZQUIERDA */}
-                <div className="pc-left">
-                    <div className="pc-avatar-wrapper">
+                {avatarPlacement === "side" && (
+                    
+                        <div className="pc-avatar-wrapper">
 
-                        <img
-                            src={resolveAvatarSrc(form.profile_image) || "/BHM.webp"}
-                            className="pc-avatar"
-                            alt="avatar"
-                            referrerPolicy="no-referrer"
-                            onError={(e) => {
-                                e.currentTarget.onerror = null;
-                                e.currentTarget.src = "/BHM.webp";
-                            }}
-                        />
+                            <img
+                                src={resolveAvatarSrc(form.profile_image) || "/BHM.webp"}
+                                className="pc-avatar"
+                                alt="avatar"
+                                referrerPolicy="no-referrer"
+                                onError={(e) => {
+                                    e.currentTarget.onerror = null;
+                                    e.currentTarget.src = "/BHM.webp";
+                                }}
+                            />
 
-                        <input
-                            type="file"
-                            accept="image/*"
-                            id="avatarInput"
-                            style={{ display: "none" }}
-                            onChange={(e) => {
-                                const file = e.target.files[0];
-                                if (!file) return;
+                            <input
+                                type="file"
+                                accept="image/*"
+                                id="avatarInput"
+                                style={{ display: "none" }}
+                                onChange={(e) => {
+                                    const file = e.target.files[0];
+                                    if (!file) return;
 
-                                const reader = new FileReader();
+                                    const reader = new FileReader();
 
-                                reader.onload = (event) => {
-                                    setTempImage(event.target.result);
-                                    setShowEditor(true);
-                                };
+                                    reader.onload = (event) => {
+                                        setTempImage(event.target.result);
+                                        setShowEditor(true);
+                                    };
 
-                                reader.readAsDataURL(file);
+                                    reader.readAsDataURL(file);
 
-                                // 🔥 CLAVE
-                                e.target.value = null;
-                            }}
-                        />
+                                    // 🔥 CLAVE
+                                    e.target.value = null;
+                                }}
+                            />
 
-                        {editable && (
-                            <div
-                                className="pc-camera"
-                                onClick={() => document.getElementById("avatarInput").click()}
-                            >
-                                <BiSolidCamera />
-                            </div>
-                        )}
-                    </div>
-                </div>
+                            {editable && (
+                                <div
+                                    className="pc-camera"
+                                    onClick={() => document.getElementById("avatarInput").click()}
+                                >
+                                    <BiSolidCamera />
+                                </div>
+                            )}
+                        </div>
+                )}
 
                 {/* DERECHA */}
-                <div className="pc-right">
+                <div className={`pc-right ${avatarPlacement === "side" ? "" : "pc-right-full"}`}>
+
+                    {avatarPlacement === "top" && (
+                        <div className="pc-avatar-top">
+                            <div className="pc-avatar-wrapper">
+                                <img
+                                    src={resolveAvatarSrc(form.profile_image) || "/BHM.webp"}
+                                    className="pc-avatar pc-avatar-top-img"
+                                    alt="avatar"
+                                    referrerPolicy="no-referrer"
+                                    onError={(e) => {
+                                        e.currentTarget.onerror = null;
+                                        e.currentTarget.src = "/BHM.webp";
+                                    }}
+                                />
+                            </div>
+                        </div>
+                    )}
 
                     <div className="pc-right-top">
 

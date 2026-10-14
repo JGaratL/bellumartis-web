@@ -1,0 +1,112 @@
+.admin-email-users-selector {
+    position: relative;
+    width: 100%;
+}
+
+.admin-email-users-list {
+    width: 100%;
+    margin-top: 8px;
+
+    max-height: 220px;
+    overflow-y: auto;
+
+    background: #ffffff;
+    border: 1px solid #d9dee3;
+    border-radius: 8px;
+
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+
+    box-sizing: border-box;
+}
+
+.admin-email-user-option {
+    display: flex;
+    align-items: center;
+
+    width: 100%;
+    min-height: 52px;
+
+    padding: 8px 12px;
+
+    margin: 0;
+
+    background: #ffffff;
+    border: 0;
+    border-bottom: 1px solid #eeeeee;
+
+    cursor: pointer;
+    text-align: left;
+
+    box-sizing: border-box;
+}
+
+.admin-email-user-option:last-child {
+    border-bottom: none;
+}
+
+.admin-email-user-option:hover {
+    background: #f5f7f8;
+}
+
+.admin-email-user-avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 32px;
+    height: 32px;
+
+    margin-right: 10px;
+
+    flex-shrink: 0;
+
+    border-radius: 50%;
+    background: #eef1f2;
+
+    font-size: 16px;
+}
+
+.admin-email-user-data {
+    display: flex;
+    flex-direction: column;
+
+    min-width: 0;
+
+    overflow: hidden;
+}
+
+.admin-email-user-data strong {
+    display: block;
+
+    font-size: 14px;
+    font-weight: 600;
+
+    color: #222222;
+
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.admin-email-user-data small {
+    display: block;
+
+    margin-top: 3px;
+
+    font-size: 12px;
+
+    color: #777777;
+
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.admin-email-users-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.admin-email-users-list::-webkit-scrollbar-thumb {
+    background: #c8ced2;
+    border-radius: 10px;
+}

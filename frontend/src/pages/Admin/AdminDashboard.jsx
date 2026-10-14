@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import api from "../../api";
 import AdminSidebar from "./components/AdminSidebar";
@@ -10,6 +10,9 @@ import EventsSection from "./sections/EventsSection";
 import EmailsSection from "./sections/EmailsSection";
 import BannersSection from "./sections/BannersSection";
 import ArticlesSection from "./sections/ArticlesSection";
+import AdminUserViewModal from "./components/users/AdminUserViewModal";
+import AdminUserRoleModal from "./components/users/AdminUserRoleModal";
+import AdminUserStatusModal from "./components/users/AdminUserStatusModal";
 import {
   ADMIN_MENU,
   LAST_LOGIN_OPTIONS,
@@ -17,6 +20,8 @@ import {
   ROLE_OPTIONS,
   STATUS_OPTIONS,
   getActiveAdminSection,
+  getAdminPathForSection,
+  getAdminSectionFromPathname,
 } from "./utils/adminHelpers";
 
 import "./AdminDashboard.css";
@@ -24,6 +29,7 @@ import "./AdminDashboard.css";
 const USERS_PAGE_SIZE = 20;
 
 function AdminDashboard() {
+  const location = useLocation();
   const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState("usuarios");
   const [users, setUsers] = useState([]);
@@ -42,20 +48,57 @@ function AdminDashboard() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteMessage, setDeleteMessage] = useState("");
   const [deleteError, setDeleteError] = useState("");
+  const [viewTarget, setViewTarget] = useState(null);
+  const [viewLoading, setViewLoading] = useState(false);
+  const [viewError, setViewError] = useState("");
+  const [roleTarget, setRoleTarget] = useState(null);
+  const [roleValue, setRoleValue] = useState("");
+  const [roleSaving, setRoleSaving] = useState(false);
+  const [roleFeedback, setRoleFeedback] = useState("");
+  const [roleFeedbackType, setRoleFeedbackType] = useState("");
+  const [statusTarget, setStatusTarget] = useState(null);
+  const [statusSaving, setStatusSaving] = useState(false);
+  const [statusFeedback, setStatusFeedback] = useState("");
+  const [statusFeedbackType, setStatusFeedbackType] = useState("");
+  const [createEventOpen, setCreateEventOpen] = useState(false);
   const [userStats, setUserStats] = useState({
     total_users: 0,
     active_users: 0,
     new_users: 0,
     inactive_users: 0,
   });
+  const [eventStats, setEventStats] = useState({
+    total_events: 0,
+    upcoming_events: 0,
+    past_events: 0,
+    interested_users: 0,
+  });
   const [statsLoading, setStatsLoading] = useState(false);
   const [statsError, setStatsError] = useState("");
+  const [eventStatsLoading, setEventStatsLoading] = useState(false);
+  const [eventStatsError, setEventStatsError] = useState("");
   const loadMoreRef = useRef(null);
   const requestIdRef = useRef(0);
+  const inFlightUsersRequestRef = useRef("");
 
   const activeMeta = useMemo(
     () => getActiveAdminSection(activeSection),
     [activeSection]
+  );
+
+  useEffect(() => {
+    const nextSection = getAdminSectionFromPathname(location.pathname);
+    setActiveSection((current) =>
+      current === nextSection ? current : nextSection
+    );
+  }, [location.pathname]);
+
+  const handleSectionChange = useCallback(
+    (sectionId) => {
+      setActiveSection(sectionId);
+      navigate(getAdminPathForSection(sectionId));
+    },
+    [navigate]
   );
 
   const usersQueryKey = useMemo(
@@ -82,6 +125,21 @@ function AdminDashboard() {
     async ({ page = 0, append = false } = {}) => {
       if (activeSection !== "usuarios") return;
 
+      const requestKey = [
+        page,
+        append ? "append" : "replace",
+        searchQuery.trim(),
+        roleFilter,
+        provinceFilter,
+        statusFilter,
+        lastLoginFilter,
+      ].join("|");
+
+      if (inFlightUsersRequestRef.current === requestKey) {
+        return;
+      }
+
+      inFlightUsersRequestRef.current = requestKey;
       const requestId = ++requestIdRef.current;
 
       try {
@@ -90,7 +148,6 @@ function AdminDashboard() {
         } else {
           setUsersLoading(true);
           setUsersError("");
-          setUsers([]);
         }
 
         const res = await api.get("/admin/users", {
@@ -125,6 +182,10 @@ function AdminDashboard() {
           setUsersLoading(false);
           setUsersLoadingMore(false);
         }
+
+        if (inFlightUsersRequestRef.current === requestKey) {
+          inFlightUsersRequestRef.current = "";
+        }
       }
     },
     [activeSection, lastLoginFilter, provinceFilter, roleFilter, searchQuery, statusFilter]
@@ -133,7 +194,6 @@ function AdminDashboard() {
   useEffect(() => {
     if (activeSection !== "usuarios") return;
 
-    setUsers([]);
     setUsersError("");
     setUsersHasMore(true);
     setUsersPage(0);
@@ -149,6 +209,7 @@ function AdminDashboard() {
         const [entry] = entries;
         if (
           entry?.isIntersecting &&
+          users.length > 0 &&
           usersHasMore &&
           !usersLoading &&
           !usersLoadingMore
@@ -168,6 +229,7 @@ function AdminDashboard() {
   }, [
     activeSection,
     loadUsers,
+    users.length,
     usersHasMore,
     usersLoading,
     usersLoadingMore,
@@ -198,9 +260,37 @@ function AdminDashboard() {
     }
   }, [activeSection]);
 
+  const refreshEventStats = useCallback(async () => {
+    if (activeSection !== "eventos") return;
+
+    try {
+      setEventStatsLoading(true);
+      setEventStatsError("");
+
+      const res = await api.get("/admin/events/stats");
+      setEventStats({
+        total_events: Number(res.data?.total_events || 0),
+        upcoming_events: Number(res.data?.upcoming_events || 0),
+        past_events: Number(res.data?.past_events || 0),
+        interested_users: Number(res.data?.interested_users || 0),
+      });
+    } catch (err) {
+      console.error("ADMIN EVENTS STATS ERROR:", err);
+      setEventStatsError(
+        err?.response?.data?.error || "No se pudieron cargar las metricas de eventos"
+      );
+    } finally {
+      setEventStatsLoading(false);
+    }
+  }, [activeSection]);
+
   useEffect(() => {
     refreshStats();
   }, [refreshStats]);
+
+  useEffect(() => {
+    refreshEventStats();
+  }, [refreshEventStats]);
 
   const openDeleteModal = (user) => {
     setDeleteTarget(user);
@@ -218,6 +308,162 @@ function AdminDashboard() {
     setUsersError("");
     setUsersPage(0);
   }, []);
+
+  const openViewUser = useCallback(async (user) => {
+    if (!user?.id) return;
+
+    setViewTarget(null);
+    setViewLoading(true);
+    setViewError("");
+
+    try {
+      const res = await api.get(`/api/users/${user.id}`);
+      setViewTarget(res.data || null);
+    } catch (err) {
+      console.error("ADMIN VIEW USER ERROR:", err);
+      setViewError(
+        err?.response?.data?.error || "No se pudo cargar el usuario"
+      );
+    } finally {
+      setViewLoading(false);
+    }
+  }, []);
+
+  const closeViewUser = useCallback(() => {
+    setViewTarget(null);
+    setViewLoading(false);
+    setViewError("");
+  }, []);
+
+  const openEditUser = useCallback((user) => {
+    if (!user?.id) return;
+    setRoleTarget(user);
+    setRoleValue(user.role || "user");
+    setRoleFeedback("");
+    setRoleFeedbackType("");
+  }, []);
+
+  const closeEditUser = useCallback(() => {
+    setRoleTarget(null);
+    setRoleValue("");
+    setRoleSaving(false);
+    setRoleFeedback("");
+    setRoleFeedbackType("");
+  }, []);
+
+  const saveUserRole = useCallback(async () => {
+    if (!roleTarget?.id || roleSaving) return;
+
+    try {
+      setRoleSaving(true);
+      setRoleFeedback("");
+      setRoleFeedbackType("");
+
+      const res = await api.put(`/admin/users/${roleTarget.id}`, {
+        role: roleValue,
+      });
+
+      const updatedUser = res.data?.user;
+      if (updatedUser?.id) {
+        setUsers((current) =>
+          current.map((item) =>
+            item.id === updatedUser.id
+              ? { ...item, role: updatedUser.role }
+              : item
+          )
+        );
+      } else {
+        setUsers((current) =>
+          current.map((item) =>
+            item.id === roleTarget.id ? { ...item, role: roleValue } : item
+          )
+        );
+      }
+
+      if (viewTarget?.id === roleTarget.id && updatedUser?.id) {
+        setViewTarget((current) =>
+          current && current.id === updatedUser.id
+            ? { ...current, role: updatedUser.role }
+            : current
+        );
+      }
+
+      setRoleFeedback("Rol actualizado correctamente");
+      setRoleFeedbackType("success");
+      setTimeout(() => {
+        closeEditUser();
+      }, 800);
+    } catch (err) {
+      console.error("ADMIN UPDATE ROLE ERROR:", err);
+      setRoleFeedbackType("error");
+      setRoleFeedback(
+        err?.response?.data?.error || "No se pudo actualizar el rol"
+      );
+    } finally {
+      setRoleSaving(false);
+    }
+  }, [closeEditUser, roleSaving, roleTarget?.id, roleValue, viewTarget?.id]);
+
+  const openBlockUser = useCallback((user) => {
+    if (!user?.id) return;
+    setStatusTarget(user);
+    setStatusFeedback("");
+    setStatusFeedbackType("");
+  }, []);
+
+  const closeBlockUser = useCallback(() => {
+    setStatusTarget(null);
+    setStatusSaving(false);
+    setStatusFeedback("");
+    setStatusFeedbackType("");
+  }, []);
+
+  const confirmBlockUser = useCallback(async () => {
+    if (!statusTarget?.id || statusSaving) return;
+
+    const nextStatus = statusTarget.status === "active" ? "inactive" : "active";
+
+    try {
+      setStatusSaving(true);
+      setStatusFeedback("");
+      setStatusFeedbackType("");
+
+      const res = await api.put(`/admin/users/${statusTarget.id}`, {
+        status: nextStatus,
+      });
+
+      const updatedUser = res.data?.user;
+      setUsers((current) =>
+        current.map((item) =>
+          item.id === statusTarget.id
+            ? { ...item, status: updatedUser?.status || nextStatus }
+            : item
+        )
+      );
+
+      if (viewTarget?.id === statusTarget.id && updatedUser?.id) {
+        setViewTarget((current) =>
+          current && current.id === updatedUser.id
+            ? { ...current, status: updatedUser.status }
+            : current
+        );
+      }
+
+      setStatusFeedback(res.data?.message || "Estado actualizado correctamente");
+      setStatusFeedbackType("success");
+      setTimeout(() => {
+        closeBlockUser();
+      }, 800);
+    } catch (err) {
+      console.error("ADMIN UPDATE STATUS ERROR:", err);
+      setStatusFeedbackType("error");
+      setStatusFeedback(
+        err?.response?.data?.error || "No se pudo actualizar el estado"
+      );
+    } finally {
+      setStatusSaving(false);
+    }
+  }, [closeBlockUser, statusSaving, statusTarget?.id, statusTarget?.status, viewTarget?.id]);
 
   const closeDeleteModal = () => {
     if (deleteLoading) return;
@@ -278,15 +524,23 @@ function AdminDashboard() {
           statusOptions={STATUS_OPTIONS}
           lastLoginOptions={LAST_LOGIN_OPTIONS}
           onClearFilters={clearUserFilters}
-            onOpenDeleteUser={openDeleteModal}
-          />
+          onOpenViewUser={openViewUser}
+          onOpenEditUser={openEditUser}
+          onOpenBlockUser={openBlockUser}
+          onOpenDeleteUser={openDeleteModal}
+        />
         );
       case "eventos":
-        return <EventsSection title={activeMeta.label} />;
+        return (
+          <EventsSection
+            createOpen={createEventOpen}
+            onCloseCreate={() => setCreateEventOpen(false)}
+          />
+        );
       case "emails":
         return <EmailsSection title={activeMeta.label} />;
       case "banners":
-        return <BannersSection title={activeMeta.label} />;
+        return <BannersSection />;
       case "articulos":
         return <ArticlesSection title={activeMeta.label} />;
       default:
@@ -299,7 +553,7 @@ function AdminDashboard() {
       <AdminSidebar
         activeSection={activeSection}
         menuItems={ADMIN_MENU}
-        onSectionChange={setActiveSection}
+        onSectionChange={handleSectionChange}
         onBack={() => navigate("/")}
       />
 
@@ -308,10 +562,23 @@ function AdminDashboard() {
           title={activeMeta.label}
           description={activeMeta.description}
           icon={activeMeta.icon}
-          showMetrics={activeSection === "usuarios"}
-          stats={userStats}
-          statsLoading={statsLoading}
-          statsError={statsError}
+          actionNode={
+            activeSection === "eventos" ? (
+              <button
+                type="button"
+                className="admin-events-create-btn"
+                onClick={() => setCreateEventOpen(true)}
+              >
+                + Crear Evento
+              </button>
+            ) : null
+          }
+          showIcon={activeSection !== "eventos"}
+          showMetrics={activeSection === "usuarios" || activeSection === "eventos"}
+          metricsVariant={activeSection === "eventos" ? "events" : "users"}
+          stats={activeSection === "eventos" ? eventStats : userStats}
+          statsLoading={activeSection === "eventos" ? eventStatsLoading : statsLoading}
+          statsError={activeSection === "eventos" ? eventStatsError : statsError}
         />
 
         {renderContent()}
@@ -321,6 +588,33 @@ function AdminDashboard() {
           loading={deleteLoading}
           onClose={closeDeleteModal}
           onConfirm={handleDeleteUser}
+        />
+
+        <AdminUserViewModal
+          user={viewTarget}
+          loading={viewLoading}
+          error={viewError}
+          onClose={closeViewUser}
+        />
+
+        <AdminUserRoleModal
+          user={roleTarget}
+          value={roleValue}
+          saving={roleSaving}
+          feedback={roleFeedback}
+          feedbackType={roleFeedbackType}
+          onChange={setRoleValue}
+          onClose={closeEditUser}
+          onSave={saveUserRole}
+        />
+
+        <AdminUserStatusModal
+          user={statusTarget}
+          saving={statusSaving}
+          feedback={statusFeedback}
+          feedbackType={statusFeedbackType}
+          onClose={closeBlockUser}
+          onConfirm={confirmBlockUser}
         />
       </main>
     </div>

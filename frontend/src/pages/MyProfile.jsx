@@ -23,11 +23,13 @@ function MyProfile() {
   if (!user) return <div>Cargando...</div>;
 
   return (
-    <ProfileCard
-      user={user}
-      editable={false}
-      onClose={() => navigate("/")}
-    />
+    <main className="my-profile-page">
+      <ProfileCard
+        user={user}
+        editable={false}
+        onClose={() => navigate("/")}
+      />
+    </main>
   );
 }
 

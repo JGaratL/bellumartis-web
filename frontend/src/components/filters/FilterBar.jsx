@@ -4,9 +4,7 @@ import FilterGroup from "./FilterGroup";
 import { MdOutlineTypeSpecimen } from "react-icons/md";
 import { LuLayoutGrid, LuSwords } from "react-icons/lu";
 import { GrHistory } from "react-icons/gr";
-import { BsGlobeAmericas } from "react-icons/bs";
 import { SlGraduation } from "react-icons/sl";
-import { FiMapPin } from "react-icons/fi";
 
 export default function FilterBar() {
   return (
@@ -23,28 +21,18 @@ export default function FilterBar() {
         icon={LuLayoutGrid}
       />
 
+      {/* 👇 ahora será jerárquico */}
       <FilterGroup
         label="PERIODO"
         filterKey="period"
         icon={GrHistory}
       />
 
+      {/* lo dejamos visible aunque aún no tenga lógica */}
       <FilterGroup
         label="CONFLICTO"
         filterKey="conflict"
         icon={LuSwords}
-      />
-
-      <FilterGroup
-        label="REGIÓN"
-        filterKey="region"
-        icon={BsGlobeAmericas}
-      />
-
-      <FilterGroup
-        label="PAÍS"
-        filterKey="country"
-        icon={FiMapPin}
       />
 
       <FilterGroup

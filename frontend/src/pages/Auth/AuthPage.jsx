@@ -6,6 +6,8 @@ import { FaEye, FaEyeSlash } from "react-icons/fa";
 
 import { AuthContext } from "../../context/AuthContext";
 import { SPAIN_PROVINCES } from "../../utils/spainProvinces";
+import { readCookieConsent } from "../../utils/cookieConsent";
+import { openCookieSettings } from "../../components/CookieConsentBanner";
 
 import "./Auth.css";
 
@@ -136,10 +138,6 @@ function AuthPage() {
         [name]: value,
       };
 
-      if (name === "country") {
-        next.country = isSpainCountry(value) ? "Espana" : value;
-      }
-
       if (name === "country" && !isSpainCountry(value)) {
         next.province = "";
       }
@@ -220,7 +218,7 @@ function AuthPage() {
       nextErrors.country = "Selecciona un pais";
     }
 
-    if (registerData.country === "Espana" && !registerData.province) {
+    if (isSpainCountry(registerData.country) && !registerData.province) {
       nextErrors.province = "Selecciona una provincia";
     }
 
@@ -235,7 +233,9 @@ function AuthPage() {
           ...registerData,
           nickname,
           email,
-          province: registerData.country === "Espana" ? registerData.province : null,
+          province: isSpainCountry(registerData.country)
+            ? registerData.province
+            : null,
         }),
       });
 
@@ -293,6 +293,8 @@ function AuthPage() {
       return;
     }
 
+    if (!readCookieConsent()?.externalServices) return;
+
     if (window.google?.accounts?.id) return;
 
     const script = document.createElement("script");
@@ -305,6 +307,12 @@ function AuthPage() {
   const handleGoogleLogin = () => {
     if (!GOOGLE_CLIENT_ID) {
       setError("Google Sign-In no configurado");
+      return;
+    }
+
+    if (!readCookieConsent()?.externalServices) {
+      setError("Para iniciar sesión con Google, configura y autoriza los servicios externos.");
+      openCookieSettings();
       return;
     }
 
@@ -515,8 +523,8 @@ function AuthPage() {
               name="province"
               value={registerData.province}
               onChange={handleRegisterChange}
-              disabled={registerData.country !== "Espana"}
-              required={registerData.country === "Espana"}
+              disabled={!isSpainCountry(registerData.country)}
+              required={isSpainCountry(registerData.country)}
             >
               <option value="" disabled>
                 Selecciona provincia

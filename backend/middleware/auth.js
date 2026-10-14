@@ -21,4 +21,23 @@ function verifyToken(req, res, next) {
   }
 }
 
+verifyToken.optional = (req, res, next) => {
+  if (!req.headers.authorization) {
+    req.user = null;
+    return next();
+  }
+  const [scheme, token] = req.headers.authorization.split(" ");
+  if (scheme !== "Bearer" || !token) {
+    req.user = null;
+    return next();
+  }
+  try {
+    req.user = jwt.verify(token, process.env.JWT_SECRET);
+  } catch {
+    // This endpoint is public; an expired or invalid optional session is anonymous.
+    req.user = null;
+  }
+  return next();
+};
+
 module.exports = verifyToken;

@@ -360,3 +360,151 @@
   color: gray;
   text-align: center;
 }
+
+.role {
+  justify-content: center;
+  font-weight: 600;
+}
+
+.mobile-menu-toggle {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .navbar {
+    height: 60px;
+    padding: 0 16px;
+  }
+
+  .navbar-left {
+    margin-left: 0;
+  }
+
+  .logo {
+    width: auto;
+    height: 48px;
+    margin: 0 0 0 -4px;
+  }
+
+  .navbar-links {
+    gap: clamp(14px, 2vw, 24px);
+  }
+
+  .navbar-links button,
+  .navbar-links a {
+    font-size: 13px;
+  }
+
+  .navbar-right {
+    gap: 12px;
+    margin-right: 0;
+  }
+
+  .logo-extra {
+    height: 76px;
+  }
+}
+
+@media (max-width: 900px) {
+  .navbar {
+    top: 0;
+    height: 58px;
+    padding: 0 14px;
+  }
+
+  .navbar-links {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 12px;
+    right: 12px;
+    display: none;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    padding: 8px;
+    border: 1px solid rgba(217, 233, 233, 0.25);
+    border-radius: 12px;
+    background: linear-gradient(180deg, #145f61 0%, #0c3d3f 100%);
+    box-shadow: 0 14px 32px rgba(0, 0, 0, 0.35);
+  }
+
+  .mobile-menu-open .navbar-links {
+    display: flex;
+  }
+
+  .navbar-links button,
+  .navbar-links a {
+    justify-content: flex-start;
+    min-height: 46px;
+    padding: 0 12px;
+    border-radius: 7px;
+    font-size: 14px;
+  }
+
+  .navbar-links button::after,
+  .navbar-links a::after {
+    content: none;
+  }
+
+  .navbar-links a.active,
+  .navbar-links button:hover,
+  .navbar-links a:hover {
+    transform: none;
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .navbar-right {
+    gap: 16px;
+    margin-left: auto;
+    margin-right: 12px;
+  }
+
+  .navbar-right > a {
+    display: none;
+  }
+
+  .icon {
+    font-size: 18px;
+  }
+
+  .notif-panel {
+    position: fixed;
+    top: 66px;
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-height: min(60vh, 420px);
+  }
+
+  .dropdown {
+    top: 36px;
+    right: -8px;
+  }
+
+  .mobile-menu-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    min-width: 40px;
+    height: 40px;
+    min-height: 40px;
+    padding: 0;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    font-size: 22px;
+  }
+}
+
+@media (max-width: 380px) {
+  .navbar {
+    padding: 0 10px;
+  }
+
+  .navbar-right {
+    gap: 12px;
+    margin-right: 9px;
+  }
+}

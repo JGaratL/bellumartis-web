@@ -1,5 +1,6 @@
 import "./Footer.css";
 import { NavLink } from "react-router-dom";
+import { openCookieSettings } from "./CookieConsentBanner";
 
 
 import {
@@ -44,6 +45,9 @@ function Footer() {
               <NavLink to="/privacy">Política de privacidad</NavLink>
               <NavLink to="/legal">Aviso legal</NavLink>
               <NavLink to="/cookies">Política de cookies</NavLink>
+              <button type="button" className="footer-cookie-settings" onClick={openCookieSettings}>
+                Configurar cookies
+              </button>
               <NavLink to="/terms">Condiciones de uso</NavLink>
             </div>
 
@@ -55,7 +59,7 @@ function Footer() {
             <div>©2026. Francisco García Campa.</div>
             <div>Todos los derechos reservados.</div>
             <div><strong>E-mail:</strong></div>
-            <div>info@bellumartis.com</div>
+            <div>admin@bellumartis.com</div>
 
           </div>
 

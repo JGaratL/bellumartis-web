@@ -17,6 +17,7 @@ import {
 
 import { FaBell, FaSearch } from "react-icons/fa";
 import { FaUser } from "react-icons/fa6";
+import { FiMenu, FiX } from "react-icons/fi";
 
 import { AuthContext } from "../context/AuthContext";
 
@@ -69,6 +70,7 @@ function Navbar() {
     useContext(AuthContext);
 
   const [open, setOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [hidden, setHidden] = useState(false);
   const [notifCount, setNotifCount] = useState(0);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -79,6 +81,10 @@ function Navbar() {
 
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location.pathname]);
 
   useEffect(() => {
     const setScrollbarOffset = () => {
@@ -172,7 +178,10 @@ function Navbar() {
   const fetchNotifCount = async () => {
     try {
       const token = localStorage.getItem("token");
-      if (!token) return;
+      if (!token) {
+        setNotifCount(0);
+        return;
+      }
 
       const res = await fetch(
         "http://localhost:5000/api/notifications/count",
@@ -184,7 +193,7 @@ function Navbar() {
       );
 
       const data = await res.json();
-      setNotifCount(data.count || 0);
+      setNotifCount(Number(data.count) || 0);
 
     } catch (err) {
       console.error(err);
@@ -194,7 +203,11 @@ function Navbar() {
   const fetchNotifications = async () => {
     try {
       const token = localStorage.getItem("token");
-      if (!token) return;
+      if (!token) {
+        setNotifications([]);
+        setNotifCount(0);
+        return;
+      }
 
       const res = await fetch(
         "http://localhost:5000/api/notifications?limit=20",
@@ -207,14 +220,22 @@ function Navbar() {
 
       const data = await res.json();
       setNotifications(Array.isArray(data) ? data : []);
+      await fetchNotifCount();
     } catch (err) {
       console.error(err);
     }
   };
 
   useEffect(() => {
+    if (!user) {
+      setNotifCount(0);
+      setNotifications([]);
+      setNotifOpen(false);
+      return;
+    }
+
     fetchNotifCount();
-  }, []);
+  }, [user?.id]);
 
   useEffect(() => {
     if (!user) {
@@ -301,7 +322,7 @@ function Navbar() {
   };
 
   return (
-    <nav className={`navbar ${hidden ? "hide" : ""}`}>
+    <nav className={`navbar ${hidden ? "hide" : ""} ${mobileMenuOpen ? "mobile-menu-open" : ""}`}>
 
       <div className="navbar-left">
         <NavLink to="/">
@@ -313,31 +334,31 @@ function Navbar() {
         </NavLink>
       </div>
 
-      <div className="navbar-links">
-        <NavLink to="/">HOME</NavLink>
+      <div className="navbar-links" id="primary-navigation">
+        <NavLink to="/" onClick={() => setMobileMenuOpen(false)}>HOME</NavLink>
 
-        <NavLink to="/articles">
+        <NavLink to="/articles" onClick={() => setMobileMenuOpen(false)}>
           VÍDEOS/ARTÍCULOS
         </NavLink>
 
-        <NavLink to="/shop">
+        <NavLink to="/shop" onClick={() => setMobileMenuOpen(false)}>
           TIENDA
         </NavLink>
 
-        <NavLink to="/community">
+        <NavLink to="/community" onClick={() => setMobileMenuOpen(false)}>
           COMUNIDAD
         </NavLink>
 
-        <NavLink to="/events">
+        <NavLink to="/events" onClick={() => setMobileMenuOpen(false)}>
           EVENTOS
         </NavLink>
 
-        <NavLink to="/about">
+        <NavLink to="/about" onClick={() => setMobileMenuOpen(false)}>
           CONTACTO
         </NavLink>
 
         {user && isModerator() && (
-          <NavLink to="/moderation">
+          <NavLink to="/moderation" onClick={() => setMobileMenuOpen(false)}>
             Moderación
           </NavLink>
         )}
@@ -439,6 +460,11 @@ function Navbar() {
                 </>
               ) : (
                 <>
+
+                  {isAdmin() && <p className="role">-Administrador-</p>}
+                  {isOwner() && <p className="role">-Owner-</p>}
+                  {isModerator() && <p className="role">-Moderador-</p>}
+
                   <p onClick={() => goTo("/profile")}>
                     <CgProfile className="dropdown-icon" />
                     Mi perfil
@@ -455,9 +481,6 @@ function Navbar() {
                       Dashboard
                     </p>
                   )}
-
-                  {isOwner() && <p className="role">Owner</p>}
-                  {isModerator() && <p className="role">Moderator</p>}
 
                   <p onClick={handleLogout} className="logout">
                     <MdLogout className="dropdown-icon" />
@@ -478,6 +501,17 @@ function Navbar() {
           />
         </NavLink>
       </div>
+
+      <button
+        type="button"
+        className="mobile-menu-toggle"
+        aria-label={mobileMenuOpen ? "Cerrar menú" : "Abrir menú"}
+        aria-expanded={mobileMenuOpen}
+        aria-controls="primary-navigation"
+        onClick={() => setMobileMenuOpen((previous) => !previous)}
+      >
+        {mobileMenuOpen ? <FiX /> : <FiMenu />}
+      </button>
     </nav>
   );
 }

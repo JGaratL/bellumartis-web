@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 const express = require("express");
 const postsRoutes = require("./routes/posts");
 const cors = require("cors");
@@ -23,6 +25,8 @@ const fs = require("fs");
 
 const notificationsRoutes = require("./routes/notifications");
 
+const adminEmailsRoutes = require("./routes/adminEmails");
+const communicationsRoutes = require("./routes/communications");
 
 const storage = multer.diskStorage({
 
@@ -42,7 +46,24 @@ const storage = multer.diskStorage({
   }
 });
 
-require("dotenv").config();
+const emailAttachmentStorage = multer.diskStorage({
+
+  destination: (req, file, cb) => {
+    cb(null, "uploads/emails");
+  },
+
+  filename: (req, file, cb) => {
+
+    const unique =
+      Date.now() + "-" + Math.round(Math.random() * 1e9);
+
+    cb(
+      null,
+      unique + path.extname(file.originalname)
+    );
+  }
+});
+
 
 const app = express();
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -51,6 +72,8 @@ app.use(cors());
 app.use(express.json());
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/api/notifications", notificationsRoutes);
+app.use("/api/admin/emails", adminEmailsRoutes);
+app.use("/api/communications", communicationsRoutes);
 
 
 
@@ -72,6 +95,20 @@ const upload = multer({
       cb(new Error("Solo imágenes"));
     }
   }
+});
+
+const emailUpload = multer({
+  storage: emailAttachmentStorage,
+});
+
+const eventUpload = multer({
+  dest: path.join(__dirname, "uploads", "events"),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const allowed = new Set([".jpg", ".jpeg", ".png", ".webp"]);
+    if (allowed.has(path.extname(file.originalname).toLowerCase())) cb(null, true);
+    else cb(new Error("El poster debe ser una imagen JPG, PNG o WEBP."));
+  },
 });
 
 
@@ -123,6 +160,7 @@ const isSpainCountry = (country) =>
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase() === "espana";
 const UNVERIFIED_ACCOUNT_TTL_DAYS = Number(process.env.UNVERIFIED_ACCOUNT_TTL_DAYS || 7);
+const verificationResendCooldowns = new Map();
 
 const cleanupExpiredUnverifiedUsers = async () => {
   if (!Number.isFinite(UNVERIFIED_ACCOUNT_TTL_DAYS) || UNVERIFIED_ACCOUNT_TTL_DAYS <= 0) {
@@ -264,7 +302,11 @@ app.post("/register", async (req, res) => {
     try {
       await sendVerificationEmail(user);
     } catch (mailError) {
-      console.error("EMAIL VERIFICATION ERROR:", mailError);
+      console.error("EMAIL VERIFICATION ERROR:", mailError.message);
+      return res.status(502).json({
+        error: "La cuenta quedó creada, pero no se pudo aceptar el correo de verificación. Solicita un nuevo enlace más tarde.",
+        code: "VERIFICATION_EMAIL_FAILED",
+      });
     }
 
     res.json({
@@ -389,7 +431,7 @@ app.post("/auth/resend-verification", async (req, res) => {
     }
 
     const [rows] = await pool.query(
-      "SELECT id, nickname, email, email_verified_at, status FROM users WHERE email = ?",
+      "SELECT id, nickname, email, email_verified_at, status, provider FROM users WHERE email = ?",
       [normalizedEmail]
     );
 
@@ -401,16 +443,23 @@ app.post("/auth/resend-verification", async (req, res) => {
 
     const user = rows[0];
 
-    if (user.email_verified_at || user.status === "active") {
+    if (user.email_verified_at || user.provider === "google") {
       return res.json({
         message: "Tu email ya estaba verificado.",
       });
     }
 
+    const previousRequest = verificationResendCooldowns.get(normalizedEmail) || 0;
+    if (Date.now() - previousRequest < 60_000) {
+      return res.status(429).json({ error: "Espera un minuto antes de solicitar otro enlace." });
+    }
+    verificationResendCooldowns.set(normalizedEmail, Date.now());
     try {
       await sendVerificationEmail(user);
     } catch (mailError) {
-      console.error("RESEND VERIFICATION MAIL ERROR:", mailError);
+      verificationResendCooldowns.delete(normalizedEmail);
+      console.error("RESEND VERIFICATION MAIL ERROR:", mailError.message);
+      return res.status(502).json({ error: "No se pudo enviar el correo de verificación. Inténtalo más tarde." });
     }
 
     return res.json({
@@ -420,6 +469,10 @@ app.post("/auth/resend-verification", async (req, res) => {
     console.error("RESEND VERIFICATION ERROR:", error);
     return res.status(500).json({ error: "No se pudo reenviar la verificacion" });
   }
+});
+
+require("./services/emailSendLog").ensureEmailSendLog().catch((error) => {
+  console.error("No se pudo inicializar el registro de envíos:", error.message);
 });
 
 /*
@@ -612,6 +665,10 @@ app.post("/auth/google", async (req, res) => {
 
     const payload = ticket.getPayload();
 
+    if (payload.email_verified !== true) {
+      return res.status(401).json({ error: "Google no ha confirmado esta dirección de correo." });
+    }
+
     const email = normalizeEmail(payload.email);
     const googleId = payload.sub;
     const nickname = payload.name || email.split("@")[0];
@@ -647,6 +704,9 @@ app.post("/auth/google", async (req, res) => {
 
     if (emailUser || googleUser) {
       user = emailUser || googleUser;
+      if (user.status === "inactive") {
+        return res.status(403).json({ error: "La cuenta está inactiva." });
+      }
       let resolvedProfileImage = user.profile_image || null;
 
       if (!user.google_id) {
@@ -659,6 +719,8 @@ app.post("/auth/google", async (req, res) => {
           "UPDATE users SET provider = 'google', email_verified_at = NOW(), status = 'active' WHERE id = ?",
           [user.id]
         );
+      } else if (!user.email_verified_at) {
+        await pool.query("UPDATE users SET email_verified_at = NOW() WHERE id = ?", [user.id]);
       }
 
       if (googlePicture && (!user.profile_image || !user.profile_image.trim())) {
@@ -962,6 +1024,28 @@ app.delete(
 
       await connection.query(
         `
+        UPDATE posts p
+        JOIN post_likes pl ON pl.post_id = p.id
+        SET p.likes_count = GREATEST(p.likes_count - 1, 0)
+        WHERE pl.user_id = ?
+          AND p.user_id <> ?
+        `,
+        [targetId, targetId]
+      );
+
+      await connection.query(
+        `
+        UPDATE post_replies pr
+        JOIN post_reply_likes prl ON prl.reply_id = pr.id
+        SET pr.likes_count = GREATEST(pr.likes_count - 1, 0)
+        WHERE prl.user_id = ?
+          AND pr.user_id <> ?
+        `,
+        [targetId, targetId]
+      );
+
+      await connection.query(
+        `
         DELETE prl
         FROM post_reply_likes prl
         LEFT JOIN post_replies pr ON pr.id = prl.reply_id
@@ -1021,6 +1105,27 @@ app.delete(
         [targetId]
       );
 
+      await connection.query(
+        `
+        DELETE n
+        FROM notifications n
+        LEFT JOIN users recipient
+          ON recipient.id = n.user_id
+        LEFT JOIN users actor
+          ON actor.id = n.from_user_id
+        LEFT JOIN posts p
+          ON n.type = 'like_post'
+          AND p.id = n.reference_id
+        LEFT JOIN post_replies pr
+          ON n.type IN ('reply_post', 'like_reply')
+          AND pr.id = n.reference_id
+        WHERE recipient.id IS NULL
+          OR actor.id IS NULL
+          OR (n.type = 'like_post' AND p.id IS NULL)
+          OR (n.type IN ('reply_post', 'like_reply') AND pr.id IS NULL)
+        `
+      );
+
       await connection.commit();
 
       if (
@@ -1052,6 +1157,133 @@ app.delete(
 
       console.error("DELETE ADMIN USER ERROR:", err);
       return res.status(500).json({ error: "No se pudo eliminar el usuario" });
+    } finally {
+      connection.release();
+    }
+  }
+);
+
+/*
+====================================
+UPDATE ADMIN USER
+====================================
+*/
+app.put(
+  "/admin/users/:id",
+  verifyToken,
+  checkRole(["admin", "owner"]),
+  async (req, res) => {
+    const targetId = Number(req.params.id);
+    const currentUserId = Number(req.user?.id);
+    const currentRole = req.user?.role || "user";
+    const rawRole = req.body?.role;
+    const rawStatus = req.body?.status;
+    const nextRole = typeof rawRole === "string" ? rawRole.trim() : "";
+    const nextStatus = typeof rawStatus === "string" ? rawStatus.trim() : "";
+
+    if (!Number.isInteger(targetId) || targetId <= 0) {
+      return res.status(400).json({ error: "ID de usuario inválido" });
+    }
+
+    if (!nextRole && !nextStatus) {
+      return res.status(400).json({
+        error: "Debes indicar al menos un cambio de rol o estado",
+      });
+    }
+
+    const allowedRoles = ["user", "moderator", "admin", "owner"];
+    const allowedStatuses = ["active", "inactive"];
+
+    if (nextRole && !allowedRoles.includes(nextRole)) {
+      return res.status(400).json({ error: "Rol de usuario inválido" });
+    }
+
+    if (nextStatus && !allowedStatuses.includes(nextStatus)) {
+      return res.status(400).json({ error: "Estado de usuario inválido" });
+    }
+
+    const connection = await pool.getConnection();
+
+    try {
+      const [targetRows] = await connection.query(
+        "SELECT id, role, status FROM users WHERE id = ? LIMIT 1",
+        [targetId]
+      );
+
+      if (targetRows.length === 0) {
+        return res.status(404).json({ error: "Usuario no encontrado" });
+      }
+
+      const targetUser = targetRows[0];
+
+      if (currentRole === "admin" && targetUser.role === "owner") {
+        return res.status(403).json({
+          error: "No tienes permisos para modificar a un owner",
+        });
+      }
+
+      const updates = [];
+      const params = [];
+
+      if (nextRole) {
+        updates.push("role = ?");
+        params.push(nextRole);
+      }
+
+      if (nextStatus) {
+        updates.push("status = ?");
+        params.push(nextStatus);
+      }
+
+      if (!updates.length) {
+        return res.status(400).json({
+          error: "No hay cambios para actualizar",
+        });
+      }
+
+      await connection.query(
+        `
+        UPDATE users
+        SET ${updates.join(", ")}
+        WHERE id = ?
+        `,
+        [...params, targetId]
+      );
+
+      const [updatedRows] = await connection.query(
+        `
+        SELECT
+          id,
+          nickname,
+          email,
+          role,
+          province,
+          country,
+          status,
+          created_at,
+          last_login,
+          provider,
+          google_id,
+          profile_image
+        FROM users
+        WHERE id = ?
+        LIMIT 1
+        `,
+        [targetId]
+      );
+
+      return res.json({
+        message:
+          nextStatus === "active"
+            ? "Usuario desbloqueado correctamente"
+            : nextStatus === "inactive"
+              ? "Usuario bloqueado correctamente"
+              : "Usuario actualizado correctamente",
+        user: updatedRows[0] || null,
+      });
+    } catch (err) {
+      console.error("UPDATE ADMIN USER ERROR:", err);
+      return res.status(500).json({ error: "No se pudo actualizar el usuario" });
     } finally {
       connection.release();
     }
@@ -1226,38 +1458,38 @@ UPLOAD AVATAR
 */
 
 app.post("/upload-avatar", upload.single("avatar"), async (req, res) => {
-    const userId = req.body.userId;
+  const userId = req.body.userId;
 
-    const user = await User.findById(userId);
+  const user = await User.findById(userId);
 
-    // 1. borrar anterior si existe
-    if (user.profile_image && !user.profile_image.includes("default")) {
-        const oldPath = path.join(
-            "uploads",
-            path.basename(user.profile_image)
-        );
+  // 1. borrar anterior si existe
+  if (user.profile_image && !user.profile_image.includes("default")) {
+    const oldPath = path.join(
+      "uploads",
+      path.basename(user.profile_image)
+    );
 
-        if (fs.existsSync(oldPath)) {
-            fs.unlinkSync(oldPath);
-        }
+    if (fs.existsSync(oldPath)) {
+      fs.unlinkSync(oldPath);
     }
+  }
 
-    // 2. procesar nueva imagen (sharp ya lo haces aquí)
-    const filename = Date.now() + ".webp";
-    const outputPath = path.join("uploads", filename);
+  // 2. procesar nueva imagen (sharp ya lo haces aquí)
+  const filename = Date.now() + ".webp";
+  const outputPath = path.join("uploads", filename);
 
-    await sharp(req.file.buffer)
-        .resize(500, 500)
-        .webp({ quality: 80 })
-        .toFile(outputPath);
+  await sharp(req.file.buffer)
+    .resize(500, 500)
+    .webp({ quality: 80 })
+    .toFile(outputPath);
 
-    const newUrl = `/uploads/${filename}`;
+  const newUrl = `/uploads/${filename}`;
 
-    // 3. guardar en BD
-    user.profile_image = newUrl;
-    await user.save();
+  // 3. guardar en BD
+  user.profile_image = newUrl;
+  await user.save();
 
-    res.json({ url: newUrl });
+  res.json({ url: newUrl });
 });
 
 
@@ -1319,6 +1551,297 @@ app.post(
   }
 );
 
+const syncFinishedEvents = async () => {
+  await pool.query(
+    `
+    UPDATE events
+    SET status = 'finished', updated_at = NOW()
+    WHERE status IN ('scheduled', 'ongoing')
+      AND date IS NOT NULL
+      AND (
+        date < CURDATE()
+        OR (date = CURDATE() AND time IS NOT NULL AND time < CURTIME())
+      )
+    `
+  );
+
+  await pool.query(`
+    DELETE banners
+    FROM banners
+    INNER JOIN events ON events.id = banners.event_id
+    WHERE events.status = 'finished'
+  `);
+};
+
+const BANNER_EVENT_TYPES = new Set(["charla", "firma", "webinar", "sorteo"]);
+const MANUAL_BANNER_TYPE = "book_promotion";
+const MANUAL_BANNER_TYPES = new Set(["book_promotion", "sorteo"]);
+
+const normalizeBannerActive = (value) => {
+  if (value === false || value === 0 || value === "0") return false;
+  if (typeof value === "string") {
+    return value.toLowerCase() !== "false";
+  }
+  return value !== false;
+};
+
+const mapBannerRow = (row) => {
+  if (!row) return null;
+
+  const isEventBanner = Boolean(row.event_id);
+
+  return {
+    id: row.id,
+    banner_type: row.banner_type,
+    event_id: row.event_id,
+
+    title: row.title || row.event_title,
+    image_url: row.image_url || row.event_image_url,
+    link: row.link || row.event_link,
+
+    active: Number(row.active) === 1,
+    created_at: row.created_at,
+    event_title: row.event_title || null,
+    event_province: row.event_province || null,
+    event_image_url: row.event_image_url || null,
+    event_link: row.event_link || null,
+    event_type: row.event_type || null,
+    is_manual: !isEventBanner,
+  };
+};
+
+const syncEventBanner = async (db, eventId, showAsBanner) => {
+  const [eventRows] = await db.query(
+    `
+    SELECT id, title, image_url, link, event_type
+    FROM events
+    WHERE id = ?
+    LIMIT 1
+    `,
+    [eventId]
+  );
+
+  if (eventRows.length === 0) {
+    return null;
+  }
+
+  const event = eventRows[0];
+  if (!BANNER_EVENT_TYPES.has(event.event_type)) {
+    await db.query("DELETE FROM banners WHERE event_id = ?", [eventId]);
+    return null;
+  }
+
+  const active = normalizeBannerActive(showAsBanner) ? 1 : 0;
+  const [bannerRows] = await db.query(
+    `
+    SELECT id
+    FROM banners
+    WHERE event_id = ?
+    ORDER BY id ASC
+    `,
+    [eventId]
+  );
+
+  if (bannerRows.length === 0) {
+    const [result] = await db.query(
+      `
+      INSERT INTO banners (
+        banner_type,
+        event_id,
+        title,
+        image_url,
+        link,
+        active
+      ) VALUES (?, ?, NULL, NULL, NULL, ?)
+      `,
+      [event.event_type, event.id, active]
+    );
+
+    return result.insertId;
+  }
+
+  const [primary, ...duplicates] = bannerRows;
+  await db.query(
+    `
+    UPDATE banners
+    SET banner_type = ?,
+        title = NULL,
+        image_url = NULL,
+        link = NULL,
+        active = ?
+    WHERE id = ?
+    `,
+    [event.event_type, active, primary.id]
+  );
+
+  if (duplicates.length > 0) {
+    const duplicateIds = duplicates.map((item) => item.id);
+    await db.query(
+      `DELETE FROM banners WHERE id IN (${duplicateIds.map(() => "?").join(",")})`,
+      duplicateIds
+    );
+  }
+
+  return primary.id;
+};
+
+const deleteEventBanners = async (db, eventId) => {
+  await db.query("DELETE FROM banners WHERE event_id = ?", [eventId]);
+};
+
+const getPublicBanner = async (db, userProvince, isAuthenticated = false) => {
+  const eventProvince = String(userProvince || "").trim();
+
+  if (!isAuthenticated) {
+    const [manualSorteoRows] = await db.query(
+      `
+      SELECT
+        b.id,
+        b.banner_type,
+        b.event_id,
+        b.title,
+        b.image_url,
+        b.link,
+        b.active,
+        b.created_at,
+        e.title AS event_title,
+        e.province AS event_province,
+        e.image_url AS event_image_url,
+        e.link AS event_link,
+        e.event_type
+      FROM banners b
+      LEFT JOIN events e ON e.id = b.event_id
+      WHERE b.active = 1
+        AND b.banner_type = 'sorteo'
+        AND b.event_id IS NULL
+      ORDER BY b.created_at ASC, b.id ASC
+      LIMIT 1
+      `
+    );
+
+    if (manualSorteoRows.length > 0) {
+      return mapBannerRow(manualSorteoRows[0]);
+    }
+
+    const [sorteoRows] = await db.query(
+      `
+      SELECT
+        b.id,
+        b.banner_type,
+        b.event_id,
+        b.title,
+        b.image_url,
+        b.link,
+        b.active,
+        b.created_at,
+        e.title AS event_title,
+        e.province AS event_province,
+        e.image_url AS event_image_url,
+        e.link AS event_link,
+        e.event_type
+      FROM banners b
+      INNER JOIN events e ON e.id = b.event_id
+      WHERE b.active = 1
+        AND b.banner_type = 'sorteo'
+      ORDER BY b.created_at ASC, b.id ASC
+      LIMIT 1
+      `
+    );
+
+    return sorteoRows.length > 0 ? mapBannerRow(sorteoRows[0]) : null;
+  }
+
+  if (eventProvince) {
+    const [matchedRows] = await db.query(
+      `
+      SELECT
+        b.id,
+        b.banner_type,
+        b.event_id,
+        b.title,
+        b.image_url,
+        b.link,
+        b.active,
+        b.created_at,
+        e.title AS event_title,
+        e.province AS event_province,
+        e.image_url AS event_image_url,
+        e.link AS event_link,
+        e.event_type
+      FROM banners b
+      INNER JOIN events e ON e.id = b.event_id
+      WHERE b.active = 1
+        AND b.banner_type IN ('charla', 'firma')
+        AND e.province = ?
+      ORDER BY b.created_at ASC, b.id ASC
+      LIMIT 1
+      `,
+      [eventProvince]
+    );
+
+    if (matchedRows.length > 0) {
+      return mapBannerRow(matchedRows[0]);
+    }
+  }
+
+  const [webinarRows] = await db.query(
+    `
+    SELECT
+      b.id,
+      b.banner_type,
+      b.event_id,
+      b.title,
+      b.image_url,
+      b.link,
+      b.active,
+      b.created_at,
+      e.title AS event_title,
+      e.province AS event_province,
+      e.image_url AS event_image_url,
+      e.link AS event_link,
+      e.event_type
+    FROM banners b
+    INNER JOIN events e ON e.id = b.event_id
+    WHERE b.active = 1
+      AND b.banner_type = 'webinar'
+    ORDER BY b.created_at ASC, b.id ASC
+    LIMIT 1
+    `
+  );
+
+  if (webinarRows.length > 0) {
+    return mapBannerRow(webinarRows[0]);
+  }
+
+  const [manualRows] = await db.query(
+    `
+    SELECT
+      b.id,
+      b.banner_type,
+      b.event_id,
+      b.title,
+      b.image_url,
+      b.link,
+      b.active,
+      b.created_at,
+      NULL AS event_title,
+      NULL AS event_province,
+      NULL AS event_image_url,
+      NULL AS event_link,
+      NULL AS event_type
+    FROM banners b
+    WHERE b.active = 1
+      AND b.banner_type = ?
+      AND b.event_id IS NULL
+    ORDER BY b.created_at ASC, b.id ASC
+    LIMIT 1
+    `,
+    [MANUAL_BANNER_TYPE]
+  );
+
+  return manualRows.length > 0 ? mapBannerRow(manualRows[0]) : null;
+};
+
 /*
 ====================================
 EVENTS LIST
@@ -1326,14 +1849,28 @@ EVENTS LIST
 */
 app.get("/events", async (req, res) => {
   try {
+    await syncFinishedEvents();
+
     const [rows] = await pool.query(
       `
-      SELECT events.*,
-      COUNT(user_events.id) AS attendees
-      FROM events
-      LEFT JOIN user_events ON events.id = user_events.event_id
-      GROUP BY events.id
-      ORDER BY date ASC
+        SELECT
+        events.id,
+        events.title,
+        events.description,
+        events.event_type,
+        events.province,
+        DATE_FORMAT(events.date, '%Y-%m-%d') AS date,
+        DATE_FORMAT(events.time, '%H:%i:%s') AS time,
+        events.link,
+        events.created_at,
+        events.status,
+        events.image_url,
+        events.updated_at,
+        COUNT(user_events.id) AS attendees
+        FROM events
+        LEFT JOIN user_events ON events.id = user_events.event_id
+        GROUP BY events.id
+        ORDER BY date ASC
       `
     );
 
@@ -1351,9 +1888,23 @@ EVENT BY ID
 */
 app.get("/events/:id", async (req, res) => {
   try {
+    await syncFinishedEvents();
+
     const [rows] = await pool.query(
       `
-      SELECT events.*,
+      SELECT
+      events.id,
+      events.title,
+      events.description,
+      events.event_type,
+      events.province,
+      DATE_FORMAT(events.date, '%Y-%m-%d') AS date,
+      DATE_FORMAT(events.time, '%H:%i:%s') AS time,
+      events.link,
+      events.created_at,
+      events.status,
+      events.image_url,
+      events.updated_at,
       COUNT(user_events.id) AS attendees
       FROM events
       LEFT JOIN user_events ON events.id = user_events.event_id
@@ -1489,6 +2040,957 @@ app.get("/events/:id/status", verifyToken, async (req, res) => {
     res.status(500).json({ error: "Error obteniendo estado" });
   }
 });
+
+/*
+====================================
+ADMIN EVENTS LIST
+====================================
+*/
+app.get(
+  "/admin/events",
+  verifyToken,
+  checkRole(["admin", "owner"]),
+  async (req, res) => {
+    try {
+      await syncFinishedEvents();
+
+      const [rows] = await pool.query(
+        `
+        SELECT
+          events.id,
+          events.title,
+          events.description,
+          events.event_type,
+          events.province,
+          DATE_FORMAT(events.date, '%Y-%m-%d') AS date,
+          DATE_FORMAT(events.time, '%H:%i:%s') AS time,
+          events.link,
+          events.created_at,
+          events.status,
+          events.image_url,
+          COALESCE(
+            (
+              SELECT b.active
+              FROM banners b
+              WHERE b.event_id = events.id
+              ORDER BY b.id ASC
+              LIMIT 1
+            ),
+            1
+          ) AS show_as_banner,
+          events.updated_at,
+          COUNT(user_events.id) AS attendees
+        FROM events
+        LEFT JOIN user_events ON events.id = user_events.event_id
+        GROUP BY events.id
+        ORDER BY events.date ASC, events.time ASC
+        `
+      );
+
+      return res.json(rows);
+    } catch (err) {
+      console.error("ADMIN EVENTS LIST ERROR:", err);
+      return res.status(500).json({ error: "No se pudo obtener la lista de eventos" });
+    }
+  }
+);
+
+/*
+====================================
+ADMIN CREATE EVENT
+====================================
+*/
+app.post(
+  "/admin/events",
+  verifyToken,
+  checkRole(["admin", "owner"]),
+  eventUpload.single("image"),
+  async (req, res) => {
+    const connection = await pool.getConnection();
+    let preserveEventImage = false;
+
+    try {
+      const normalizeNullable = (value) => {
+        const next = String(value || "").trim();
+        return next ? next : null;
+      };
+
+      const title = String(req.body?.title || "").trim();
+      const description = normalizeNullable(req.body?.description);
+      const rawEventType = String(req.body?.event_type || "").trim();
+      const rawProvince = normalizeNullable(req.body?.province);
+      const rawDate = normalizeNullable(req.body?.date);
+      const rawTime = normalizeNullable(req.body?.time);
+      const rawLink = normalizeNullable(req.body?.link);
+      const showAsBanner = normalizeBannerActive(req.body?.show_as_banner);
+      const sendProvinceEmail = ["1", "true", "yes"].includes(String(req.body?.send_email || "").toLowerCase());
+
+      const allowedTypes = new Set(["charla", "firma", "sorteo", "webinar"]);
+      const eventTypeMap = {
+        "charla/conferencia": "charla",
+        "charla": "charla",
+        "firma libros": "firma",
+        "firma": "firma",
+        "sorteo": "sorteo",
+        "webinar/seminario": "webinar",
+        "webinar": "webinar",
+      };
+      const eventType = eventTypeMap[rawEventType.toLowerCase()] || rawEventType;
+
+      if (!title) {
+        return res.status(400).json({ error: "El titulo es obligatorio" });
+      }
+
+      if (!allowedTypes.has(eventType)) {
+        return res.status(400).json({ error: "Tipo de evento invalido" });
+      }
+
+      if (title.length > 100) {
+        return res.status(400).json({
+          error: "El titulo no puede superar los 100 caracteres",
+        });
+      }
+
+      if (rawLink && rawLink.length > 255) {
+        return res.status(400).json({
+          error: "El enlace no puede superar los 255 caracteres",
+        });
+      }
+
+      const nextDate = rawDate;
+      const nextTime = rawTime;
+      const nextProvince = rawProvince;
+      const nextLink = rawLink;
+      const nextDescription = description;
+      const imageUrl = req.file ? `/uploads/events/${path.basename(req.file.path)}` : null;
+
+      if (sendProvinceEmail && !nextProvince) {
+        return res.status(400).json({ error: "Selecciona una provincia para enviar el aviso." });
+      }
+
+      await connection.beginTransaction();
+
+      const [result] = await connection.query(
+        `
+        INSERT INTO events (
+          title,
+          description,
+          event_type,
+          province,
+          date,
+          time,
+          link,
+          status,
+          image_url
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, 'scheduled', ?)
+        `,
+        [
+          title,
+          nextDescription,
+          eventType,
+          nextProvince,
+          nextDate,
+          nextTime,
+          nextLink,
+          imageUrl,
+        ]
+      );
+
+      await syncEventBanner(connection, result.insertId, showAsBanner);
+
+      const [rows] = await connection.query(
+        `
+        SELECT
+          events.id,
+          events.title,
+          events.description,
+          events.event_type,
+          events.province,
+          DATE_FORMAT(events.date, '%Y-%m-%d') AS date,
+          DATE_FORMAT(events.time, '%H:%i:%s') AS time,
+          events.link,
+          events.created_at,
+          events.status,
+          events.image_url,
+          COALESCE(
+            (
+              SELECT b.active
+              FROM banners b
+              WHERE b.event_id = events.id
+              ORDER BY b.id ASC
+              LIMIT 1
+            ),
+            1
+          ) AS show_as_banner,
+          events.updated_at
+        FROM events
+        WHERE events.id = ?
+        LIMIT 1
+        `,
+        [result.insertId]
+      );
+
+      await connection.commit();
+      preserveEventImage = true;
+
+      let emailNotification = null;
+      if (sendProvinceEmail) {
+        const escapeEmailHtml = (value) => String(value || "").replace(/[&<>"']/g, (character) => ({
+          "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+        }[character]));
+        const eventTypeLabels = { charla: "Charla/Conferencia", firma: "Firma de libros", sorteo: "Sorteo", webinar: "Webinar/Seminario" };
+        const eventDateLabel = nextDate ? nextDate.split("-").reverse().join("/") : "Por confirmar";
+        const eventTimeLabel = nextTime ? String(nextTime).slice(0, 5) : "Por confirmar";
+        const eventDescription = nextDescription || "Próximamente compartiremos más información.";
+        const eventLink = nextLink
+          ? `<p><strong>Más información:</strong> <a href="${escapeEmailHtml(nextLink)}">${escapeEmailHtml(nextLink)}</a></p>`
+          : "";
+        const emailAttachments = [];
+        try {
+        if (req.file?.path) {
+          const extension = path.extname(req.file.originalname).toLowerCase();
+          const attachmentPath = path.join(__dirname, "uploads", "emails", `event-poster-${result.insertId}-${Date.now()}-${Math.round(Math.random() * 1e9)}${extension}`);
+          await fs.promises.mkdir(path.dirname(attachmentPath), { recursive: true });
+          await fs.promises.copyFile(req.file.path, attachmentPath);
+          emailAttachments.push({ originalname: req.file.originalname, path: attachmentPath });
+        }
+        const emailHtml = `
+          <div style="font-family:Arial,sans-serif;color:#243333;line-height:1.6;max-width:640px;margin:0 auto">
+            <h1 style="color:#0f6970">Nuevo evento en ${escapeEmailHtml(nextProvince)}</h1>
+            <h2>${escapeEmailHtml(title)}</h2>
+            <p><strong>Tipo:</strong> ${escapeEmailHtml(eventTypeLabels[eventType] || eventType)}</p>
+            <p><strong>Fecha:</strong> ${escapeEmailHtml(eventDateLabel)}<br><strong>Hora:</strong> ${escapeEmailHtml(eventTimeLabel)}</p>
+            <p><strong>Provincia:</strong> ${escapeEmailHtml(nextProvince)}</p>
+            <p><strong>Descripción:</strong><br>${escapeEmailHtml(eventDescription).replace(/\r?\n/g, "<br>")}</p>
+            ${eventLink}
+            ${emailAttachments.length ? "<p>Adjuntamos el cartel del evento.</p>" : ""}
+            <p>Te esperamos,<br>Bellumartis</p>
+          </div>`;
+        const emailText = [
+          `Nuevo evento en ${nextProvince}: ${title}`,
+          `Tipo: ${eventTypeLabels[eventType] || eventType}`,
+          `Fecha: ${eventDateLabel}`,
+          `Hora: ${eventTimeLabel}`,
+          `Provincia: ${nextProvince}`,
+          `Descripción: ${eventDescription}`,
+          nextLink ? `Más información: ${nextLink}` : "",
+        ].filter(Boolean).join("\n");
+          emailNotification = await adminEmailsRoutes.enqueueAdminEmail({
+            type: "province",
+            recipients: [nextProvince],
+            subject: `Nuevo evento en ${nextProvince}: ${title}`,
+            html: emailHtml,
+            text: emailText,
+            attachments: emailAttachments,
+          });
+        } catch (emailError) {
+          console.error("ADMIN EVENT EMAIL QUEUE ERROR:", emailError);
+          emailNotification = { error: emailError.message || "No se pudo preparar el aviso por email." };
+        }
+      }
+
+      return res.status(201).json({
+        message: "Evento creado correctamente",
+        event: rows[0] || null,
+        emailNotification,
+      });
+    } catch (err) {
+      try {
+        await connection.rollback();
+      } catch (rollbackError) {
+        console.error("ADMIN CREATE EVENT ROLLBACK ERROR:", rollbackError);
+      }
+      console.error("ADMIN CREATE EVENT ERROR:", err);
+      return res.status(500).json({ error: "No se pudo crear el evento" });
+    } finally {
+      if (req.file?.path && !preserveEventImage) {
+        await fs.promises.unlink(req.file.path).catch(() => { });
+      }
+      connection.release();
+    }
+  }
+);
+
+/*
+====================================
+ADMIN EVENTS STATS
+====================================
+*/
+app.get(
+  "/admin/events/stats",
+  verifyToken,
+  checkRole(["admin", "owner"]),
+  async (req, res) => {
+    try {
+      await syncFinishedEvents();
+
+      const [rows] = await pool.query(
+        `
+        SELECT
+          COUNT(*) AS total_events,
+          SUM(
+            CASE
+              WHEN status IN ('scheduled', 'ongoing')
+               AND (date IS NULL OR date >= CURDATE())
+              THEN 1
+              ELSE 0
+            END
+          ) AS upcoming_events,
+          SUM(
+            CASE
+              WHEN status = 'finished'
+               OR (date IS NOT NULL AND date < CURDATE())
+              THEN 1
+              ELSE 0
+            END
+          ) AS past_events,
+          (SELECT COUNT(*) FROM user_events) AS interested_users
+        FROM events
+        `
+      );
+
+      return res.json(
+        rows[0] || {
+          total_events: 0,
+          upcoming_events: 0,
+          past_events: 0,
+          interested_users: 0,
+        }
+      );
+    } catch (err) {
+      console.error("ADMIN EVENTS STATS ERROR:", err);
+      return res.status(500).json({ error: "No se pudieron obtener las metricas de eventos" });
+    }
+  }
+);
+
+/*
+====================================
+ADMIN EVENT STATUS UPDATE
+====================================
+*/
+app.patch(
+  "/admin/events/:id/status",
+  verifyToken,
+  checkRole(["admin", "owner"]),
+  async (req, res) => {
+    try {
+      const eventId = Number(req.params.id);
+      const { status } = req.body || {};
+      const allowedStatuses = new Set([
+        "scheduled",
+        "ongoing",
+        "finished",
+        "cancelled",
+      ]);
+
+      if (!Number.isInteger(eventId) || eventId <= 0) {
+        return res.status(400).json({ error: "ID de evento invalido" });
+      }
+
+      if (!allowedStatuses.has(status)) {
+        return res.status(400).json({ error: "Estado de evento invalido" });
+      }
+
+      const [result] = await pool.query(
+        `
+        UPDATE events
+        SET status = ?, updated_at = NOW()
+        WHERE id = ?
+        `,
+        [status, eventId]
+      );
+
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ error: "Evento no encontrado" });
+      }
+
+      if (status === "finished") {
+        await deleteEventBanners(pool, eventId);
+      }
+
+      return res.json({
+        message: "Estado del evento actualizado correctamente",
+        status,
+      });
+    } catch (err) {
+      console.error("ADMIN EVENT STATUS ERROR:", err);
+      return res.status(500).json({ error: "No se pudo actualizar el estado del evento" });
+    }
+  }
+);
+
+/*
+====================================
+ADMIN EVENT UPDATE
+====================================
+*/
+app.put(
+  "/admin/events/:id",
+  verifyToken,
+  checkRole(["admin", "owner"]),
+  eventUpload.single("image"),
+  async (req, res) => {
+    const connection = await pool.getConnection();
+    let preserveEventImage = false;
+
+    try {
+      const eventId = Number(req.params.id);
+      const normalizeNullable = (value) => {
+        const next = String(value || "").trim();
+        return next ? next : null;
+      };
+
+      const title = String(req.body?.title || "").trim();
+      const description = normalizeNullable(req.body?.description);
+      const rawEventType = String(req.body?.event_type || "").trim().toLowerCase();
+      const province = normalizeNullable(req.body?.province);
+      const date = normalizeNullable(req.body?.date);
+      const time = normalizeNullable(req.body?.time);
+      const link = normalizeNullable(req.body?.link);
+      const imageUrl = req.file ? `/uploads/events/${path.basename(req.file.path)}` : null;
+
+      const eventTypeMap = {
+        charla: "charla",
+        "charla/conferencia": "charla",
+        "firma libros": "firma",
+        firma: "firma",
+        sorteo: "sorteo",
+        "webinar/seminario": "webinar",
+        webinar: "webinar",
+      };
+
+      const eventType = eventTypeMap[rawEventType] || rawEventType;
+      const allowedTypes = new Set(["charla", "firma", "sorteo", "webinar"]);
+
+      if (!Number.isInteger(eventId) || eventId <= 0) {
+        return res.status(400).json({ error: "ID de evento invalido" });
+      }
+
+      if (!title) {
+        return res.status(400).json({ error: "El titulo del evento es obligatorio" });
+      }
+
+      if (!allowedTypes.has(eventType)) {
+        return res.status(400).json({ error: "Tipo de evento invalido" });
+      }
+
+      if (title.length > 100) {
+        return res.status(400).json({ error: "El titulo del evento es demasiado largo" });
+      }
+
+      if (link && link.length > 255) {
+        return res.status(400).json({ error: "El enlace del evento es demasiado largo" });
+      }
+
+      await connection.beginTransaction();
+
+      const [result] = await connection.query(
+        `
+        UPDATE events
+        SET title = ?,
+            description = ?,
+            event_type = ?,
+            province = ?,
+            date = ?,
+            time = ?,
+            link = ?,
+            image_url = COALESCE(?, image_url),
+            updated_at = NOW()
+        WHERE id = ?
+        `,
+        [title, description, eventType, province, date, time, link, imageUrl, eventId]
+      );
+
+      if (result.affectedRows === 0) {
+        await connection.rollback();
+        return res.status(404).json({ error: "Evento no encontrado" });
+      }
+
+      await syncEventBanner(connection, eventId, normalizeBannerActive(req.body?.show_as_banner));
+
+      const [rows] = await connection.query(
+        `
+        SELECT
+          events.id,
+          events.title,
+          events.description,
+          events.event_type,
+          events.province,
+          DATE_FORMAT(events.date, '%Y-%m-%d') AS date,
+          DATE_FORMAT(events.time, '%H:%i:%s') AS time,
+          events.link,
+          events.created_at,
+          events.status,
+          events.image_url,
+          COALESCE(
+            (
+              SELECT b.active
+              FROM banners b
+              WHERE b.event_id = events.id
+              ORDER BY b.id ASC
+              LIMIT 1
+            ),
+            1
+          ) AS show_as_banner,
+          events.updated_at
+        FROM events
+        WHERE events.id = ?
+        LIMIT 1
+        `,
+        [eventId]
+      );
+
+      await connection.commit();
+      preserveEventImage = true;
+
+      return res.json({
+        message: "Evento actualizado correctamente",
+        event: rows[0] || null,
+      });
+    } catch (err) {
+      try {
+        await connection.rollback();
+      } catch (rollbackError) {
+        console.error("ADMIN EVENT UPDATE ROLLBACK ERROR:", rollbackError);
+      }
+      console.error("ADMIN EVENT UPDATE ERROR:", err);
+      return res.status(500).json({ error: "No se pudo actualizar el evento" });
+    } finally {
+      if (req.file?.path && !preserveEventImage) {
+        await fs.promises.unlink(req.file.path).catch(() => { });
+      }
+      connection.release();
+    }
+  }
+);
+
+/*
+====================================
+ADMIN BANNERS LIST
+====================================
+*/
+app.get(
+  "/admin/banners",
+  verifyToken,
+  checkRole(["admin", "owner"]),
+  async (req, res) => {
+    try {
+      await syncFinishedEvents();
+
+      const [rows] = await pool.query(
+        `
+        SELECT
+          b.id,
+          b.banner_type,
+          b.event_id,
+          b.title,
+          b.image_url,
+          b.link,
+          b.active,
+          b.created_at,
+          e.title AS event_title,
+          e.province AS event_province,
+          e.image_url AS event_image_url,
+          e.link AS event_link,
+          e.event_type
+        FROM banners b
+        LEFT JOIN events e ON e.id = b.event_id
+        ORDER BY b.created_at DESC, b.id DESC
+        `
+      );
+
+      return res.json(rows.map(mapBannerRow));
+    } catch (err) {
+      console.error("ADMIN BANNERS LIST ERROR:", err);
+      return res.status(500).json({ error: "No se pudo obtener la lista de banners" });
+    }
+  }
+);
+
+/*
+====================================
+ADMIN BANNERS CREATE MANUAL
+====================================
+*/
+app.post(
+  "/admin/banners",
+  verifyToken,
+  checkRole(["admin", "owner"]),
+  async (req, res) => {
+    try {
+      const title = String(req.body?.title || "").trim();
+      const imageUrl = String(req.body?.image_url || "").trim();
+      const link = String(req.body?.link || "").trim();
+      const bannerType = String(req.body?.banner_type || MANUAL_BANNER_TYPE).trim();
+      const active = normalizeBannerActive(req.body?.active);
+
+      if (!title) {
+        return res.status(400).json({ error: "El titulo es obligatorio" });
+      }
+
+      if (!imageUrl) {
+        return res.status(400).json({ error: "La imagen es obligatoria" });
+      }
+
+      if (!MANUAL_BANNER_TYPES.has(bannerType)) {
+        return res.status(400).json({ error: "El tipo de banner no es valido" });
+      }
+
+      if (title.length > 255 || imageUrl.length > 255 || link.length > 255) {
+        return res.status(400).json({ error: "Alguno de los campos supera el limite permitido" });
+      }
+
+      const [result] = await pool.query(
+        `
+        INSERT INTO banners (
+          banner_type,
+          event_id,
+          title,
+          image_url,
+          link,
+          active
+        ) VALUES (?, NULL, ?, ?, ?, ?)
+        `,
+        [bannerType, title, imageUrl, link || null, active ? 1 : 0]
+      );
+
+      const [rows] = await pool.query(
+        `
+        SELECT
+          b.id,
+          b.banner_type,
+          b.event_id,
+          b.title,
+          b.image_url,
+          b.link,
+          b.active,
+          b.created_at,
+          NULL AS event_title,
+          NULL AS event_province,
+          NULL AS event_image_url,
+          NULL AS event_link,
+          NULL AS event_type
+        FROM banners b
+        WHERE b.id = ?
+        LIMIT 1
+        `,
+        [result.insertId]
+      );
+
+      return res.status(201).json({
+        message: "Banner creado correctamente",
+        banner: mapBannerRow(rows[0] || null),
+      });
+    } catch (err) {
+      console.error("ADMIN BANNERS CREATE ERROR:", err);
+      return res.status(500).json({ error: "No se pudo crear el banner" });
+    }
+  }
+);
+
+/*
+====================================
+ADMIN BANNERS UPDATE MANUAL
+====================================
+*/
+app.put(
+  "/admin/banners/:id",
+  verifyToken,
+  checkRole(["admin", "owner"]),
+  async (req, res) => {
+    try {
+      const bannerId = Number(req.params.id);
+
+      if (!Number.isInteger(bannerId) || bannerId <= 0) {
+        return res.status(400).json({ error: "ID de banner invalido" });
+      }
+
+      const title = String(req.body?.title || "").trim();
+      const imageUrl = String(req.body?.image_url || "").trim();
+      const link = String(req.body?.link || "").trim();
+
+      if (!title) {
+        return res.status(400).json({ error: "El titulo es obligatorio" });
+      }
+
+      if (!imageUrl) {
+        return res.status(400).json({ error: "La imagen es obligatoria" });
+      }
+
+      if (title.length > 255 || imageUrl.length > 255 || link.length > 255) {
+        return res.status(400).json({ error: "Alguno de los campos supera el limite permitido" });
+      }
+
+      const [bannerRows] = await pool.query(
+        `
+        SELECT id, banner_type, event_id
+        FROM banners
+        WHERE id = ?
+        LIMIT 1
+        `,
+        [bannerId]
+      );
+
+      const banner = bannerRows[0];
+      if (!banner) {
+        return res.status(404).json({ error: "Banner no encontrado" });
+      }
+
+      await pool.query(
+        `
+        UPDATE banners
+        SET title = ?,
+            image_url = ?,
+            link = ?
+        WHERE id = ?
+        `,
+        [title, imageUrl, link || null, bannerId]
+      );
+
+      const [rows] = await pool.query(
+        `
+        SELECT
+          b.id,
+          b.banner_type,
+          b.event_id,
+          b.title,
+          b.image_url,
+          b.link,
+          b.active,
+          b.created_at,
+          NULL AS event_title,
+          NULL AS event_province,
+          NULL AS event_image_url,
+          NULL AS event_link,
+          NULL AS event_type
+        FROM banners b
+        WHERE b.id = ?
+        LIMIT 1
+        `,
+        [bannerId]
+      );
+
+      return res.json({
+        message: "Banner actualizado correctamente",
+        banner: mapBannerRow(rows[0] || null),
+      });
+    } catch (err) {
+      console.error("ADMIN BANNERS UPDATE ERROR:", err);
+      return res.status(500).json({ error: "No se pudo actualizar el banner" });
+    }
+  }
+);
+
+/*
+====================================
+ADMIN BANNERS TOGGLE STATUS
+====================================
+*/
+app.patch(
+  "/admin/banners/:id/status",
+  verifyToken,
+  checkRole(["admin", "owner"]),
+  async (req, res) => {
+    try {
+      const bannerId = Number(req.params.id);
+      const { active } = req.body || {};
+
+      if (!Number.isInteger(bannerId) || bannerId <= 0) {
+        return res.status(400).json({ error: "ID de banner invalido" });
+      }
+
+      const nextActive = normalizeBannerActive(active) ? 1 : 0;
+
+      const [result] = await pool.query(
+        `
+        UPDATE banners
+        SET active = ?
+        WHERE id = ?
+        `,
+        [nextActive, bannerId]
+      );
+
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ error: "Banner no encontrado" });
+      }
+
+      return res.json({
+        message: "Estado del banner actualizado correctamente",
+        active: Boolean(nextActive),
+      });
+    } catch (err) {
+      console.error("ADMIN BANNERS STATUS ERROR:", err);
+      return res.status(500).json({ error: "No se pudo actualizar el estado del banner" });
+    }
+  }
+);
+
+/*
+====================================
+ADMIN BANNERS DELETE MANUAL
+====================================
+*/
+app.delete(
+  "/admin/banners/:id",
+  verifyToken,
+  checkRole(["admin", "owner"]),
+  async (req, res) => {
+    try {
+      const bannerId = Number(req.params.id);
+
+      if (!Number.isInteger(bannerId) || bannerId <= 0) {
+        return res.status(400).json({ error: "ID de banner invalido" });
+      }
+
+      const [bannerRows] = await pool.query(
+        `
+        SELECT id, banner_type, event_id
+        FROM banners
+        WHERE id = ?
+        LIMIT 1
+        `,
+        [bannerId]
+      );
+
+      const banner = bannerRows[0];
+      if (!banner) {
+        return res.status(404).json({ error: "Banner no encontrado" });
+      }
+
+      if (banner.event_id) {
+        return res.status(400).json({ error: "Los banners de eventos no se pueden eliminar manualmente" });
+      }
+
+      if (banner.banner_type !== MANUAL_BANNER_TYPE) {
+        return res.status(400).json({ error: "Solo se pueden eliminar banners de promocion manual" });
+      }
+
+      await pool.query("DELETE FROM banners WHERE id = ?", [bannerId]);
+
+      return res.json({ message: "Banner eliminado correctamente" });
+    } catch (err) {
+      console.error("ADMIN BANNERS DELETE ERROR:", err);
+      return res.status(500).json({ error: "No se pudo eliminar el banner" });
+    }
+  }
+);
+
+/*
+====================================
+PUBLIC CURRENT BANNER
+====================================
+*/
+app.get("/banners/current", async (req, res) => {
+  try {
+    await syncFinishedEvents();
+
+    let userProvince = "";
+    let isAuthenticated = false;
+
+    const authHeader = req.headers.authorization || "";
+    if (authHeader.startsWith("Bearer ")) {
+      const token = authHeader.slice(7);
+      try {
+        const payload = jwt.verify(token, process.env.JWT_SECRET);
+        if (payload?.id) {
+          const [userRows] = await pool.query(
+            "SELECT province FROM users WHERE id = ? LIMIT 1",
+            [payload.id]
+          );
+          isAuthenticated = userRows.length > 0;
+          userProvince = userRows[0]?.province || "";
+        }
+      } catch (tokenError) {
+        userProvince = "";
+        isAuthenticated = false;
+      }
+    }
+
+    const banner = await getPublicBanner(pool, userProvince, isAuthenticated);
+
+    return res.json({ banner });
+  } catch (err) {
+    console.error("PUBLIC BANNER ERROR:", err);
+    return res.status(500).json({ error: "No se pudo obtener el banner" });
+  }
+});
+
+/*
+====================================
+ADMIN EVENT DELETE
+====================================
+*/
+app.delete(
+  "/admin/events/:id",
+  verifyToken,
+  checkRole(["admin", "owner"]),
+  async (req, res) => {
+    const eventId = Number(req.params.id);
+
+    if (!Number.isInteger(eventId) || eventId <= 0) {
+      return res.status(400).json({ error: "ID de evento invalido" });
+    }
+
+    const connection = await pool.getConnection();
+
+    try {
+      await connection.beginTransaction();
+
+      const [eventRows] = await connection.query(
+        "SELECT id, image_url FROM events WHERE id = ? LIMIT 1",
+        [eventId]
+      );
+
+      if (eventRows.length === 0) {
+        await connection.rollback();
+        return res.status(404).json({ error: "Evento no encontrado" });
+      }
+
+      await connection.query(
+        "DELETE FROM user_events WHERE event_id = ?",
+        [eventId]
+      );
+
+      await connection.query(
+        "DELETE FROM events WHERE id = ?",
+        [eventId]
+      );
+
+      await deleteEventBanners(connection, eventId);
+      await connection.commit();
+
+      const imageUrl = eventRows[0]?.image_url || "";
+      if (typeof imageUrl === "string" && imageUrl.trim()) {
+        const relativePath = imageUrl.replace(/^\/+/, "");
+        const absolutePath = path.join(__dirname, relativePath);
+
+        if (fs.existsSync(absolutePath)) {
+          try {
+            fs.unlinkSync(absolutePath);
+          } catch (fileError) {
+            console.error("DELETE EVENT IMAGE FILE ERROR:", fileError);
+          }
+        }
+      }
+
+      return res.json({
+        message: "Evento eliminado correctamente",
+      });
+    } catch (err) {
+      try {
+        await connection.rollback();
+      } catch (rollbackError) {
+        console.error("DELETE EVENT ROLLBACK ERROR:", rollbackError);
+      }
+
+      console.error("ADMIN EVENT DELETE ERROR:", err);
+      return res.status(500).json({ error: "No se pudo eliminar el evento" });
+    } finally {
+      connection.release();
+    }
+  }
+);
 
 /*
 ====================================

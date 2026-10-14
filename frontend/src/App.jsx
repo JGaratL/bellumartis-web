@@ -2,7 +2,10 @@
 import { AuthContext } from "./context/AuthContext";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
-import { useContext, useEffect, useRef } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
+import HomeBanner from "./components/HomeBanner.jsx";
+import CookieConsentBanner from "./components/CookieConsentBanner.jsx";
+import { readCookieConsent } from "./utils/cookieConsent";
 
 import Articles from "./pages/Articles";
 import Shop from "./pages/Shop";
@@ -40,6 +43,8 @@ import {
 function App() {
   const location = useLocation();
   const { user } = useContext(AuthContext);
+  const [cookieConsent, setCookieConsent] = useState(readCookieConsent);
+  const [cookiePanelVisible, setCookiePanelVisible] = useState(() => !readCookieConsent());
 
   const aboutRef = useRef(null);
   const appRef = useRef(null);
@@ -104,6 +109,9 @@ function App() {
                 </div>
               </section>
 
+              {cookieConsent && !cookiePanelVisible && <HomeBanner user={user} />}
+
+
               <section
                 ref={aboutRef}
                 className="about-section section"
@@ -119,9 +127,9 @@ function App() {
                     <div className="about-line"></div>
 
                     <p className="about-text">
-                      Soy un viajero en el tiempo hambriento de conocimientos. Mi pasión
+                     "Soy un viajero en el tiempo hambriento de conocimientos. Mi pasión
                       por la historia militar me llevó a crear un proyecto de divulgación
-                      en YouTube y otras plataformas.
+                      en YouTube y otras plataformas."
                     </p>
 
                     <img
@@ -295,7 +303,7 @@ function App() {
 
         {/* PROTECTED */}
         <Route
-          path="/admin"
+          path="/admin/*"
           element={
             <ProtectedRoute roles={["admin", "owner"]}>
               <AdminDashboard />
@@ -306,6 +314,12 @@ function App() {
       </Routes>
 
       {!hideLayout && <Footer />}
+
+      <CookieConsentBanner
+        consent={cookieConsent}
+        onConsentChange={setCookieConsent}
+        onVisibilityChange={setCookiePanelVisible}
+      />
 
     </div>
   );

@@ -2,95 +2,280 @@ import { useState, useRef, useEffect } from "react";
 import { useFiltersStore } from "../../store/filtersStore";
 import "./FilterGroup.css";
 
-export default function FilterGroup({
-    label,
-    filterKey,
-    icon: Icon
-}) {
+function normalizeText(value) {
+    return String(value ?? "")
+        .normalize("NFKD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .trim();
+}
+
+export default function FilterGroup({ label, filterKey, icon: Icon }) {
     const [open, setOpen] = useState(false);
+    const [expanded, setExpanded] = useState(null);
+    const [guests, setGuests] = useState([]);
+    const [search, setSearch] = useState("");
+
     const ref = useRef();
 
     const setFilter = useFiltersStore((s) => s.setFilter);
     const filters = useFiltersStore((s) => s.filters);
 
-    const currentValue =
-        filters?.[filterKey] ?? null;
+    const theme = filters?.theme;
+    const currentValue = filters?.[filterKey] ?? null;
+    const isPeriod = filterKey === "period";
+    const isDisabled = isPeriod && theme === "actualidad_militar";
 
     const optionsMap = {
-        theme: ["historia_militar", "actualidad_militar"],
+        theme: [
+            { value: "historia_militar", label: "Historia Militar" },
+            { value: "actualidad_militar", label: "Actualidad Militar" },
+        ],
         type: ["video", "podcast", "articulo", "webinar"],
-        period: ["WW1", "WW2", "Guerra Fría", "Vietnam"],
-        conflict: ["Frente Oriental", "Pacífico", "África", "Normandía"],
         region: ["Europa", "Oriente Medio", "Asia", "América"],
         country: ["España", "EEUU", "Rusia", "China"],
-        guest: ["Soto Chica", "Rafael Mey"]
     };
 
-    const options = optionsMap[filterKey] || [];
+    const periodTree = {
+        Prehistoria: ["Prehistoria"],
+        "Historia Antigua": ["Mesopotamia", "Persia", "Grecia", "Roma"],
+        "Edad Media": [
+            "Reino de Asturias",
+            "Reconquista",
+            "Cruzadas",
+            "Bizancio",
+            "Siglo XV",
+        ],
+        "Edad Moderna": [
+            "Siglo XVI",
+            "Siglo XVII",
+            "Siglo XVIII",
+            "Flandes",
+            "Conquista de América",
+        ],
+        "Historia Contemporánea": [
+            "Siglo XIX",
+            "Guerras Napoleónicas",
+            "Primera Guerra Mundial",
+            "Segunda Guerra Mundial",
+            "Guerra Fría",
+            "Siglo XXI",
+        ],
+    };
+
+    useEffect(() => {
+        if (filterKey !== "guest") return;
+
+        async function loadGuests() {
+            try {
+                const response = await fetch(
+                    "http://localhost:5000/api/content/guests"
+                );
+
+                const data = await response.json();
+                setGuests(Array.isArray(data) ? data : []);
+            } catch (err) {
+                console.error("Error cargando invitados:", err);
+            }
+        }
+
+        loadGuests();
+    }, [filterKey]);
+
+    useEffect(() => {
+        if (filterKey === "guest" && open) {
+            setSearch("");
+        }
+    }, [open, filterKey]);
+
+    const safeGuests = Array.isArray(guests) ? guests : [];
+    const filteredGuests =
+        filterKey === "guest"
+            ? safeGuests.filter((g) =>
+                  normalizeText(g?.name).includes(normalizeText(search))
+              )
+            : [];
+
+    const sortedGuests =
+        filterKey === "guest"
+            ? [...filteredGuests].sort((a, b) =>
+                  normalizeText(a?.name).localeCompare(
+                      normalizeText(b?.name),
+                      "es"
+                  )
+              )
+            : [];
+
+    const options =
+        filterKey === "guest" ? sortedGuests || [] : optionsMap[filterKey] || [];
 
     useEffect(() => {
         const handleClickOutside = (e) => {
             if (ref.current && !ref.current.contains(e.target)) {
                 setOpen(false);
+                setExpanded(null);
             }
         };
 
         document.addEventListener("mousedown", handleClickOutside);
 
-        return () =>
-            document.removeEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
+
+    useEffect(() => {
+        if (isPeriod && theme === "actualidad_militar") {
+            setFilter("period", []);
+            setOpen(false);
+        }
+    }, [theme, isPeriod, setFilter]);
+
+    const toggleSubperiod = (value) => {
+        const prev = Array.isArray(currentValue) ? currentValue : [];
+
+        if (prev.includes(value)) {
+            setFilter(
+                "period",
+                prev.filter((v) => v !== value)
+            );
+        } else {
+            setFilter("period", [...prev, value]);
+        }
+    };
+
+    const isSelected = (value) =>
+        Array.isArray(currentValue) && currentValue.includes(value);
 
     return (
         <div className="filter-group" ref={ref}>
-            {/* TÍTULO */}
             <div className="filter-title">
                 {Icon && <Icon className="filter-title-icon" />}
                 <span>{label}</span>
             </div>
 
-            {/* BOTÓN */}
             <button
                 type="button"
-                className={`filter-group-btn ${currentValue && currentValue !== ""
-                        ? "active"
-                        : ""
-                    }`}
-                onClick={() => setOpen(!open)}
+                disabled={isDisabled}
+                className={`filter-group-btn
+                    ${currentValue ? "active" : ""}
+                    ${isDisabled ? "disabled" : ""}
+                `}
+                onClick={() => {
+                    if (isDisabled) return;
+                    setOpen(!open);
+                }}
             >
-                <span className="filter-placeholder">
-                    {currentValue || "Seleccionar"}
-                </span>
+            <span className="filter-placeholder">
+                {filterKey === "theme"
+                    ? optionsMap.theme.find(o => o.value === currentValue)?.label || "Seleccionar"
+                    : Array.isArray(currentValue)
+                        ? currentValue.join(", ")
+                        : currentValue || "Seleccionar"}
+            </span>
 
-                <span
-                    className={`filter-arrow ${open ? "open" : ""
-                        }`}
-                >
-                    ▼
-                </span>
+                <span className={`filter-arrow ${open ? "open" : ""}`}>▼</span>
             </button>
 
-            {/* DROPDOWN */}
             {open && (
                 <div className="filter-group-menu">
-                    {options.map((opt) => (
-                        <div
-                            key={opt}
-                            className="filter-group-item"
-                            onClick={() => {
-                                setFilter(filterKey, opt);
-                                setOpen(false);
-                            }}
-                        >
-                            {opt}
+                    {filterKey === "guest" && (
+                        <div className="filter-group-header">
+                            <input
+                                className="filter-search"
+                                placeholder="  Buscar invitado..."
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                onClick={(e) => e.stopPropagation()}
+                            />
                         </div>
-                    ))}
+                    )}
+
+                    <div className="filter-group-scroll">
+                        {isPeriod ? (
+                            Object.entries(periodTree).map(([periodo, subitems]) => (
+                                <div key={periodo}>
+                                    <div
+                                        className="period-row"
+                                        onClick={() =>
+                                            setExpanded(
+                                                expanded === periodo ? null : periodo
+                                            )
+                                        }
+                                    >
+                                        <span
+                                            className={`caret ${
+                                                expanded === periodo ? "open" : ""
+                                            }`}
+                                        >
+                                            ▶
+                                        </span>
+
+                                        <span>{periodo}</span>
+                                    </div>
+
+                                    {expanded === periodo && (
+                                        <div className="subperiods">
+                                            {subitems.map((sub) => (
+                                                <label
+                                                    key={sub}
+                                                    className="subperiod-item"
+                                                >
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={isSelected(sub)}
+                                                        onChange={() =>
+                                                            toggleSubperiod(sub)
+                                                        }
+                                                    />
+
+                                                    <span>{sub}</span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            ))
+                        ) : (
+                            options.map((opt) => {
+                                const value =
+                                    filterKey === "guest"
+                                        ? opt?.name || `guest-${opt?.id}`
+                                        : filterKey === "theme"
+                                            ? opt.value
+                                            : opt;
+
+                                const text =
+                                    filterKey === "theme"
+                                        ? opt.label
+                                        : value;
+
+                                return (
+                                    <div
+                                        key={filterKey === "guest" ? opt.id : opt}
+                                        className="filter-group-item"
+                                        onClick={() => {
+                                            setFilter(filterKey, value);
+                                            setOpen(false);
+                                        }}
+                                    >
+                                        {filterKey === "guest"
+                                            ? `${opt.name}${
+                                                  Number.isFinite(Number(opt.videoCount))
+                                                      ? ` (${Number(opt.videoCount)})`
+                                                      : ""
+                                              }`
+                                            : text}
+                                    </div>
+                                );
+                            })
+                        )}
+                    </div>
 
                     <div
                         className="filter-group-item clear"
                         onClick={() => {
-                            setFilter(filterKey, null);
+                            setFilter(filterKey, isPeriod ? [] : null);
                             setOpen(false);
+                            setExpanded(null);
                         }}
                     >
                         Limpiar

@@ -15,10 +15,12 @@ function PrivacyPolicy() {
       <section>
         <h2>1. Responsable del tratamiento</h2>
 
-        <p><strong>Identidad:</strong> Bellumartis</p>
+        <p><strong>Identidad:</strong> Francisco García Campa (proyecto Bellumartis)</p>
         <p><strong>Titular:</strong> Francisco García Campa</p>
+        <p><strong>NIF:</strong> 09422776K</p>
+        <p><strong>Domicilio:</strong> Calle Carlos López Otín 10, 33005 Oviedo</p>
         <p><strong>Actividad:</strong> Divulgación de historia militar y actualidad geopolítica</p>
-        <p><strong>Contacto:</strong> info@bellumartis.com</p>
+        <p><strong>Contacto:</strong> admin@bellumartis.com</p>
       </section>
 
       {/* ===================== */}
@@ -67,7 +69,8 @@ function PrivacyPolicy() {
         <p>
           No se cederán datos personales a terceros salvo obligación legal o cuando sea
           necesario para la prestación del servicio (por ejemplo, proveedores tecnológicos
-          o de hosting).
+          o de hosting). Si el usuario elige iniciar sesión con Google, Google Identity Services
+          interviene en la autenticación y trata los datos conforme a su propia política de privacidad.
         </p>
       </section>
 
@@ -89,7 +92,7 @@ function PrivacyPolicy() {
 
         <p>
           Para ejercer estos derechos puede enviar un correo a:
-          <strong> contacto@bellumartis.com</strong>
+          <strong> admin@bellumartis.com</strong>
         </p>
       </section>
 
@@ -116,7 +119,7 @@ function PrivacyPolicy() {
 
       {/* ===================== */}
       <p className="legal-footer">
-        Última actualización: mayo de 2026
+        Última actualización: 9 de octubre de 2026
       </p>
 
     </div>

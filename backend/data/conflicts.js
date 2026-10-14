@@ -50,8 +50,13 @@ module.exports = [
             "operación market garden",
             "operacion husky",
             "operación husky",
+            "overlord",
+            "frente occidental ww2",
+            "frente oriental ww2",
+            "eje",
+            "aliados"
         ],
-        weight: 1.6,
+        weight: 1.7,
         period: "contemporanea",
         theme: "historia_militar",
     },
@@ -65,8 +70,12 @@ module.exports = [
             "expansion otomana",
             "expansión otomana",
             "turcos otomanos",
+            "batalla de lepanto",
+            "imperio otomano lepanto",
+            "don juan de austria",
+            "miguel de cervantes lepanto"
         ],
-        weight: 1.3,
+        weight: 1.4,
         period: "moderna",
         theme: "historia_militar",
     },
@@ -79,8 +88,12 @@ module.exports = [
             "guerra civil sudan",
             "guerra civil sudán",
             "sudan guerra civil",
+            "rsf",
+            "fuerzas de apoyo rapido",
+            "fuerzas de apoyo rápido",
+            "jartum"
         ],
-        weight: 1.2,
+        weight: 1.3,
         period: "contemporanea",
         theme: "actualidad_militar",
     },
@@ -381,9 +394,11 @@ module.exports = [
         aliases: [
             "guerra de los treinta años",
             "guerra de los 30 años",
+            "30 años guerra",
             "treinta años",
             "guerra treinta años",
             "westfalia",
+            "paz de westfalia",
             "rocroi",
             "breitenfeld",
             "imperio habsburgo",
@@ -391,6 +406,8 @@ module.exports = [
             "tercio español",
             "gustavo adolfo",
             "guerra religiosa europea",
+            "guerra religion europa",
+            "catolicos vs protestantes"
         ],
         weight: 1.6,
         period: "moderna",
@@ -596,6 +613,7 @@ module.exports = [
         aliases: [
             "guerra franco prusiana",
             "guerra franco-prusiana",
+            "franco prusiana",
             "francia contra prusia",
             "prusia contra francia",
             "bismarck",
@@ -603,6 +621,9 @@ module.exports = [
             "sedán",
             "segundo imperio frances",
             "segundo imperio francés",
+            "1870",
+            "napoleon iii derrota",
+            "imperio aleman 1871"
         ],
         weight: 1.5,
         period: "moderna",
@@ -742,46 +763,6 @@ module.exports = [
         theme: "historia_militar",
     },
 
-    {
-        name: "WW2",
-        aliases: [
-            "ww2",
-            "segunda guerra mundial",
-            "guerra mundial 2",
-            "operacion barbarroja",
-            "operación barbarroja",
-            "barbarroja",
-            "kursk",
-            "stalingrado",
-            "normandia",
-            "normandía",
-            "dia d",
-            "día d",
-            "ardenas",
-            "frente del este",
-            "batalla de moscu",
-            "batalla de moscú",
-            "pacifico",
-            "pacífico",
-            "wehrmacht",
-            "nazis",
-            "tercer reich",
-            "hitler",
-            "panzer",
-            "ss panzer",
-            "das reich",
-            "pearl harbor",
-            "desembarco de normandia",
-            "overlord",
-            "frente occidental ww2",
-            "frente oriental ww2",
-            "eje",
-            "aliados",
-        ],
-        weight: 1.7,
-        period: "contemporanea",
-        theme: "historia_militar",
-    },
 
     {
         name: "Operación Barbarroja",
@@ -957,21 +938,6 @@ module.exports = [
     },
 
     {
-        name: "Lepanto",
-        aliases: [
-            "lepanto",
-            "batalla de lepanto",
-            "santa liga",
-            "imperio otomano lepanto",
-            "don juan de austria",
-            "miguel de cervantes lepanto"
-        ],
-        weight: 1.4,
-        period: "moderna",
-        theme: "historia_militar",
-    },
-
-    {
         name: "Imperio Otomano (expansión)",
         aliases: [
             "imperio otomano",
@@ -983,21 +949,6 @@ module.exports = [
             "gran turco"
         ],
         weight: 1.3,
-        period: "moderna",
-        theme: "historia_militar",
-    },
-
-    {
-        name: "Guerra de los Treinta Años",
-        aliases: [
-            "guerra de los treinta años",
-            "30 años guerra",
-            "westfalia",
-            "paz de westfalia",
-            "guerra religion europa",
-            "catolicos vs protestantes"
-        ],
-        weight: 1.5,
         period: "moderna",
         theme: "historia_militar",
     },
@@ -1095,21 +1046,6 @@ module.exports = [
             "dos de mayo",
             "bailen",
             "zaragoza sitiada"
-        ],
-        weight: 1.5,
-        period: "moderna",
-        theme: "historia_militar",
-    },
-  
-    {
-        name: "Guerra Franco-Prusiana",
-        aliases: [
-            "franco prusiana",
-            "guerra franco prusiana",
-            "1870",
-            "sedan",
-            "napoleon iii derrota",
-            "imperio aleman 1871"
         ],
         weight: 1.5,
         period: "moderna",
@@ -1357,23 +1293,6 @@ module.exports = [
             "golpe militar africa",
             "francia africa",
             "francia áfrica"
-        ],
-        weight: 1.3,
-        period: "contemporanea",
-        theme: "actualidad_militar",
-    },
-
-    {
-        name: "Sudán",
-        aliases: [
-            "sudan",
-            "sudán",
-            "guerra civil sudan",
-            "guerra civil sudán",
-            "rsf",
-            "fuerzas de apoyo rapido",
-            "fuerzas de apoyo rápido",
-            "jartum"
         ],
         weight: 1.3,
         period: "contemporanea",

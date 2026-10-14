@@ -1,111 +1,218 @@
 .filter-group {
-  position: relative;
-
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
-/* TITULO (icono + label) */
+/* =========================
+   TITULO
+========================= */
 .filter-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 
-  font-size: 13px;
-  font-weight: 600;
-  color: #0f6970;
+    font-size: 13px;
+    font-weight: 600;
+    color: #0f6970;
 }
 
 .filter-title-icon {
-  font-size: 15px;
-  color: #0f6970;
+    font-size: 15px;
+    color: #0f6970;
 }
 
-/* BOTÓN DROPDOWN */
+/* =========================
+   BOTÓN
+========================= */
 .filter-group-btn {
-  width: 100%;
-  height: 48px;
+    width: 100%;
+    height: 48px;
 
-  background: white;
-  border: 1px solid #ddd;
-  border-radius: 8px;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
 
-  padding: 0 14px;
+    padding: 0 14px;
 
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 
-  cursor: pointer;
+    cursor: pointer;
 
-  transition:
-    border-color 0.2s ease,
-    background 0.2s ease,
-    box-shadow 0.2s ease;
+    transition: border-color 0.2s ease, background 0.2s ease;
 }
 
-/* HOVER */
 .filter-group-btn:hover {
-  background: #f7f7f7;
-  border-color: #cfcfcf;
+    background: #f7f7f7;
+    border-color: #cfcfcf;
 }
 
-/* ACTIVO (cuando hay filtro seleccionado) */
 .filter-group-btn.active {
-  border: 1px solid #0f6970 !important;
+    border: 1px solid #0f6970 !important;
 }
 
-/* TEXTO PLACEHOLDER */
+/* placeholder */
 .filter-placeholder {
-  font-size: 13px;
-  color: #777;
+    font-size: 12px;
+    color: #666;
 }
 
-/* FLECHA */
+/* flecha */
 .filter-arrow {
-  font-size: 10px;
-  color: #666;
-
-  transition: transform 0.2s ease;
+    font-size: 10px;
+    color: #666;
+    transition: transform 0.2s ease;
 }
 
-/* FLECHA ABIERTA */
 .filter-arrow.open {
-  transform: rotate(180deg);
+    transform: rotate(180deg);
 }
 
-/* DROPDOWN */
+/* =========================
+   DROPDOWN
+========================= */
 .filter-group-menu {
-  position: absolute;
-  top: calc(100% + 8px);
-  left: 0;
+    display: flex;
+    flex-direction: column;
+    top: calc(100% + 8px);
+    left: 0;
 
-  width: 100%;
+    width: 100%;
 
-  background: white;
-  border: 1px solid #ddd;
-  border-radius: 8px;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
 
-  overflow: hidden;
-  z-index: 20;
+    overflow: hidden;
+    z-index: 20;
 
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+    max-height: 300px;
+    overflow-y: auto;
+
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
 }
 
-/* ITEM */
-.filter-group-item {
-  padding: 12px 14px;
+.filter-group-menu::-webkit-scrollbar {
+    width: 8px;
+}
 
-  font-size: 13px;
-  cursor: pointer;
+.filter-group-menu::-webkit-scrollbar-thumb {
+    background: #666;
+    border-radius: 4px;
+}
+
+/* item normal */
+.filter-group-item {
+    padding: 10px 14px;
+    font-size: 13px;
+
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .filter-group-item:hover {
-  background: #f5f5f5;
+    background: #f5f5f5;
 }
 
-/* LIMPIAR */
+/* limpiar */
 .filter-group-item.clear {
-  border-top: 1px solid #eee;
+    border-top: 1px solid #eee;
+    color: #b00020;
 }
+
+/* =========================
+   PERIODOS (ÚNICO SISTEMA)
+========================= */
+
+.period-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    padding: 10px 14px;
+    cursor: pointer;
+
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.period-row:hover {
+    background: #f5f5f5;
+}
+
+/* caret */
+.caret {
+    font-size: 10px;
+    transition: transform 0.2s ease;
+}
+
+.caret.open {
+    transform: rotate(90deg);
+}
+
+/* sublista */
+.subperiods {
+    padding-left: 28px;
+    padding-bottom: 6px;
+}
+
+/* subitem con checkbox */
+.subperiod-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    padding: 6px 0;
+    font-size: 13px;
+
+    cursor: pointer;
+}
+
+/* checkbox visual simple */
+.checkbox {
+    width: 14px;
+    height: 14px;
+
+    border: 1px solid #999;
+    border-radius: 3px;
+
+    flex-shrink: 0;
+}
+
+.checkbox.checked {
+    background: #0f6970;
+    border-color: #0f6970;
+}
+
+.filter-group-btn.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.filter-search {
+    width: 100%;
+    padding: 7px 0px;
+    margin-bottom: 2px;
+    border: 1px solid #d1d1d1;
+    border-radius: 6px;
+    outline: none;
+}
+
+/* SEARCH FIJO */
+.filter-group-header {
+    padding: 8px;
+    background: #f9f8f8;
+}
+
+/* SCROLL SOLO PARA LISTA */
+.filter-group-scroll {
+    overflow-y: auto;
+    max-height: 300px;
+}
+

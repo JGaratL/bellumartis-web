@@ -116,7 +116,7 @@ function Shop() {
   ];
 
   return (
-    <div className="page-container">
+    <div className="page-container shop-page">
       <h1 className="page-title">
         <MdOutlineShoppingCart className="title-icon" />
         Tienda Bellumartis

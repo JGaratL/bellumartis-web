@@ -34,7 +34,7 @@ export const ADMIN_MENU = [
   },
   {
     id: "articulos",
-    label: "Articulos",
+    label: "Artículos",
     icon: RiArticleLine,
     description: "Modera publicaciones y contenidos editoriales.",
   },
@@ -99,4 +99,20 @@ export function getRoleClass(role) {
 
 export function getActiveAdminSection(activeSection) {
   return ADMIN_MENU.find((item) => item.id === activeSection) || ADMIN_MENU[0];
+}
+
+export function getAdminPathForSection(sectionId) {
+  if (sectionId === "usuarios") return "/admin";
+  return `/admin/${sectionId}`;
+}
+
+export function getAdminSectionFromPathname(pathname = "") {
+  const cleaned = String(pathname || "").replace(/\/+$/, "");
+  const segments = cleaned.split("/").filter(Boolean);
+
+  if (segments[0] !== "admin") {
+    return "usuarios";
+  }
+
+  return segments[1] || "usuarios";
 }

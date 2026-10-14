@@ -1,0 +1,148 @@
+.cookie-consent-banner {
+  position: fixed;
+  z-index: 20000;
+  inset-inline: 16px;
+  bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  max-width: 1080px;
+  margin-inline: auto;
+  padding: 20px 22px;
+  color: #172323;
+  background: #fff;
+  border: 1px solid #d7e1e1;
+  border-radius: 14px;
+  box-shadow: 0 14px 44px rgba(8, 18, 20, 0.24);
+  font-family: inherit;
+}
+
+.cookie-consent-copy {
+  min-width: 0;
+}
+
+.cookie-consent-copy > p:last-child,
+.cookie-consent-category p {
+  margin: 5px 0 0;
+  color: #4b5b5c;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.cookie-consent-title {
+  margin: 0;
+  color: #0f4245;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.cookie-consent-copy a {
+  color: #0b6269;
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.cookie-consent-actions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.cookie-consent-button {
+  min-height: 40px;
+  padding: 9px 13px;
+  border: 1px solid #0f6970;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.cookie-consent-primary {
+  color: #fff;
+  background: #0f6970;
+}
+
+.cookie-consent-secondary {
+  color: #0f5258;
+  background: #fff;
+}
+
+.cookie-consent-reject {
+  color: #fff;
+  background: #536566;
+  border-color: #536566;
+}
+
+.cookie-consent-button:focus-visible,
+.cookie-consent-toggle input:focus-visible {
+  outline: 3px solid #69aeb2;
+  outline-offset: 2px;
+}
+
+.cookie-consent-preferences {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.cookie-consent-category {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid #e0e8e8;
+  border-radius: 9px;
+}
+
+.cookie-consent-category strong {
+  font-size: 13px;
+}
+
+.cookie-consent-category p {
+  font-size: 12px;
+}
+
+.cookie-consent-always-on {
+  flex: 0 0 auto;
+  color: #536566;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.cookie-consent-toggle {
+  cursor: pointer;
+}
+
+.cookie-consent-toggle input {
+  width: 18px;
+  height: 18px;
+  accent-color: #0f6970;
+}
+
+@media (max-width: 760px) {
+  .cookie-consent-banner {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 14px;
+    padding: 17px;
+  }
+
+  .cookie-consent-actions {
+    justify-content: stretch;
+  }
+
+  .cookie-consent-button {
+    flex: 1 1 135px;
+  }
+
+  .cookie-consent-preferences {
+    grid-template-columns: 1fr;
+  }
+}

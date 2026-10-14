@@ -1,65 +1,57 @@
+import { openCookieSettings } from "../../components/CookieConsentBanner";
+
 export default function CookiePolicy() {
-  const acceptCookies = () => {
-    localStorage.setItem("cookiesAccepted", "true");
-    window.location.reload();
-  };
-
-  const rejectCookies = () => {
-    localStorage.setItem("cookiesAccepted", "false");
-    window.location.reload();
-  };
-
   return (
     <div className="legal-page">
       <h1>Política de Cookies</h1>
 
       <p className="legal-intro">
-        Las cookies son pequeños archivos de texto que se almacenan en tu dispositivo
-        cuando visitas nuestra web.
+        Esta política explica qué información se almacena en el dispositivo al utilizar Bellumartis y cómo puedes cambiar tus preferencias.
       </p>
 
       <section>
         <h2>Responsable</h2>
         <p>
-          FRANCISCO GARCÍA CAMPA<br />
+          Francisco García Campa<br />
           NIF: 09422776K<br />
           Calle Carlos López Otín 10, 33005 Oviedo<br />
-          info@bellumartis.com
+          admin@bellumartis.com
         </p>
       </section>
 
       <section>
-        <h2>Tipos de cookies</h2>
-
-        <ul>
-          <li><strong>Técnicas:</strong> necesarias para el funcionamiento de la web.</li>
-          <li><strong>Análisis:</strong> estadísticas de uso (si se activan).</li>
-          <li><strong>Terceros:</strong> YouTube, Google Login, etc.</li>
-        </ul>
-      </section>
-
-      <section>
-        <h2>Gestión de cookies</h2>
-
+        <h2>Almacenamiento necesario</h2>
         <p>
-          Puedes aceptar o rechazar cookies desde el banner o desde tu navegador.
+          Bellumartis utiliza almacenamiento local del navegador para mantener la sesión iniciada y recordar tu elección de privacidad. La elección se guarda en este dispositivo, no en la base de datos de Bellumartis, y se renueva como máximo cada 12 meses.
         </p>
+      </section>
 
-        {/* 🔥 IMPORTANTE: usamos tus clases reales del CSS */}
+      <section>
+        <h2>Servicios externos opcionales</h2>
+        <p>
+          Si autorizas los servicios externos, al abrir las pantallas de acceso se carga Google Identity Services para permitir iniciar sesión con Google. Google puede tratar datos técnicos de la conexión y utilizar tecnologías propias conforme a su política de privacidad. Si rechazas esta categoría, podrás seguir usando el acceso con email y contraseña.
+        </p>
+        <p>
+          Bellumartis no tiene actualmente herramientas de analítica web activas ni vídeos de YouTube incrustados. Los enlaces externos solo conectan con esos sitios cuando decides abrirlos.
+        </p>
+        <p>
+          Más información sobre Google en su <a href="https://policies.google.com/privacy" target="_blank" rel="noreferrer noopener">política de privacidad</a>.
+        </p>
+      </section>
+
+      <section>
+        <h2>Cómo cambiar o retirar tu elección</h2>
+        <p>
+          Puedes aceptar o rechazar los servicios opcionales desde el aviso inicial. Después, puedes cambiar o retirar tu elección en cualquier momento con el enlace «Configurar cookies» del pie de página. El acceso a la web no depende de que aceptes los servicios opcionales.
+        </p>
         <div className="cookie-buttons">
-          <button className="btn reject" onClick={rejectCookies}>
-            Rechazar
-          </button>
-
-          <button className="btn accept" onClick={acceptCookies}>
-            Aceptar
+          <button className="btn reject" type="button" onClick={openCookieSettings}>
+            Configurar cookies
           </button>
         </div>
       </section>
 
-      <div className="legal-footer">
-        Última actualización: 2026
-      </div>
+      <div className="legal-footer">Última actualización: 9 de octubre de 2026</div>
     </div>
   );
 }

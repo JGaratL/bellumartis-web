@@ -5,7 +5,14 @@ import {
   getLocation,
 } from "../../utils/adminHelpers";
 
-export default function UsersTable({ users, loading, onOpenDeleteUser }) {
+export default function UsersTable({
+  users,
+  loading,
+  onOpenViewUser,
+  onOpenEditUser,
+  onOpenBlockUser,
+  onOpenDeleteUser,
+}) {
   if (loading) {
     return <p className="admin-table-loading">Cargando usuarios...</p>;
   }
@@ -44,7 +51,12 @@ export default function UsersTable({ users, loading, onOpenDeleteUser }) {
             <td>{formatDate(user.last_login)}</td>
             <td className="admin-posts-cell">{user.posts_count ?? ""}</td>
             <td>
-              <UserActions onDelete={() => onOpenDeleteUser(user)} />
+              <UserActions
+                onView={() => onOpenViewUser?.(user)}
+                onEdit={() => onOpenEditUser?.(user)}
+                onBlock={() => onOpenBlockUser?.(user)}
+                onDelete={() => onOpenDeleteUser?.(user)}
+              />
             </td>
           </tr>
         ))}

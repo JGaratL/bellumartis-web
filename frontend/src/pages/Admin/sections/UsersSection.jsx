@@ -25,6 +25,9 @@ export default function UsersSection({
   statusOptions,
   lastLoginOptions,
   onClearFilters,
+  onOpenViewUser,
+  onOpenEditUser,
+  onOpenBlockUser,
   onOpenDeleteUser,
 }) {
   return (
@@ -55,6 +58,9 @@ export default function UsersSection({
         <UsersTable
           users={users}
           loading={usersLoading}
+          onOpenViewUser={onOpenViewUser}
+          onOpenEditUser={onOpenEditUser}
+          onOpenBlockUser={onOpenBlockUser}
           onOpenDeleteUser={onOpenDeleteUser}
         />
 

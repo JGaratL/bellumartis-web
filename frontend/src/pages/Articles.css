@@ -19,7 +19,7 @@
     display: flex;
     flex-direction: column;
 
-    margin: 0 auto 40px auto;
+    margin: 0 auto 28px auto;
 
     box-sizing: border-box;
 }
@@ -76,4 +76,83 @@
     font-size: 48px;
     transform: translateY(5px);
     margin-right: 12px;
+}
+
+@media (max-width: 700px) {
+    .articles-page {
+        padding: 88px 14px 28px;
+    }
+
+    .articles-page h1.page-title {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        margin-bottom: 20px;
+        font-size: clamp(26px, 7vw, 36px);
+        line-height: 1.1;
+    }
+
+    .articles-page .title-icon {
+        flex: 0 0 auto;
+        font-size: 32px;
+        margin: 0;
+        transform: none;
+    }
+
+    .articles-page .toolbar-panel {
+        padding: 16px;
+        margin-bottom: 20px;
+        border-radius: 10px;
+    }
+
+    .articles-page .search-section,
+    .articles-page .search-bar {
+        width: 100%;
+        min-width: 0;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+
+    .articles-page .filter-bar {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px 10px;
+    }
+
+    .articles-page .filter-group {
+        min-width: 0;
+    }
+
+    .articles-page .filter-group-btn {
+        min-height: 42px;
+        padding: 0 10px;
+    }
+
+    .articles-page .clear-filters-btn {
+        transform: none;
+        min-height: 0;
+        margin: 0 0 0 auto;
+        padding: 8px 0;
+    }
+
+    .articles-page .filters-header {
+        margin-top: 12px;
+        margin-bottom: 8px;
+    }
+}
+
+@media (max-width: 380px) {
+    .articles-page {
+        padding-right: 10px;
+        padding-left: 10px;
+    }
+
+    .articles-page .toolbar-panel {
+        padding: 12px;
+    }
+
+    .articles-page .filter-bar {
+        gap: 12px 8px;
+    }
 }

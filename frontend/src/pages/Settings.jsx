@@ -49,12 +49,14 @@ function Settings() {
 
   return (
     <>
-      <ProfileCard
-        user={user}
-        editable={true}
-        onSave={updateProfile}
-        onClose={() => navigate("/profile")}
-      />
+      <main className="settings-profile-page">
+        <ProfileCard
+          user={user}
+          editable={true}
+          onSave={updateProfile}
+          onClose={() => navigate("/profile")}
+        />
+      </main>
 
       {showSavedModal && (
         <div className="delete-modal-overlay">

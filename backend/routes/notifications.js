@@ -4,6 +4,51 @@ const router = express.Router();
 const verifyToken = require("../middleware/auth");
 const pool = require("../db");
 
+const cleanupNotificationsForUser = async (userId) => {
+  await pool.query(
+    `
+    DELETE n
+    FROM notifications n
+    LEFT JOIN users recipient
+      ON recipient.id = n.user_id
+    LEFT JOIN users actor
+      ON actor.id = n.from_user_id
+    LEFT JOIN posts p
+      ON n.type = 'like_post'
+      AND p.id = n.reference_id
+    LEFT JOIN post_replies pr
+      ON n.type IN ('reply_post', 'like_reply')
+      AND pr.id = n.reference_id
+    WHERE n.user_id = ?
+      AND (
+        recipient.id IS NULL
+        OR actor.id IS NULL
+        OR (n.type = 'like_post' AND p.id IS NULL)
+        OR (n.type IN ('reply_post', 'like_reply') AND pr.id IS NULL)
+      )
+    `,
+    [userId]
+  );
+
+  await pool.query(
+    `
+    DELETE FROM notifications
+    WHERE user_id = ?
+    AND id NOT IN (
+      SELECT id
+      FROM (
+        SELECT id
+        FROM notifications
+        WHERE user_id = ?
+        ORDER BY created_at DESC, id DESC
+        LIMIT 200
+      ) keep_ids
+    )
+    `,
+    [userId, userId]
+  );
+};
+
 /*
 ====================================
 GET NOTIFICATIONS (LIST)
@@ -17,23 +62,7 @@ router.get("/", verifyToken, async (req, res) => {
       50
     );
 
-    await pool.query(
-      `
-      DELETE FROM notifications
-      WHERE user_id = ?
-      AND id NOT IN (
-        SELECT id
-        FROM (
-          SELECT id
-          FROM notifications
-          WHERE user_id = ?
-          ORDER BY created_at DESC, id DESC
-          LIMIT 200
-        ) keep_ids
-      )
-      `,
-      [userId, userId]
-    );
+    await cleanupNotificationsForUser(userId);
 
     const [rows] = await pool.query(
       `
@@ -91,6 +120,8 @@ GET UNREAD COUNT (NAVBAR BADGE)
 router.get("/count", verifyToken, async (req, res) => {
   try {
     const userId = req.user.id;
+
+    await cleanupNotificationsForUser(userId);
 
     const [rows] = await pool.query(
       `

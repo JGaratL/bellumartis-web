@@ -1,13 +1,24 @@
-import { useEffect, useMemo, useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState, useRef, useCallback } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { FaRegCalendarAlt } from "react-icons/fa";
 
 import api from "../../api";
+import { resolveAssetUrl } from "../../utils/assetHelpers";
 import "./Events.css";
+
+const getSafeEventLink = (value) => {
+  try {
+    const url = new URL(String(value || ""));
+    return ["http:", "https:"].includes(url.protocol) ? url.href : "";
+  } catch {
+    return "";
+  }
+};
 
 function Events() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const [events, setEvents] = useState([]);
 
@@ -29,23 +40,67 @@ function Events() {
   const [selectedEventActionLoading, setSelectedEventActionLoading] = useState(false);
   const [selectedEventError, setSelectedEventError] = useState("");
   const [selectedEventNotice, setSelectedEventNotice] = useState("");
+  const bannerOpenHandledRef = useRef(null);
+
+  const parseDateOnly = (value) => {
+    if (!value) return null;
+
+    const raw = String(value).trim();
+    const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+
+    if (match) {
+      const year = Number(match[1]);
+      const month = Number(match[2]) - 1;
+      const day = Number(match[3]);
+      return new Date(year, month, day);
+    }
+
+    const parsed = new Date(raw);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  };
+
+  const formatLocalDate = (value) => {
+    const date = parseDateOnly(value);
+    if (!date) return "-";
+
+    return date.toLocaleDateString("es-ES", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  };
 
   // =========================
   // FETCH EVENTS
   // =========================
-  useEffect(() => {
-    async function fetchEvents() {
-      try {
-        const res = await fetch("http://localhost:5000/events");
-        const data = await res.json();
-        setEvents(data);
-      } catch (err) {
-        console.error(err);
-      }
+  const fetchEvents = useCallback(async () => {
+    try {
+      const res = await fetch("http://localhost:5000/events");
+      const data = await res.json();
+      setEvents(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error(err);
     }
-
-    fetchEvents();
   }, []);
+
+  useEffect(() => {
+    fetchEvents();
+  }, [fetchEvents]);
+
+  useEffect(() => {
+    const handleFocus = () => {
+      fetchEvents();
+    };
+
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleFocus);
+
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleFocus);
+    };
+  }, [fetchEvents]);
 
   useEffect(() => {
     let cancelled = false;
@@ -93,6 +148,29 @@ function Events() {
       cancelled = true;
     };
   }, [selectedEvent, user]);
+
+  useEffect(() => {
+    const openEventId = location.state?.openEventId;
+    if (!openEventId || events.length === 0) return;
+    if (bannerOpenHandledRef.current === openEventId) return;
+
+    const targetEvent = events.find(
+      (event) => Number(event.id) === Number(openEventId)
+    );
+
+    if (!targetEvent) return;
+
+    const eventDate = parseDateOnly(targetEvent.date);
+    if (eventDate) {
+      setCurrentMonth(eventDate.getMonth());
+      setCurrentYear(eventDate.getFullYear());
+    }
+
+    setSelectedEvent(targetEvent);
+    bannerOpenHandledRef.current = openEventId;
+
+    navigate("/events", { replace: true, state: null });
+  }, [events, location.state, navigate]);
 
   useEffect(() => {
     function handleClickOutside(e) {
@@ -171,15 +249,25 @@ function Events() {
   // HELPERS
   // =========================
   function getEventForDay(day) {
-    return filteredEvents.find((event) => {
-      const eventDate = new Date(event.date);
+    const dayEvents = filteredEvents
+      .filter((event) => {
+      const eventDate = parseDateOnly(event.date);
+
+      if (!eventDate) return false;
 
       return (
         eventDate.getDate() === day &&
         eventDate.getMonth() === currentMonth &&
         eventDate.getFullYear() === currentYear
       );
-    });
+      })
+      .sort((a, b) => {
+        const aCreated = new Date(a.created_at || 0).getTime();
+        const bCreated = new Date(b.created_at || 0).getTime();
+        return bCreated - aCreated;
+      });
+
+    return dayEvents[0] || null;
   }
 
   function isPastDay(day) {
@@ -211,20 +299,12 @@ function Events() {
     year: "numeric",
   });
 
-  function formatDate(dateString) {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("es-ES", {
-      weekday: "long",
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    });
-  }
-
   function isEventEnded(event) {
     if (!event?.date) return false;
 
-    const eventDate = new Date(event.date);
+    const eventDate = parseDateOnly(event.date);
+    if (!eventDate) return false;
+
     const startOfToday = new Date(
       today.getFullYear(),
       today.getMonth(),
@@ -355,7 +435,9 @@ function Events() {
           </div>
 
           <div className="calendar-cta">
-            <button>Solicitar evento</button>
+            <button onClick={() => navigate("/about?asunto=solicitar-evento#contact-form")}>
+              Solicitar evento
+            </button>
           </div>
 
         </div>
@@ -427,7 +509,6 @@ function Events() {
         </div>
 
         <div className="calendar-footer">
-          <p className="calendar-footer-title">Calendario de eventos</p>
           <p className="calendar-footer-subtitle">
             Los eventos se muestran en la zona horaria:
             (GMT+02:00) Hora de Europa central - Madrid
@@ -452,9 +533,17 @@ function Events() {
 
             <h2>{selectedEvent.title}</h2>
 
+            {selectedEvent.image_url && (
+              <img
+                className="event-modal-poster"
+                src={resolveAssetUrl(selectedEvent.image_url)}
+                alt={`Poster de ${selectedEvent.title}`}
+              />
+            )}
+
             <p><strong>Tipo:</strong> {getBadgeText(selectedEvent.event_type)}</p>
 
-            <p><strong>Fecha:</strong> {formatDate(selectedEvent.date)}</p>
+            <p><strong>Fecha:</strong> {formatLocalDate(selectedEvent.date)}</p>
 
             <p><strong>Hora:</strong> {selectedEvent.time?.slice(0, 5)}</p>
 
@@ -465,6 +554,15 @@ function Events() {
             <p className="modal-description">
               {selectedEvent.description}
             </p>
+
+            {getSafeEventLink(selectedEvent.link) && (
+              <p className="event-modal-link">
+                <strong>Enlace:</strong>{" "}
+                <a href={getSafeEventLink(selectedEvent.link)} target="_blank" rel="noopener noreferrer">
+                  {selectedEvent.link}
+                </a>
+              </p>
+            )}
 
             {selectedEventNotice && (
               <p className="modal-success">{selectedEventNotice}</p>

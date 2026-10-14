@@ -1,6 +1,6 @@
 .about-page-wrap {
   padding: 90px 100px 80px 100px;
-  background: #e0e4e4;
+  background: #f5f5f5;
   min-height: 100vh;
   gap: 30px;
 
@@ -17,11 +17,20 @@
 ========================= */
 
 .about-page-title {
-  font-size: 52px;
+  font-size: 42px;
   text-align: center;
-  color: #111;
+  color: #0f6970;
   margin-top: 60px;
   margin-bottom: 0;
+}
+
+.about-subtitle {
+  font-size: 18px;
+  color: #7f7e7e;
+  text-align: center;
+  margin-top: -8px;
+  margin-bottom: -12px;
+  margin-left: 64px;
 }
 
 /* =========================
@@ -29,6 +38,7 @@
 ========================= */
 
 .about-card {
+  scroll-margin-top: 100px;
   width: 100%;
   max-width: 760px;
   background: #ffffff;
@@ -53,9 +63,14 @@
   border-top: 1px solid #e5e8e8;
 }
 
+.about-form label {
+  font-weight: 600;
+}
+
 .about-form input,
 .about-form textarea,
 .about-form select {
+  box-sizing: border-box;
   width: 100%;
   background: #f8f9f9;
   border: 1px solid #d0d4d4;
@@ -88,11 +103,27 @@
   background: #0f6970e4;
 }
 
+.form-status {
+  margin: 0.75rem 0 0;
+  font-size: 0.95rem;
+}
+
+.form-status.success { color: #2e7d32; }
+.form-status.error { color: #b3261e; }
+
 /* ERRORES */
 .form-error {
   color: #d93025;
   font-size: 12px;
   margin-top: -6px;
+}
+
+.contact-honeypot {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
 }
 
 /* =========================
@@ -153,4 +184,125 @@
 .about-brand-logo {
   width: 60px;
   opacity: 0.8;
+}
+
+@media (max-width: 700px) {
+  .about-page-wrap {
+    min-height: 100vh;
+    padding: 78px 12px 32px;
+    gap: 14px;
+  }
+
+  .about-page-title.page-title {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    margin: 10px 0 0;
+    font-size: clamp(26px, 7vw, 36px);
+    line-height: 1.15;
+  }
+
+  .about-page-title .title-icon {
+    flex: 0 0 auto;
+    font-size: 30px;
+    margin: 0;
+    transform: none;
+  }
+
+  .about-subtitle {
+    max-width: 38ch;
+    margin: 0 0 4px;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .about-card {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 18px 16px;
+    border-radius: 12px;
+    scroll-margin-top: 72px;
+  }
+
+  .about-form {
+    margin-top: 8px;
+    padding-top: 16px;
+    gap: 10px;
+  }
+
+  .about-form input,
+  .about-form textarea,
+  .about-form select {
+    min-width: 0;
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .about-form textarea {
+    min-height: 130px;
+  }
+
+  .about-form button {
+    min-height: 46px;
+    width: 100%;
+  }
+
+  .about-card-bottom {
+    display: grid;
+    grid-template-columns: 64px minmax(0, 1fr) 44px;
+    gap: 10px;
+    margin-top: 22px;
+    padding-top: 16px;
+  }
+
+  .about-director-photo {
+    width: 56px;
+    height: 56px;
+  }
+
+  .about-director-name {
+    text-align: center;
+    font-size: 13px;
+  }
+
+  .about-director-role {
+    text-align: center;
+    font-size: 11px;
+  }
+
+  .about-social-row {
+    justify-content: center;
+    gap: 12px;
+  }
+
+  .about-brand-logo {
+    width: 42px;
+  }
+}
+
+@media (max-width: 380px) {
+  .about-page-wrap {
+    padding-right: 8px;
+    padding-left: 8px;
+  }
+
+  .about-card {
+    padding: 16px 12px;
+  }
+
+  .about-card-bottom {
+    grid-template-columns: 50px minmax(0, 1fr) 34px;
+    gap: 6px;
+  }
+
+  .about-director-photo {
+    width: 46px;
+    height: 46px;
+  }
+
+  .about-brand-logo {
+    width: 34px;
+  }
 }

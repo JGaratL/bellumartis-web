@@ -14,7 +14,7 @@ function Articles() {
   const resetFilters = useFiltersStore((s) => s.resetFilters);
 
   return (
-    <div className="page-container">
+    <div className="page-container articles-page">
       <h1 className="page-title">
         <LuClapperboard className="title-icon" />
         Vídeos y Artículos

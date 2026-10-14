@@ -17,8 +17,10 @@ function LegalNotice() {
 
         <p><strong>Proyecto:</strong> Bellumartis</p>
         <p><strong>Titular:</strong> Francisco García Campa</p>
+        <p><strong>NIF:</strong> 09422776K</p>
+        <p><strong>Domicilio:</strong> Calle Carlos López Otín 10, 33005 Oviedo</p>
         <p><strong>Actividad:</strong> Divulgación histórica y actualidad geopolítica</p>
-        <p><strong>Email de contacto:</strong> contacto@bellumartis.com</p>
+        <p><strong>Email de contacto:</strong> admin@bellumartis.com</p>
       </section>
 
       {/* ===================== */}
@@ -119,7 +121,7 @@ function LegalNotice() {
 
       {/* ===================== */}
       <p className="legal-footer">
-        Última actualización: mayo de 2026
+        Última actualización: 9 de octubre de 2026
       </p>
 
     </div>

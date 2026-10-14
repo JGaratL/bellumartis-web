@@ -185,27 +185,31 @@ function parseISODuration(duration) {
 // SYNC STATE
 // -----------------------------------
 
-async function getLastState() {
+async function getLastState(channelId) {
     const [rows] = await db.query(`
-        SELECT * FROM sync_state WHERE id = 1
-    `);
+        SELECT *
+        FROM sync_state
+        WHERE channel_id = ?
+        LIMIT 1
+    `, [channelId]);
 
     return rows[0];
 }
 
-async function updateLastState(video) {
+async function updateLastState(video, channelId) {
     await db.query(`
         UPDATE sync_state
         SET 
             last_video_published_at = ?,
             last_video_id = ?
-        WHERE id = 1
+        WHERE channel_id = ?
     `, [
         new Date(video.snippet.publishedAt)
             .toISOString()
             .slice(0, 19)
             .replace("T", " "),
-             video.snippet.resourceId.videoId
+        video.snippet.resourceId.videoId,
+        channelId
     ]);
 }
 
@@ -372,7 +376,12 @@ async function saveVideo(video, durationMap) {
 
 
 
-    const theme = null;
+    let theme = null;
+
+
+    if (CHANNEL_ID === "UCTNFDvqGq_zZ_spphDCQaHg") {
+        theme = "actualidad_militar";
+    }
 
     const title =
         snippet.title?.trim();
@@ -507,9 +516,11 @@ async function main() {
             "📥 Obteniendo vídeos..."
         );
 
-        const state = await getLastState();
+        const state = await getLastState(CHANNEL_ID);
+
         const checkpointVideoId =
             state?.last_video_id || null;
+
         const checkpointPublishedAt =
             state?.last_video_published_at || null;
 
@@ -593,7 +604,7 @@ async function main() {
         }
 
         if (videos[0]) {
-            await updateLastState(videos[0]);
+            await updateLastState(videos[0], CHANNEL_ID);
         }
 
         console.log(

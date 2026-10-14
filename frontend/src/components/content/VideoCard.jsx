@@ -1,20 +1,29 @@
+import { resolveAssetUrl } from "../../utils/assetHelpers";
+
 export default function VideoCard({ video }) {
-    return (
-        <div className="video-card">
-            <div className="video-thumb">
-                <img
-                    src={video.thumbnail_url} alt={video.title}
-                />
-            </div>
+  const imageUrl = resolveAssetUrl(video.thumbnail_url);
+  const isArticle = video.type === "articulo";
+  const isPodcast = video.type === "podcast";
 
-            <div className="video-info">
-                <h3 className="video-title">{video.title}</h3>
+  return (
+    <article
+      className={`video-card ${isArticle ? "is-article" : ""} ${isPodcast ? "is-podcast" : ""}`}
+    >
+      <div className="video-thumb">
+        <img
+          src={imageUrl}
+          alt={video.title}
+          loading="lazy"
+          decoding="async"
+        />
 
-{/*                <div className="video-meta">
-                    {video.theme && <span>{video.theme}</span>}
-                    {video.period && <span>• {video.period}</span>}
-                </div>*/}
-            </div>
-        </div>
-    );
+        {isArticle ? (
+          <div className="video-thumb-overlay">
+            <span className="video-type-badge">Artículo</span>
+            <h3 className="video-title">{video.title}</h3>
+          </div>
+        ) : null}
+      </div>
+    </article>
+  );
 }

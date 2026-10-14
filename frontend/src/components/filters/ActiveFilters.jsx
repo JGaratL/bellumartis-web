@@ -6,22 +6,38 @@ export default function ActiveFilters() {
   const setFilter = useFiltersStore((s) => s.setFilter);
 
   const entries = Object.entries(filters).filter(
-    ([_, value]) => value
+    ([_, value]) => value && (Array.isArray(value) ? value.length : true)
   );
 
   if (!entries.length) return null;
+
+  const removeFilter = (key, value) => {
+    // 🔥 CASO PERIOD (ARRAY)
+    if (Array.isArray(value)) {
+      setFilter(key, []);
+      return;
+    }
+
+    // 🔥 CASO NORMAL
+    setFilter(key, null);
+  };
 
   return (
     <div className="active-filters">
       {entries.map(([key, value]) => (
         <div key={key} className="filter-chip">
-          <span>{value}</span>
 
+          {/* LABEL */}
+          <span className="chip-label">
+            {Array.isArray(value)
+              ? value.join(", ")
+              : value}
+          </span>
+
+          {/* REMOVE */}
           <button
             className="chip-remove"
-            onClick={() =>
-              setFilter(key, null)
-            }
+            onClick={() => removeFilter(key, value)}
           >
             ✕
           </button>
