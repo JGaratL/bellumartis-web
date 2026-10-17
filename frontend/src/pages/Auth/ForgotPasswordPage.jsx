@@ -1,3 +1,4 @@
+import { apiFetch } from "../../api";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -19,7 +20,7 @@ function ForgotPasswordPage() {
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_URL}/auth/forgot-password`, {
+      const response = await apiFetch(`${API_URL}/auth/forgot-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim().toLowerCase() }),

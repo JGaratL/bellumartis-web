@@ -31,6 +31,7 @@ export default function UsersTable({
           <th>Ubicacion</th>
           <th>Registro</th>
           <th>Ultimo Login</th>
+          <th>Estado</th>
           <th>Posts</th>
           <th>Acciones</th>
         </tr>
@@ -49,6 +50,7 @@ export default function UsersTable({
             <td>{getLocation(user)}</td>
             <td>{formatDate(user.created_at)}</td>
             <td>{formatDate(user.last_login)}</td>
+            <td>{user.status === "inactive" ? "Bloqueado" : "Habilitado"}</td>
             <td className="admin-posts-cell">{user.posts_count ?? ""}</td>
             <td>
               <UserActions

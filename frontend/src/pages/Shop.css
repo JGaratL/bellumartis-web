@@ -336,7 +336,7 @@
     width: 100%;
     margin: 0 auto 28px;
     color: #0f6970;
-    font-size: 42px;
+    font-size: 30px;
     line-height: 1.15;
     text-align: center;
 }
@@ -351,7 +351,7 @@
     .shop-page h1.page-title {
         gap: 8px;
         margin-bottom: 20px;
-        font-size: clamp(26px, 7vw, 36px);
+        font-size: 30px;
     }
 
     .shop-page .page-title .title-icon {

@@ -8,6 +8,7 @@ const slugify = require("slugify");
 const db = require("../db");
 const verifyToken = require("../middleware/auth");
 const checkRole = require("../middleware/role");
+const { sanitizeArticleHtml } = require("../services/htmlSanitizers");
 
 const router = express.Router();
 
@@ -332,7 +333,7 @@ router.post(
       const title = String(req.body?.title || "").trim();
       const slugInput = String(req.body?.slug || "").trim();
       const description = normalizeNullable(req.body?.description);
-      const content = String(req.body?.content || "").trim();
+      const content = sanitizeArticleHtml(String(req.body?.content || "").trim());
       const publishedAt = normalizeNullable(req.body?.published_at);
       const theme = normalizeNullable(
         readBodyValue(req.body, ["theme"])
@@ -506,7 +507,7 @@ router.put(
       const title = String(req.body?.title || "").trim();
       const slugInput = String(req.body?.slug || "").trim();
       const description = normalizeNullable(req.body?.description);
-      const content = String(req.body?.content || "").trim();
+      const content = sanitizeArticleHtml(String(req.body?.content || "").trim());
       const publishedAt = normalizeNullable(req.body?.published_at);
       const theme = normalizeNullable(
         readBodyValue(req.body, ["theme"])

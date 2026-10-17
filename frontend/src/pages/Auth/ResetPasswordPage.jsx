@@ -1,3 +1,4 @@
+import { apiFetch } from "../../api";
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
@@ -46,7 +47,7 @@ function ResetPasswordPage() {
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_URL}/auth/reset-password`, {
+      const response = await apiFetch(`${API_URL}/auth/reset-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token, password }),

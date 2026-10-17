@@ -89,7 +89,7 @@
         justify-content: center;
         gap: 8px;
         margin-bottom: 20px;
-        font-size: clamp(26px, 7vw, 36px);
+        font-size: 30px;
         line-height: 1.1;
     }
 

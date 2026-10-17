@@ -213,6 +213,13 @@ module.exports = {
 
        "PLFFtscowOtCzClp_7rvAihADCprFB5y87": {
         theme: "historia_militar",
+        type: "podcast",
+    },
+
+    // Playlist dedicada a los episodios de podcast de Bellumartis.
+    "PLFFtscowOtCzT8BSkK20cgeuU6Vsk5fLp": {
+        theme: "historia_militar",
+        type: "podcast",
     },
 
        "PLFFtscowOtCzEEAKEHopw7LfTE1wGvSx4": {
@@ -338,7 +345,7 @@ module.exports = {
         theme: "historia_militar",
     },
 
-       "PLFFtscowOtCxRn_fmYyhc5nrIhNDA0d-t": {
+    "PLFFtscowOtCxRn_fmYyhc5nrIhNDA0d-t": {
         period: "Edad Moderna",
         subperiod: "Campañas del Duque de Alba",
         regions: ["Europa Occidental"],
@@ -346,5 +353,27 @@ module.exports = {
         theme: "historia_militar",
         tags: ["Alba"],
     },
-    
+
+    // Playlists históricas utilizadas para clasificar el tema, sin taxonomía adicional.
+    "PLFFtscowOtCydYHQNBxNTOUP584e5D8VJ": { theme: "historia_militar" },
+    "PLFFtscowOtCyMiEtgjcfh-_NUuaSoV4LH": { theme: "historia_militar" },
+    "PLFFtscowOtCyG4p3ItchyhrCW48M5BeSX": { theme: "historia_militar" },
+    "PLFFtscowOtCxTjBmYjVyJcPsOlY1k0RaG": { theme: "historia_militar", type: "podcast" },
+    "PLFFtscowOtCz-MDSpxUU4-UsoU_sOErNw": { theme: "historia_militar" },
+    "PLFFtscowOtCyJmZYBy4IPgLr2J6y2DHx3": { theme: "historia_militar" },
+    "PLFFtscowOtCwpFI5CGWph2OUZJJdlhEUS": { theme: "historia_militar" },
+    "PLFFtscowOtCx0j80jOp2Tm1uPC7gnIlwL": { theme: "historia_militar" },
+    "PLFFtscowOtCwQYNwoB5grDhFLCYtAPccG": { theme: "historia_militar" },
+    "PLFFtscowOtCxmghi_lTuGPLSOrgSZhuwi": { theme: "historia_militar" },
+    "PLFFtscowOtCzRj_FfTQ2AERPPo0UpSF77": { theme: "historia_militar" },
+    "PLFFtscowOtCxfINZKH-MTdkjCK4vqzxd_": { theme: "historia_militar" },
+    "PLFFtscowOtCyKKXPlvHoHGBCj3mjQvyUK": { theme: "historia_militar" },
+    "PLFFtscowOtCxqayjaokIrHLzwc2WczI5E": { theme: "historia_militar" },
+    "PLFFtscowOtCxC7ZSgaruwjZhGAdfdR8Mk": { theme: "historia_militar" },
+    "PLFFtscowOtCxdYNmz9dIHTQBaEalK8FiA": { theme: "historia_militar" },
+    "PLFFtscowOtCyOZR0mBj9GCK00il48qPdn": { theme: "historia_militar" },
+    "PLFFtscowOtCzrcOdqbUGQ4MZK9Iqaw3fP": { theme: "historia_militar" },
+    "PLFFtscowOtCz7_G9Rs_3az4xz0d7yWOJi": { theme: "historia_militar" },
+    "PLFFtscowOtCy9fivZkAVAkyRlcvYk3aMa": { theme: "historia_militar" },
+
     };

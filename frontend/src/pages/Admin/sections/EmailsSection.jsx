@@ -1,5 +1,7 @@
+import { apiFetch } from "../../../api";
 import { useCallback, useEffect, useRef, useState } from "react";
 import EmailComposeModal from "../components/emails/EmailComposeModal";
+import { hasExternalEmailImages, sanitizeEmailHtml } from "../../../utils/htmlSanitizers";
 import "./EmailsSection.css";
 
 const REPORT_REASONS = {
@@ -18,6 +20,39 @@ const getReportReasonLabel = (report) => {
 };
 const REPORT_PRIORITIES = { baja: "Baja", media: "Media", alta: "Alta", critica: "Crítica" };
 const REPORT_STATUSES = { pending: "Pendiente", in_review: "En revisión", resolved: "Resuelto", archived: "Archivado" };
+
+function SanitizedEmailBody({ body, isHtml = true }) {
+  const html = (body || []).join("");
+  const [allowExternalImages, setAllowExternalImages] = useState(false);
+  useEffect(() => setAllowExternalImages(false), [html]);
+  const hasRemoteImages = hasExternalEmailImages(html);
+  const safeHtml = useMemo(
+    () => sanitizeEmailHtml(html, { allowExternalImages }),
+    [html, allowExternalImages]
+  );
+
+  if (!isHtml) {
+    return <div className="admin-email-message-text">{html}</div>;
+  }
+
+  return (
+    <>
+      {hasRemoteImages && !allowExternalImages && (
+        <button
+          type="button"
+          className="email-external-images-toggle"
+          onClick={() => setAllowExternalImages(true)}
+        >
+          Cargar imágenes externas de este correo
+        </button>
+      )}
+      <div
+        className="admin-email-message-html"
+        dangerouslySetInnerHTML={{ __html: safeHtml }}
+      />
+    </>
+  );
+}
 
 const htmlToPlainText = (html = "") => {
   const parsed = new DOMParser().parseFromString(String(html), "text/html");
@@ -141,8 +176,8 @@ export default function EmailsSection() {
         Object.entries(reportFilters).forEach(([key, value]) => {
           if (value) params.set(key, value);
         });
-        const response = await fetch(`http://localhost:5000/api/communications/reports?${params}`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        const response = await apiFetch(`http://localhost:5000/api/communications/reports?${params}`, {
+
         });
         const data = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(data.message || "No se pudieron cargar los reportes.");
@@ -173,10 +208,10 @@ export default function EmailsSection() {
   const updateContactReport = async (field, value) => {
     if (!selectedReport) return;
     try {
-      const response = await fetch(`http://localhost:5000/api/communications/reports/${selectedReport.id}`, {
+      const response = await apiFetch(`http://localhost:5000/api/communications/reports/${selectedReport.id}`, {
         method: "PATCH",
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ [field]: value }),
@@ -200,9 +235,9 @@ export default function EmailsSection() {
     if (!window.confirm("¿Quieres eliminar definitivamente este reporte resuelto? Esta acción no se puede deshacer.")) return;
 
     try {
-      const response = await fetch(`http://localhost:5000/api/communications/reports/${report.id}`, {
+      const response = await apiFetch(`http://localhost:5000/api/communications/reports/${report.id}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.message || "No se pudo eliminar el reporte.");
@@ -216,8 +251,8 @@ export default function EmailsSection() {
 
   const refreshProviderUsage = useCallback(async () => {
     try {
-      const response = await fetch("http://localhost:5000/api/admin/emails/stats/usage", {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      const response = await apiFetch("http://localhost:5000/api/admin/emails/stats/usage", {
+
       });
       if (!response.ok) throw new Error("No se pudo consultar el uso de los proveedores.");
       setProviderUsage(await response.json());
@@ -238,15 +273,11 @@ export default function EmailsSection() {
 
     const loadSentEmails = async () => {
       try {
-        const token = localStorage.getItem("token");
 
-        const response = await fetch(
+        const response = await apiFetch(
           "http://localhost:5000/api/admin/emails/sent",
           {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
+            }
         );
 
         const data = await response.json();
@@ -307,6 +338,7 @@ export default function EmailsSection() {
                 email.text ||
                 "",
               ],
+              bodyIsHtml: Boolean(email.html),
 
               recipients: {
                 type: "custom",
@@ -331,6 +363,7 @@ export default function EmailsSection() {
             timestamp: sentDate.getTime(),
             unread: false,
             body: [email.html || email.text || ""],
+            bodyIsHtml: Boolean(email.html),
             recipients: { type: "custom", recipients: email.recipients || [] },
             attachments: [],
             isSent: true,
@@ -372,21 +405,12 @@ export default function EmailsSection() {
       isLoading = true;
 
       try {
-        const token = localStorage.getItem("token");
 
-        if (!token) {
-          setInboxError("Tu sesión ha caducado. Inicia sesión de nuevo para cargar los correos.");
-          return;
-        }
-
-        const response = await fetch(
+        const response = await apiFetch(
           "http://localhost:5000/api/admin/emails/inbox?skip=0&take=25",
           {
             method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
+            }
         );
 
         const data = await response.json();
@@ -428,6 +452,7 @@ export default function EmailsSection() {
               body: email.isHtml
                 ? [email.body || ""]
                 : [email.body || ""],
+              bodyIsHtml: Boolean(email.isHtml),
 
               recipients: {
                 type: "custom",
@@ -484,21 +509,12 @@ export default function EmailsSection() {
   useEffect(() => {
     const loadDrafts = async () => {
       try {
-        const token = localStorage.getItem("token");
 
-        if (!token) {
-          console.error("No hay token de autenticación.");
-          return;
-        }
-
-        const response = await fetch(
+        const response = await apiFetch(
           "http://localhost:5000/api/admin/emails/drafts",
           {
             method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
+            }
         );
 
         const data = await response.json();
@@ -528,6 +544,7 @@ export default function EmailsSection() {
             body: draft.body
               ? [draft.body]
               : ["Sin contenido"],
+            bodyIsHtml: true,
             recipients: {
               type: "custom",
               recipients: draft.to || [],
@@ -553,13 +570,11 @@ export default function EmailsSection() {
   }, []);
 
   const loadScheduledEmails = useCallback(async () => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
 
     setLoadingFolders((current) => ({ ...current, scheduled: true }));
     try {
-      const response = await fetch("http://localhost:5000/api/admin/emails/scheduled", {
-        headers: { Authorization: `Bearer ${token}` },
+      const response = await apiFetch("http://localhost:5000/api/admin/emails/scheduled", {
+
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || "No se pudieron cargar los emails programados.");
@@ -575,6 +590,7 @@ export default function EmailsSection() {
           fullDate: scheduledAt.toLocaleString("es-ES"),
           unread: false,
           body: [email.html || "Sin contenido"],
+          bodyIsHtml: true,
           recipients: { type: email.recipientType, recipients: email.recipients || [] },
           attachments: email.attachments || [],
           scheduleStatus: email.status,
@@ -826,20 +842,12 @@ export default function EmailsSection() {
     // lo marcamos como leído al abrirlo.
     if (activeFolder === "received" && email.unread) {
       try {
-        const token = localStorage.getItem("token");
 
-        if (!token) {
-          throw new Error("Tu sesión ha caducado. Vuelve a iniciar sesión.");
-        }
-
-        const response = await fetch(
+        const response = await apiFetch(
           `http://localhost:5000/api/admin/emails/inbox/${email.id}/read`,
           {
             method: "POST",
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
+            }
         );
 
         const data = await response.json();
@@ -931,11 +939,10 @@ export default function EmailsSection() {
     if (!pendingEmailDeletion || isDeletingEmails) return;
     setIsDeletingEmails(true);
     try {
-      const token = localStorage.getItem("token");
-      if (!token) throw new Error("Tu sesión ha caducado. Vuelve a iniciar sesión.");
-      const response = await fetch("http://localhost:5000/api/admin/emails/messages", {
+
+      const response = await apiFetch("http://localhost:5000/api/admin/emails/messages", {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(pendingEmailDeletion),
       });
       const data = await response.json().catch(() => ({}));
@@ -1086,26 +1093,19 @@ export default function EmailsSection() {
     try {
       console.log("EMAIL DATA:", emailData);
 
-      const token = localStorage.getItem("token");
-
-      if (!token) {
-        alert("Tu sesión ha caducado. Vuelve a iniciar sesión.");
-        return;
-      }
-
       // =================================
       // BORRADOR CON FOUNDERMAIL
       // =================================
 
       if (composeMode === "draft") {
 
-        const founderMailResponse = await fetch(
+        const founderMailResponse = await apiFetch(
           "http://localhost:5000/api/admin/emails/send-founder",
           {
             method: "POST",
 
             headers: {
-              Authorization: `Bearer ${token}`,
+
               "Content-Type": "application/json",
             },
 
@@ -1129,14 +1129,11 @@ export default function EmailsSection() {
         }
 
         // Eliminamos el borrador de FounderMail
-        const deleteResponse = await fetch(
+        const deleteResponse = await apiFetch(
           `http://localhost:5000/api/admin/emails/drafts/${composeDraftId}`,
           {
             method: "DELETE",
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
+            }
         );
 
         if (!deleteResponse.ok) {
@@ -1192,13 +1189,10 @@ export default function EmailsSection() {
           formData.append("attachments", file, file.name);
         });
 
-        const founderMailResponse = await fetch(
+        const founderMailResponse = await apiFetch(
           "http://localhost:5000/api/admin/emails/send-founder",
           {
             method: "POST",
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
             body: formData,
           }
         );
@@ -1279,14 +1273,10 @@ export default function EmailsSection() {
         formData.append("attachments", file, file.name);
       });
 
-      const response = await fetch(
+      const response = await apiFetch(
         `http://localhost:5000/api/admin/emails/${usesFounderMail ? "send-founder" : "send"}`,
         {
           method: "POST",
-
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
 
           body: formData,
         }
@@ -1311,7 +1301,8 @@ export default function EmailsSection() {
           fullDate: sentDate.toLocaleString("es-ES", { timeZone: "Europe/Madrid" }),
           timestamp: sentDate.getTime(),
           unread: false,
-          body: [emailData.content],
+            body: [emailData.content],
+            bodyIsHtml: true,
           recipients: emailData.recipients,
           attachments: emailData.attachments || [],
         }, ...previous]);
@@ -1340,6 +1331,7 @@ export default function EmailsSection() {
           timestamp: sentDate.getTime(),
           unread: false,
           body: [email.html || email.text || emailData.content],
+          bodyIsHtml: Boolean(email.html),
           recipients: { type: "custom", recipients: email.recipients || [] },
           attachments: [],
           isSent: true,
@@ -1389,8 +1381,7 @@ export default function EmailsSection() {
     setIsEmailSubmitting(true);
 
     try {
-      const token = localStorage.getItem("token");
-      if (!token) throw new Error("Tu sesión ha caducado. Vuelve a iniciar sesión.");
+
 
       const scheduledAt = new Date(`${emailData.scheduledDate}T${emailData.scheduledTime}`);
       if (Number.isNaN(scheduledAt.getTime()) || scheduledAt <= new Date()) {
@@ -1406,9 +1397,9 @@ export default function EmailsSection() {
       formData.append("text", htmlToPlainText(emailData.content));
       (emailData.attachments || []).forEach((file) => formData.append("attachments", file, file.name));
 
-      const response = await fetch("http://localhost:5000/api/admin/emails/schedule", {
+      const response = await apiFetch("http://localhost:5000/api/admin/emails/schedule", {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
+
         body: formData,
       });
       const data = await response.json().catch(() => ({}));
@@ -2022,16 +2013,10 @@ export default function EmailsSection() {
 
 
                 <div className="admin-email-message">
-
-                  {selectedEmail.body.map((paragraph, index) => (
-                    <div
-                      key={index}
-                      dangerouslySetInnerHTML={{
-                        __html: paragraph,
-                      }}
-                    />
-                  ))}
-
+                  <SanitizedEmailBody
+                    body={selectedEmail.body}
+                    isHtml={selectedEmail.bodyIsHtml !== false}
+                  />
                 </div>
 
 
@@ -2160,19 +2145,13 @@ export default function EmailsSection() {
 
         onSaveDraft={async (emailData) => {
           try {
-            const token = localStorage.getItem("token");
 
-            if (!token) {
-              alert("Tu sesión ha caducado. Vuelve a iniciar sesión.");
-              return;
-            }
-
-            const response = await fetch(
+            const response = await apiFetch(
               "http://localhost:5000/api/admin/emails/drafts",
               {
                 method: "POST",
                 headers: {
-                  Authorization: `Bearer ${token}`,
+
                   "Content-Type": "application/json",
                 },
                 body: JSON.stringify({

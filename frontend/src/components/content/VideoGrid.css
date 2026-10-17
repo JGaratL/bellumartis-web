@@ -5,6 +5,39 @@
   padding: 0 20px 20px 20px;
 }
 
+.video-grid-pagination {
+  display: flex;
+  justify-content: center;
+  padding: 8px 20px 28px;
+}
+
+.video-grid-pagination button {
+  min-width: 150px;
+  padding: 10px 18px;
+  border: 0;
+  border-radius: 8px;
+  background: #0f6970;
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.video-grid-pagination button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.content-load-error,
+.content-empty-state {
+  margin: 18px 20px;
+  text-align: center;
+}
+
+.content-load-error {
+  color: #b42318;
+}
+
 .video-card-button {
   border: 0;
   padding: 0;

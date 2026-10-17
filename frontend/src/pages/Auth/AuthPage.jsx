@@ -1,3 +1,4 @@
+import { apiFetch } from "../../api";
 import { useState, useContext, useEffect, useMemo, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 
@@ -161,7 +162,7 @@ function AuthPage() {
     }
 
     try {
-      const response = await fetch(`${API_URL}/login`, {
+      const response = await apiFetch(`${API_URL}/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -173,11 +174,8 @@ function AuthPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        if (data.code === "EMAIL_NOT_VERIFIED") {
-          setErrorCode(data.code);
-          setPendingVerificationEmail(email);
-        }
-
+        setErrorCode("LOGIN_FAILED");
+        setPendingVerificationEmail(email);
         return setError(data.error || "Error al iniciar sesion");
       }
 
@@ -226,7 +224,7 @@ function AuthPage() {
     if (Object.keys(nextErrors).length > 0) return;
 
     try {
-      const response = await fetch(`${API_URL}/register`, {
+      const response = await apiFetch(`${API_URL}/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -266,7 +264,7 @@ function AuthPage() {
       setError("");
       setSuccess("");
 
-      const response = await fetch(`${API_URL}/auth/resend-verification`, {
+      const response = await apiFetch(`${API_URL}/auth/resend-verification`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -327,7 +325,7 @@ function AuthPage() {
         callback: async (response) => {
           try {
             const data = await googleLogin(response);
-            if (data?.token) navigate("/");
+            if (data?.user) navigate("/");
           } catch (err) {
             console.error(err);
             setError("Error con Google");
@@ -436,13 +434,13 @@ function AuthPage() {
               Iniciar sesion
             </button>
 
-            {errorCode === "EMAIL_NOT_VERIFIED" && pendingVerificationEmail && (
+            {errorCode === "LOGIN_FAILED" && pendingVerificationEmail && (
               <button
                 type="button"
                 className="btn-secondary"
                 onClick={handleResendVerification}
               >
-                Reenviar verificacion
+                Solicitar o reenviar verificación
               </button>
             )}
 

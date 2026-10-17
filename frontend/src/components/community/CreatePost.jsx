@@ -1,3 +1,4 @@
+import { apiFetch } from "../../api";
 import { useEffect, useRef, useState } from "react";
 import { FaImage, FaSmile, FaTimes } from "react-icons/fa";
 import imageCompression from "browser-image-compression";
@@ -10,7 +11,7 @@ const EMOJIS = [
 
 function CreatePost({ onPostCreated }) {
 
-    const { user, token } = useAuth();
+    const { user } = useAuth();
 
     const resolveAvatarSrc = (value) => {
         if (!value || typeof value !== "string") return null;
@@ -157,7 +158,6 @@ function CreatePost({ onPostCreated }) {
     */
     const handleSubmit = async () => {
         if (!content.trim() && images.length === 0) return;
-        if (!token) return;
 
         try {
             setLoading(true);
@@ -169,12 +169,12 @@ function CreatePost({ onPostCreated }) {
                 formData.append("images", img, img.name);
             });
 
-            const res = await fetch(
+            const res = await apiFetch(
                 "http://localhost:5000/api/posts/create",
                 {
                     method: "POST",
                     headers: {
-                        Authorization: `Bearer ${token}`
+
                     },
                     body: formData
                 }

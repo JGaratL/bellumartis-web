@@ -1,38 +1,46 @@
 const jwt = require("jsonwebtoken");
+const pool = require("../db");
+const credentialVersion = require("../services/credentialVersion");
+const { SESSION_COOKIE, parseCookies } = require("./sessionCookies");
 
-function verifyToken(req, res, next) {
-  const authHeader = req.headers["authorization"];
+function sessionToken(req) {
+  return parseCookies(req.headers.cookie || "")[SESSION_COOKIE];
+}
 
-  if (!authHeader) {
+async function resolveSession(token) {
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  const [rows] = await pool.query("SELECT id, role, password FROM users WHERE id = ? LIMIT 1", [decoded.id]);
+  const user = rows[0];
+  if (!user || !decoded.cv || decoded.cv !== credentialVersion(user.password)) return null;
+  return { ...decoded, role: user.role || "user" };
+}
+
+async function verifyToken(req, res, next) {
+  const token = sessionToken(req);
+  if (!token) {
     return res.status(401).json({ error: "No token provided" });
   }
 
-  const [scheme, token] = authHeader.split(" ");
-  if (scheme !== "Bearer" || !token) {
-    return res.status(401).json({ error: "Formato de token inválido" });
-  }
-
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
+    req.user = await resolveSession(token);
+    if (!req.user) return res.status(401).json({ error: "Sesión inválida o revocada" });
     next();
   } catch (err) {
-    return res.status(401).json({ error: "Token inválido" });
+    if (err.name === "TokenExpiredError" || err.name === "JsonWebTokenError") {
+      return res.status(401).json({ error: "Token inválido" });
+    }
+    return res.status(503).json({ error: "No se pudo validar la sesión" });
   }
 }
 
-verifyToken.optional = (req, res, next) => {
-  if (!req.headers.authorization) {
-    req.user = null;
-    return next();
-  }
-  const [scheme, token] = req.headers.authorization.split(" ");
-  if (scheme !== "Bearer" || !token) {
+verifyToken.optional = async (req, res, next) => {
+  const token = sessionToken(req);
+  if (!token) {
     req.user = null;
     return next();
   }
   try {
-    req.user = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = await resolveSession(token);
   } catch {
     // This endpoint is public; an expired or invalid optional session is anonymous.
     req.user = null;

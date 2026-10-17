@@ -45,6 +45,50 @@ export function filterVideos(videos, filters, search) {
         continue;
       }
 
+      if (key === "period") {
+        const selectedPeriods = (Array.isArray(filterValue) ? filterValue : [filterValue]).map(normalize);
+        const videoPeriods = [
+          ...(Array.isArray(video.periods) ? video.periods : []),
+          ...(Array.isArray(video.period) ? video.period : [video.period]),
+          ...(Array.isArray(video.subperiods) ? video.subperiods : []),
+          ...(Array.isArray(video.subperiod) ? video.subperiod : [video.subperiod]),
+        ].map(normalize);
+
+        if (!selectedPeriods.some((period) => videoPeriods.includes(period))) {
+          return false;
+        }
+
+        continue;
+      }
+
+      if (key === "theme") {
+        const selectedTheme = normalize(filterValue);
+        const videoThemes = [
+          ...(Array.isArray(video.themes) ? video.themes : []),
+          ...(Array.isArray(video.theme) ? video.theme : [video.theme]),
+        ].map(normalize);
+
+        if (!videoThemes.includes(selectedTheme)) {
+          return false;
+        }
+
+        continue;
+      }
+
+      if (key === "conflict") {
+        const selectedConflict = normalize(filterValue);
+        const videoConflicts = [
+          ...(Array.isArray(video.conflicts) ? video.conflicts : []),
+          ...(Array.isArray(video.conflict) ? video.conflict : [video.conflict]),
+        ].map(normalize);
+
+        if (!videoConflicts.includes(selectedConflict)) {
+          return false;
+        }
+
+        continue;
+      }
+
       if (key === "guest") {
         const selectedGuest = normalize(filterValue);
         const videoGuests = getVideoGuests(video).map(normalize);

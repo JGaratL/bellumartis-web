@@ -1,5 +1,6 @@
 import { resolveAssetUrl } from "../../utils/assetHelpers";
 import { rewriteContentHtmlAssetUrls } from "../../utils/contentHtmlHelpers";
+import { sanitizeArticleHtml } from "../../utils/htmlSanitizers";
 import "./VideoModal.css";
 
 function formatDate(value) {
@@ -69,8 +70,9 @@ export default function VideoModal({ video, onClose }) {
   const formattedDate = formatDate(video.published_at);
   const imageUrl = resolveAssetUrl(video.thumbnail_url);
   const contentHtml = rewriteContentHtmlAssetUrls(normalizeHtml(video.content_html));
+  const safeArticleHtml = isArticle ? sanitizeArticleHtml(contentHtml) : contentHtml;
   const articleHtml = isArticle
-    ? removeRepeatedThumbnail(contentHtml, imageUrl || video.thumbnail_url)
+    ? removeRepeatedThumbnail(safeArticleHtml, imageUrl || video.thumbnail_url)
     : contentHtml;
 
   console.log("thumbnail_url:", video.thumbnail_url);
@@ -99,10 +101,16 @@ export default function VideoModal({ video, onClose }) {
           ) : null}
 
           {isArticle ? (
-            <div
-              className="modal-article-content content-html"
-              dangerouslySetInnerHTML={{ __html: articleHtml || "<p>Sin contenido</p>" }}
-            />
+            video.detailLoading ? (
+              <p className="modal-content-loading">Cargando artículo…</p>
+            ) : video.detailError ? (
+              <p className="modal-content-error">No se pudo cargar el artículo. Cierra el modal e inténtalo de nuevo.</p>
+            ) : (
+              <div
+                className="modal-article-content content-html"
+                dangerouslySetInnerHTML={{ __html: articleHtml || "<p>Sin contenido</p>" }}
+              />
+            )
           ) : (
             <div className="modal-description">
               {video.description || "Sin descripcion"}

@@ -27,6 +27,20 @@
   gap: 18px;
 }
 
+.modal-content-loading,
+.modal-content-error {
+  margin: 16px 0;
+  font-size: 14px;
+}
+
+.modal-content-loading {
+  color: #53646a;
+}
+
+.modal-content-error {
+  color: #b42318;
+}
+
 .close-modal-x {
   position: absolute;
   top: 16px;
@@ -368,6 +382,14 @@
 
   .modal-header {
     padding-right: 0;
+  }
+
+  .video-modal:not(.article-reading-modal) .modal-description {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+    text-align: justify;
+    overflow-wrap: anywhere;
   }
 
   .article-reading-modal .modal-body {

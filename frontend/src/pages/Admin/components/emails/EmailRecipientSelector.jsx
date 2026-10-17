@@ -1,3 +1,4 @@
+import { apiFetch } from "../../../../api";
 import { useEffect, useState } from "react";
 import { SPAIN_PROVINCES } from "../../../../utils/spainProvinces";
 import "./EmailRecipientSelector.css";
@@ -35,20 +36,10 @@ export default function EmailRecipientSelector({
         setLoadingUsers(true);
         setUsersError("");
 
-        const token = localStorage.getItem("token");
-
-        if (!token) {
-          setUsersError("No hay una sesión activa.");
-          return;
-        }
-
-        const response = await fetch(
+        const response = await apiFetch(
           "http://localhost:5000/api/admin/emails/users",
           {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
+            }
         );
 
         const data = await response.json();

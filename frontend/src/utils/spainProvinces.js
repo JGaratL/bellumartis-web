@@ -52,3 +52,72 @@ export const SPAIN_PROVINCES = [
   "Zamora",
   "Zaragoza",
 ];
+
+const AUTONOMOUS_COMMUNITIES_BY_PROVINCE = {
+  "A Coruna": "Galicia",
+  Alava: "País Vasco",
+  Albacete: "Castilla-La Mancha",
+  Alicante: "Comunitat Valenciana",
+  Almeria: "Andalucía",
+  Asturias: "Principado de Asturias",
+  Avila: "Castilla y León",
+  Badajoz: "Extremadura",
+  Baleares: "Illes Balears",
+  Barcelona: "Cataluña",
+  Burgos: "Castilla y León",
+  Caceres: "Extremadura",
+  Cadiz: "Andalucía",
+  Cantabria: "Cantabria",
+  Castellon: "Comunitat Valenciana",
+  Ceuta: "Ciudad Autónoma de Ceuta",
+  "Ciudad Real": "Castilla-La Mancha",
+  Cordoba: "Andalucía",
+  Cuenca: "Castilla-La Mancha",
+  Girona: "Cataluña",
+  Granada: "Andalucía",
+  Guadalajara: "Castilla-La Mancha",
+  Gipuzkoa: "País Vasco",
+  Huelva: "Andalucía",
+  Huesca: "Aragón",
+  Jaen: "Andalucía",
+  "La Rioja": "La Rioja",
+  "Las Palmas": "Canarias",
+  Leon: "Castilla y León",
+  Lleida: "Cataluña",
+  Lugo: "Galicia",
+  Madrid: "Comunidad de Madrid",
+  Malaga: "Andalucía",
+  Melilla: "Ciudad Autónoma de Melilla",
+  Murcia: "Región de Murcia",
+  Navarra: "Comunidad Foral de Navarra",
+  Ourense: "Galicia",
+  Palencia: "Castilla y León",
+  Pontevedra: "Galicia",
+  Salamanca: "Castilla y León",
+  "Santa Cruz de Tenerife": "Canarias",
+  Segovia: "Castilla y León",
+  Sevilla: "Andalucía",
+  Soria: "Castilla y León",
+  Tarragona: "Cataluña",
+  Teruel: "Aragón",
+  Toledo: "Castilla-La Mancha",
+  Valencia: "Comunitat Valenciana",
+  Valladolid: "Castilla y León",
+  Bizkaia: "País Vasco",
+  Zamora: "Castilla y León",
+  Zaragoza: "Aragón",
+};
+
+export function getAutonomousCommunity(province) {
+  const normalizedProvince = String(province || "")
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+
+  const match = Object.entries(AUTONOMOUS_COMMUNITIES_BY_PROVINCE).find(
+    ([name]) => name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() === normalizedProvince
+  );
+
+  return match?.[1] || null;
+}

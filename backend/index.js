@@ -1,15 +1,22 @@
 require("dotenv").config();
 
 const express = require("express");
+const crypto = require("crypto");
 const postsRoutes = require("./routes/posts");
 const cors = require("cors");
+const { allowedOrigins, requestSecurity } = require("./middleware/requestSecurity");
+const { parseCookies, setSessionCookies, setCsrfCookie, clearSessionCookies, SESSION_COOKIE, CSRF_COOKIE } = require("./middleware/sessionCookies");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const pool = require("./db");
 const checkRole = require("./middleware/role");
 const verifyToken = require("./middleware/auth");
+const credentialVersion = require("./services/credentialVersion");
+const { reserveAuthRequest } = require("./services/authRateLimit");
 const { OAuth2Client } = require("google-auth-library");
 const contentRoutes = require("./routes/contentRoutes");
+const articlesRoutes = require("./routes/articlesRoutes");
+const searchRoutes = require("./routes/search");
 const {
   createResetToken,
   hashToken,
@@ -27,24 +34,6 @@ const notificationsRoutes = require("./routes/notifications");
 
 const adminEmailsRoutes = require("./routes/adminEmails");
 const communicationsRoutes = require("./routes/communications");
-
-const storage = multer.diskStorage({
-
-  destination: (req, file, cb) => {
-    cb(null, "uploads/posts");
-  },
-
-  filename: (req, file, cb) => {
-
-    const unique =
-      Date.now() + "-" + Math.round(Math.random() * 1e9);
-
-    cb(
-      null,
-      unique + path.extname(file.originalname)
-    );
-  }
-});
 
 const emailAttachmentStorage = multer.diskStorage({
 
@@ -68,34 +57,56 @@ const emailAttachmentStorage = multer.diskStorage({
 const app = express();
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-app.use(cors());
+app.use(cors({ origin(origin, callback) { callback(null, !origin || allowedOrigins().has(origin)); }, credentials: true }));
+app.use(requestSecurity);
 app.use(express.json());
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/api/notifications", notificationsRoutes);
 app.use("/api/admin/emails", adminEmailsRoutes);
 app.use("/api/communications", communicationsRoutes);
+app.use("/api/articles", articlesRoutes);
+app.use("/api/search", searchRoutes);
 
 
 
 
-const upload = multer({
-
-  storage,
-
+const avatarMimeByExtension = new Map([
+  [".jpg", "image/jpeg"],
+  [".jpeg", "image/jpeg"],
+  [".png", "image/png"],
+  [".webp", "image/webp"],
+]);
+const AVATAR_MAX_BYTES = 10 * 1024 * 1024;
+const IMAGE_MAX_PIXELS = 25_000_000;
+const avatarUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: AVATAR_MAX_BYTES, files: 1 },
   fileFilter: (req, file, cb) => {
-
-    const allowed = /jpg|jpeg|png|webp/;
-
-    const valid =
-      allowed.test(path.extname(file.originalname).toLowerCase());
-
-    if (valid) {
-      cb(null, true);
-    } else {
-      cb(new Error("Solo imágenes"));
-    }
-  }
+    const extension = path.extname(file.originalname).toLowerCase();
+    if (avatarMimeByExtension.get(extension) === file.mimetype) return cb(null, true);
+    return cb(new Error("Solo se permiten imágenes JPG, PNG o WEBP."));
+  },
 });
+
+const parseAvatarUpload = (req, res, next) => {
+  avatarUpload.single("avatar")(req, res, (error) => {
+    if (error) return res.status(400).json({ error: error.message || "Imagen no válida" });
+    return next();
+  });
+};
+
+const assertSupportedImageBuffer = async (buffer, expectedMime = null) => {
+  const metadata = await sharp(buffer, { limitInputPixels: IMAGE_MAX_PIXELS, failOn: "error" }).metadata();
+  const mimeByFormat = { jpeg: "image/jpeg", png: "image/png", webp: "image/webp" };
+  const actualMime = mimeByFormat[metadata.format];
+  if (!actualMime || (expectedMime && actualMime !== expectedMime)) {
+    throw new Error("El contenido no es una imagen JPG, PNG o WEBP válida.");
+  }
+  if (!metadata.width || !metadata.height || metadata.width * metadata.height > IMAGE_MAX_PIXELS) {
+    throw new Error("La imagen supera las dimensiones permitidas.");
+  }
+  return metadata;
+};
 
 const emailUpload = multer({
   storage: emailAttachmentStorage,
@@ -117,11 +128,12 @@ const eventUpload = multer({
 HELPER JWT
 ====================================
 */
-const generateToken = (user) => {
+const generateToken = (user, passwordHash = user.password || null) => {
   return jwt.sign(
     {
       id: user.id,
       role: user.role || "user",
+      cv: credentialVersion(passwordHash),
     },
     process.env.JWT_SECRET,
     { expiresIn: "7d" }
@@ -150,8 +162,12 @@ const buildUniqueNickname = async (rawNickname) => {
 };
 
 const normalizeEmail = (email) => (email || "").toString().trim().toLowerCase();
-const isStrongPassword = (password) =>
-  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/.test(password || "");
+const isStrongPassword = (password) => {
+  const value = typeof password === "string" ? password : "";
+  return Buffer.byteLength(value, "utf8") <= 72 &&
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/.test(value);
+};
+const dummyPasswordHash = bcrypt.hash(crypto.randomBytes(32).toString("hex"), 10);
 const isSpainCountry = (country) =>
   (country || "")
     .toString()
@@ -160,7 +176,6 @@ const isSpainCountry = (country) =>
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase() === "espana";
 const UNVERIFIED_ACCOUNT_TTL_DAYS = Number(process.env.UNVERIFIED_ACCOUNT_TTL_DAYS || 7);
-const verificationResendCooldowns = new Map();
 
 const cleanupExpiredUnverifiedUsers = async () => {
   if (!Number.isFinite(UNVERIFIED_ACCOUNT_TTL_DAYS) || UNVERIFIED_ACCOUNT_TTL_DAYS <= 0) {
@@ -205,7 +220,7 @@ app.post("/register", async (req, res) => {
     if (!isStrongPassword(password)) {
       return res.status(400).json({
         error:
-          "La contrasena debe tener minimo 8 caracteres, una mayuscula, una minuscula, un numero y un simbolo",
+          "La contraseña debe tener mínimo 8 caracteres, mayúscula, minúscula, número y símbolo; y no superar 72 bytes UTF-8.",
       });
     }
 
@@ -249,11 +264,12 @@ app.post("/register", async (req, res) => {
           email: normalizedEmail,
           role: existingByEmail.role || "user",
         };
-        const token = generateToken(user);
+        const token = generateToken(user, hashedPassword);
+        const csrfToken = setSessionCookies(res, token);
 
         return res.json({
           message: "Cuenta Google completada con password local",
-          token,
+          csrfToken,
           user,
         });
       }
@@ -340,32 +356,25 @@ app.post("/login", async (req, res) => {
     );
 
     if (rows.length === 0) {
-      return res.status(400).json({
-        error: "Usuario no encontrado",
-      });
+      await bcrypt.compare(password, await dummyPasswordHash);
+      return res.status(401).json({ error: "Email o contraseña incorrectos, o la cuenta no está verificada." });
     }
 
     const user = rows[0];
 
     if (user.provider === "google" && !user.password) {
-      return res.status(400).json({
-        error: "Este usuario usa Google login",
-      });
+      await bcrypt.compare(password, await dummyPasswordHash);
+      return res.status(401).json({ error: "Email o contraseña incorrectos, o la cuenta no está verificada." });
     }
 
     const validPassword = await bcrypt.compare(password, user.password);
 
     if (!validPassword) {
-      return res.status(400).json({
-        error: "Contraseña incorrecta",
-      });
+      return res.status(401).json({ error: "Email o contraseña incorrectos, o la cuenta no está verificada." });
     }
 
     if (!user.email_verified_at || user.status === "inactive") {
-      return res.status(403).json({
-        error: "Tu email aun no esta verificado. Revisa tu correo o solicita un nuevo enlace.",
-        code: "EMAIL_NOT_VERIFIED",
-      });
+      return res.status(401).json({ error: "Email o contraseña incorrectos, o la cuenta no está verificada." });
     }
 
     const token = generateToken(user);
@@ -375,14 +384,16 @@ app.post("/login", async (req, res) => {
       [user.id]
     );
 
+    const csrfToken = setSessionCookies(res, token);
     res.json({
       message: "Login correcto",
-      token,
+      csrfToken,
       user: {
         id: user.id,
         nickname: user.nickname,
         email: user.email,
         role: user.role,
+        profile_image: user.profile_image || null,
       },
     });
   } catch (error) {
@@ -430,41 +441,40 @@ app.post("/auth/resend-verification", async (req, res) => {
       return res.status(400).json({ error: "Email obligatorio" });
     }
 
+    const limit = await reserveAuthRequest({
+      action: "verification_resend",
+      email: normalizedEmail,
+      req,
+      emailLimit: 3,
+      ipLimit: 60,
+      windowSeconds: 60 * 60,
+    });
+    if (!limit.allowed) {
+      return res.json({ message: "Si la cuenta existe y necesita verificar el correo, recibirás instrucciones. Espera un poco antes de volver a solicitarlo." });
+    }
+
     const [rows] = await pool.query(
       "SELECT id, nickname, email, email_verified_at, status, provider FROM users WHERE email = ?",
       [normalizedEmail]
     );
 
     if (rows.length === 0) {
-      return res.json({
-        message: "Si el email existe, enviaremos un nuevo enlace de verificacion.",
-      });
+      return res.json({ message: "Si la cuenta existe y necesita verificar el correo, recibirás instrucciones. Espera un poco antes de volver a solicitarlo." });
     }
 
     const user = rows[0];
 
     if (user.email_verified_at || user.provider === "google") {
-      return res.json({
-        message: "Tu email ya estaba verificado.",
-      });
+      return res.json({ message: "Si la cuenta existe y necesita verificar el correo, recibirás instrucciones. Espera un poco antes de volver a solicitarlo." });
     }
-
-    const previousRequest = verificationResendCooldowns.get(normalizedEmail) || 0;
-    if (Date.now() - previousRequest < 60_000) {
-      return res.status(429).json({ error: "Espera un minuto antes de solicitar otro enlace." });
-    }
-    verificationResendCooldowns.set(normalizedEmail, Date.now());
     try {
       await sendVerificationEmail(user);
     } catch (mailError) {
-      verificationResendCooldowns.delete(normalizedEmail);
       console.error("RESEND VERIFICATION MAIL ERROR:", mailError.message);
-      return res.status(502).json({ error: "No se pudo enviar el correo de verificación. Inténtalo más tarde." });
+      return res.json({ message: "Si la cuenta existe y necesita verificar el correo, recibirás instrucciones. Espera un poco antes de volver a solicitarlo." });
     }
 
-    return res.json({
-      message: "Te hemos enviado un nuevo enlace de verificacion.",
-    });
+    return res.json({ message: "Si la cuenta existe y necesita verificar el correo, recibirás instrucciones. Espera un poco antes de volver a solicitarlo." });
   } catch (error) {
     console.error("RESEND VERIFICATION ERROR:", error);
     return res.status(500).json({ error: "No se pudo reenviar la verificacion" });
@@ -545,16 +555,26 @@ app.post("/auth/forgot-password", async (req, res) => {
       return res.status(400).json({ error: "Email obligatorio" });
     }
 
+    const limit = await reserveAuthRequest({
+      action: "password_reset",
+      email: normalizedEmail,
+      req,
+      emailLimit: 3,
+      ipLimit: 60,
+      windowSeconds: 60 * 60,
+    });
+    const genericResponse = {
+      message: "Si la cuenta puede recuperar la contraseña, recibirás un enlace válido durante una hora.",
+    };
+    if (!limit.allowed) return res.json(genericResponse);
+
     const [rows] = await pool.query(
-      "SELECT id, nickname, email, password FROM users WHERE email = ?",
+      "SELECT id, nickname, email, password, email_verified_at, status FROM users WHERE email = ?",
       [normalizedEmail]
     );
 
-    if (rows.length === 0 || !rows[0].password) {
-      return res.json({
-        message:
-          "Si existe una cuenta local con ese email, recibirás un enlace para cambiar la contraseña.",
-      });
+    if (rows.length === 0 || !rows[0].password || !rows[0].email_verified_at || rows[0].status === "inactive") {
+      return res.json(genericResponse);
     }
 
     const user = rows[0];
@@ -573,12 +593,14 @@ app.post("/auth/forgot-password", async (req, res) => {
     try {
       await sendPasswordResetEmail(user, resetTokenData.token);
     } catch (mailError) {
-      console.error("RESET PASSWORD MAIL ERROR:", mailError);
+      await pool.query(
+        "UPDATE users SET reset_password_token = NULL, reset_password_expires = NULL WHERE id = ? AND reset_password_token = ?",
+        [user.id, resetTokenData.hash]
+      );
+      console.error("RESET PASSWORD MAIL ERROR:", mailError.message);
     }
 
-    return res.json({
-      message: "Te hemos enviado un enlace para restablecer la contrasena.",
-    });
+    return res.json(genericResponse);
   } catch (error) {
     console.error("FORGOT PASSWORD ERROR:", error);
     return res.status(500).json({ error: "No se pudo enviar el enlace" });
@@ -601,40 +623,30 @@ app.post("/auth/reset-password", async (req, res) => {
     if (!isStrongPassword(password)) {
       return res.status(400).json({
         error:
-          "La contrasena debe tener minimo 8 caracteres, una mayuscula, una minuscula, un numero y un simbolo",
+          "La contraseña debe tener mínimo 8 caracteres, mayúscula, minúscula, número y símbolo; y no superar 72 bytes UTF-8.",
       });
     }
 
     const tokenHash = hashToken(token);
 
-    const [rows] = await pool.query(
-      `
-      SELECT id
-      FROM users
-      WHERE reset_password_token = ?
-        AND reset_password_expires IS NOT NULL
-        AND reset_password_expires > NOW()
-      LIMIT 1
-      `,
-      [tokenHash]
-    );
-
-    if (rows.length === 0) {
-      return res.status(400).json({
-        error: "El enlace ha caducado o no es valido",
-      });
-    }
-
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    await pool.query(
+    const [result] = await pool.query(
       `
       UPDATE users
       SET password = ?, reset_password_token = NULL, reset_password_expires = NULL
-      WHERE id = ?
+      WHERE reset_password_token = ?
+        AND reset_password_expires IS NOT NULL
+        AND reset_password_expires > NOW()
       `,
-      [hashedPassword, rows[0].id]
+      [hashedPassword, tokenHash]
     );
+
+    if (!result.affectedRows) {
+      return res.status(400).json({ error: "El enlace ha caducado o no es valido" });
+    }
+
+    clearSessionCookies(res);
 
     return res.json({
       message: "Contrasena actualizada correctamente",
@@ -689,6 +701,7 @@ app.post("/auth/google", async (req, res) => {
     const emailUser = emailRows[0] || null;
     const googleUser = googleRows[0] || null;
     let user = null;
+    let sessionPasswordHash = null;
 
     /*
     ============================
@@ -704,6 +717,7 @@ app.post("/auth/google", async (req, res) => {
 
     if (emailUser || googleUser) {
       user = emailUser || googleUser;
+      sessionPasswordHash = user.password || null;
       if (user.status === "inactive") {
         return res.status(403).json({ error: "La cuenta está inactiva." });
       }
@@ -772,12 +786,9 @@ app.post("/auth/google", async (req, res) => {
       [user.id]
     );
 
-    const token = generateToken(user);
-
-    res.json({
-      token,
-      user,
-    });
+    const token = generateToken(user, sessionPasswordHash);
+    const csrfToken = setSessionCookies(res, token);
+    res.json({ csrfToken, user });
   } catch (err) {
     console.error("Google auth error:", err);
     res.status(500).json({ error: "Google auth error" });
@@ -804,7 +815,7 @@ GET PROFILE
 
 app.get("/users/me", verifyToken, async (req, res) => {
   const [rows] = await pool.query(
-    `SELECT id, nickname, email, province, country, created_at, profile_image,
+    `SELECT id, nickname, email, role, province, country, created_at, profile_image,
             x_url, facebook_url, instagram_url, youtube_url
      FROM users
      WHERE id = ?`,
@@ -815,7 +826,13 @@ app.get("/users/me", verifyToken, async (req, res) => {
     return res.status(404).json({ error: "Usuario no encontrado" });
   }
 
-  res.json(rows[0]);
+  const csrfToken = parseCookies(req.headers.cookie || "")[CSRF_COOKIE] || setCsrfCookie(res);
+  res.json({ ...rows[0], csrfToken });
+});
+
+app.post("/logout", (req, res) => {
+  clearSessionCookies(res);
+  return res.json({ message: "Sesión cerrada" });
 });
 
 /*
@@ -1297,6 +1314,7 @@ EDIT PROFILE
 */
 
 app.put("/users/me", verifyToken, async (req, res) => {
+  let generatedAvatarPath = null;
   try {
     const {
       nickname,
@@ -1324,39 +1342,31 @@ app.put("/users/me", verifyToken, async (req, res) => {
       typeof nextProfileImage === "string" &&
       nextProfileImage.startsWith("data:image/")
     ) {
-      const matches = nextProfileImage.match(/^data:image\/[a-zA-Z0-9.+-]+;base64,(.+)$/);
+      const matches = nextProfileImage.match(/^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/]+={0,2})$/i);
 
       if (!matches || !matches[1]) {
         return res.status(400).json({ error: "Imagen de perfil inválida" });
       }
 
-      const buffer = Buffer.from(matches[1], "base64");
+      const buffer = Buffer.from(matches[2], "base64");
+      if (!buffer.length || buffer.length > AVATAR_MAX_BYTES) {
+        return res.status(413).json({ error: "La imagen de perfil supera el tamaño máximo de 10 MB" });
+      }
+      await assertSupportedImageBuffer(buffer, matches[1].toLowerCase());
       const avatarsDir = path.join(__dirname, "uploads", "avatars");
       fs.mkdirSync(avatarsDir, { recursive: true });
 
-      const filename = `avatar-${req.user.id}-${Date.now()}.webp`;
+      const filename = `avatar-${req.user.id}-${crypto.randomUUID()}.webp`;
       const outputPath = path.join(avatarsDir, filename);
+      generatedAvatarPath = outputPath;
 
-      await sharp(buffer)
+      await sharp(buffer, { limitInputPixels: IMAGE_MAX_PIXELS, failOn: "error" })
         .resize(500, 500, { fit: "cover" })
         .webp({ quality: 82 })
         .toFile(outputPath);
 
       nextProfileImage = `/uploads/avatars/${filename}`;
 
-      if (
-        oldProfileImage &&
-        typeof oldProfileImage === "string" &&
-        (oldProfileImage.startsWith("/uploads/avatars/") ||
-          oldProfileImage.startsWith("uploads/avatars/"))
-      ) {
-        const oldRelative = oldProfileImage.replace(/^\/+/, "");
-        const oldAbsolutePath = path.join(__dirname, oldRelative);
-
-        if (fs.existsSync(oldAbsolutePath) && oldAbsolutePath !== outputPath) {
-          fs.unlinkSync(oldAbsolutePath);
-        }
-      }
     }
 
     await pool.query(
@@ -1383,8 +1393,23 @@ app.put("/users/me", verifyToken, async (req, res) => {
       ]
     );
 
+    if (
+      generatedAvatarPath &&
+      oldProfileImage &&
+      typeof oldProfileImage === "string" &&
+      (oldProfileImage.startsWith("/uploads/avatars/") || oldProfileImage.startsWith("uploads/avatars/"))
+    ) {
+      const oldAbsolutePath = path.join(__dirname, oldProfileImage.replace(/^\/+/, ""));
+      if (fs.existsSync(oldAbsolutePath) && oldAbsolutePath !== generatedAvatarPath) {
+        await fs.promises.unlink(oldAbsolutePath).catch((error) => {
+          console.warn("No se pudo borrar el avatar anterior:", error.message);
+        });
+      }
+    }
+
     return res.json({ message: "Perfil actualizado correctamente" });
   } catch (error) {
+    if (generatedAvatarPath) await fs.promises.unlink(generatedAvatarPath).catch(() => {});
     console.error("UPDATE PROFILE ERROR:", error);
     return res.status(500).json({ error: "No se pudo actualizar el perfil" });
   }
@@ -1406,7 +1431,7 @@ app.put("/users/me/password", verifyToken, async (req, res) => {
     if (!isStrongPassword(new_password)) {
       return res.status(400).json({
         error:
-          "La contrasena debe tener minimo 8 caracteres, una mayuscula, una minuscula, un numero y un simbolo",
+          "La contraseña debe tener mínimo 8 caracteres, mayúscula, minúscula, número y símbolo; y no superar 72 bytes UTF-8.",
       });
     }
 
@@ -1438,9 +1463,13 @@ app.put("/users/me/password", verifyToken, async (req, res) => {
     const hashedPassword = await bcrypt.hash(new_password, 10);
 
     await pool.query(
-      "UPDATE users SET password = ? WHERE id = ?",
+      `UPDATE users
+       SET password = ?, reset_password_token = NULL, reset_password_expires = NULL
+       WHERE id = ?`,
       [hashedPassword, user.id]
     );
+
+    clearSessionCookies(res);
 
     return res.json({
       message: "Contraseña actualizada correctamente",
@@ -1457,39 +1486,39 @@ UPLOAD AVATAR
 ====================================
 */
 
-app.post("/upload-avatar", upload.single("avatar"), async (req, res) => {
-  const userId = req.body.userId;
+app.post("/upload-avatar", verifyToken, parseAvatarUpload, async (req, res) => {
+  let generatedAvatarPath = null;
+  try {
+    if (!req.file) return res.status(400).json({ error: "Falta la imagen" });
+    const [rows] = await pool.query("SELECT profile_image FROM users WHERE id = ?", [req.user.id]);
+    if (!rows.length) return res.status(404).json({ error: "Usuario no encontrado" });
 
-  const user = await User.findById(userId);
+    await assertSupportedImageBuffer(req.file.buffer, req.file.mimetype);
+    const filename = `avatar-${req.user.id}-${crypto.randomUUID()}.webp`;
+    const outputPath = path.join(__dirname, "uploads", "avatars", filename);
+    await fs.promises.mkdir(path.dirname(outputPath), { recursive: true });
+    generatedAvatarPath = outputPath;
+    await sharp(req.file.buffer, { limitInputPixels: IMAGE_MAX_PIXELS, failOn: "error" })
+      .resize(500, 500, { fit: "cover" })
+      .webp({ quality: 80 })
+      .toFile(outputPath);
+    const newUrl = `/uploads/avatars/${filename}`;
+    await pool.query("UPDATE users SET profile_image = ? WHERE id = ?", [newUrl, req.user.id]);
+    generatedAvatarPath = null;
 
-  // 1. borrar anterior si existe
-  if (user.profile_image && !user.profile_image.includes("default")) {
-    const oldPath = path.join(
-      "uploads",
-      path.basename(user.profile_image)
-    );
-
-    if (fs.existsSync(oldPath)) {
-      fs.unlinkSync(oldPath);
+    const oldImage = rows[0].profile_image;
+    if (oldImage?.startsWith("/uploads/")) {
+      const oldPath = oldImage.startsWith("/uploads/avatars/")
+        ? path.join(__dirname, oldImage.replace(/^\/+/, ""))
+        : path.join(__dirname, "uploads", path.basename(oldImage));
+      if (oldPath !== outputPath) await fs.promises.unlink(oldPath).catch(() => {});
     }
+    return res.json({ url: newUrl });
+  } catch (error) {
+    if (generatedAvatarPath) await fs.promises.unlink(generatedAvatarPath).catch(() => {});
+    console.error("AVATAR UPLOAD ERROR:", error);
+    return res.status(400).json({ error: error.message || "No se pudo guardar la imagen de perfil" });
   }
-
-  // 2. procesar nueva imagen (sharp ya lo haces aquí)
-  const filename = Date.now() + ".webp";
-  const outputPath = path.join("uploads", filename);
-
-  await sharp(req.file.buffer)
-    .resize(500, 500)
-    .webp({ quality: 80 })
-    .toFile(outputPath);
-
-  const newUrl = `/uploads/${filename}`;
-
-  // 3. guardar en BD
-  user.profile_image = newUrl;
-  await user.save();
-
-  res.json({ url: newUrl });
 });
 
 
@@ -1506,7 +1535,13 @@ app.get("/api/users/:id", verifyToken, async (req, res) => {
     return res.status(404).json({ error: "Usuario no encontrado" });
   }
 
-  res.json(rows[0]);
+  const targetUser = rows[0];
+  const canViewEmail =
+    Number(req.user.id) === Number(targetUser.id) ||
+    ["admin", "owner"].includes(req.user.role);
+  if (!canViewEmail) delete targetUser.email;
+
+  res.json(targetUser);
 });
 
 /*
@@ -1577,6 +1612,44 @@ const BANNER_EVENT_TYPES = new Set(["charla", "firma", "webinar", "sorteo"]);
 const MANUAL_BANNER_TYPE = "book_promotion";
 const MANUAL_BANNER_TYPES = new Set(["book_promotion", "sorteo"]);
 
+const bannerUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024, files: 1 },
+  fileFilter: (req, file, cb) => {
+    const allowed = new Set([".jpg", ".jpeg", ".png", ".webp"]);
+    if (allowed.has(path.extname(file.originalname).toLowerCase())) cb(null, true);
+    else cb(new Error("La imagen debe ser JPG, PNG o WEBP."));
+  },
+});
+
+const parseBannerUpload = (req, res, next) => {
+  bannerUpload.single("image")(req, res, (error) => {
+    if (error) return res.status(400).json({ error: error.message || "Imagen no válida" });
+    return next();
+  });
+};
+
+const saveBannerImage = async (file) => {
+  if (!file) return null;
+  try {
+    await assertSupportedImageBuffer(file.buffer, file.mimetype);
+  } catch (error) {
+    error.statusCode = 400;
+    throw error;
+  }
+  const directory = path.join(__dirname, "uploads", "banners");
+  await fs.promises.mkdir(directory, { recursive: true });
+  const filename = `banner-${crypto.randomUUID()}.webp`;
+  const filepath = path.join(directory, filename);
+
+  await sharp(file.buffer, { limitInputPixels: IMAGE_MAX_PIXELS, failOn: "error" })
+    .resize({ width: 1920, height: 1920, fit: "inside", withoutEnlargement: true })
+    .webp({ quality: 85 })
+    .toFile(filepath);
+
+  return { imageUrl: `/uploads/banners/${filename}`, filepath };
+};
+
 const normalizeBannerActive = (value) => {
   if (value === false || value === 0 || value === "0") return false;
   if (typeof value === "string") {
@@ -1596,6 +1669,7 @@ const mapBannerRow = (row) => {
     event_id: row.event_id,
 
     title: row.title || row.event_title,
+    additional_text: row.additional_text || null,
     image_url: row.image_url || row.event_image_url,
     link: row.link || row.event_link,
 
@@ -1700,6 +1774,7 @@ const getPublicBanner = async (db, userProvince, isAuthenticated = false) => {
         b.banner_type,
         b.event_id,
         b.title,
+        b.additional_text,
         b.image_url,
         b.link,
         b.active,
@@ -1730,6 +1805,7 @@ const getPublicBanner = async (db, userProvince, isAuthenticated = false) => {
         b.banner_type,
         b.event_id,
         b.title,
+        b.additional_text,
         b.image_url,
         b.link,
         b.active,
@@ -1759,6 +1835,7 @@ const getPublicBanner = async (db, userProvince, isAuthenticated = false) => {
         b.banner_type,
         b.event_id,
         b.title,
+        b.additional_text,
         b.image_url,
         b.link,
         b.active,
@@ -1791,6 +1868,7 @@ const getPublicBanner = async (db, userProvince, isAuthenticated = false) => {
       b.banner_type,
       b.event_id,
       b.title,
+      b.additional_text,
       b.image_url,
       b.link,
       b.active,
@@ -1820,6 +1898,7 @@ const getPublicBanner = async (db, userProvince, isAuthenticated = false) => {
       b.banner_type,
       b.event_id,
       b.title,
+      b.additional_text,
       b.image_url,
       b.link,
       b.active,
@@ -1988,26 +2067,31 @@ app.delete("/events/:id/join", verifyToken, async (req, res) => {
 EVENT USERS
 ====================================
 */
-app.get("/events/:id/users", async (req, res) => {
-  try {
-    const eventId = req.params.id;
+app.get(
+  "/events/:id/users",
+  verifyToken,
+  checkRole(["admin", "owner"]),
+  async (req, res) => {
+    try {
+      const eventId = req.params.id;
 
-    const [rows] = await pool.query(
-      `
+      const [rows] = await pool.query(
+        `
       SELECT u.id, u.nickname, u.email
       FROM user_events ue
       JOIN users u ON ue.user_id = u.id
       WHERE ue.event_id = ?
       `,
-      [eventId]
-    );
+        [eventId]
+      );
 
-    res.json(rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Error obteniendo usuarios" });
+      return res.json(rows);
+    } catch (err) {
+      console.error("ADMIN EVENT ATTENDEES ERROR:", err);
+      return res.status(500).json({ error: "Error obteniendo usuarios" });
+    }
   }
-});
+);
 
 /*
 ====================================
@@ -2585,6 +2669,7 @@ app.get(
           b.banner_type,
           b.event_id,
           b.title,
+          b.additional_text,
           b.image_url,
           b.link,
           b.active,
@@ -2617,10 +2702,13 @@ app.post(
   "/admin/banners",
   verifyToken,
   checkRole(["admin", "owner"]),
+  parseBannerUpload,
   async (req, res) => {
+    let savedImage = null;
+    let imagePersisted = false;
     try {
       const title = String(req.body?.title || "").trim();
-      const imageUrl = String(req.body?.image_url || "").trim();
+      const additionalText = String(req.body?.additional_text || "").trim();
       const link = String(req.body?.link || "").trim();
       const bannerType = String(req.body?.banner_type || MANUAL_BANNER_TYPE).trim();
       const active = normalizeBannerActive(req.body?.active);
@@ -2629,16 +2717,20 @@ app.post(
         return res.status(400).json({ error: "El titulo es obligatorio" });
       }
 
-      if (!imageUrl) {
-        return res.status(400).json({ error: "La imagen es obligatoria" });
-      }
-
       if (!MANUAL_BANNER_TYPES.has(bannerType)) {
         return res.status(400).json({ error: "El tipo de banner no es valido" });
       }
 
-      if (title.length > 255 || imageUrl.length > 255 || link.length > 255) {
+      if (title.length > 255 || additionalText.length > 255 || link.length > 255) {
         return res.status(400).json({ error: "Alguno de los campos supera el limite permitido" });
+      }
+
+      savedImage = await saveBannerImage(req.file);
+      const imageUrl = savedImage?.imageUrl || String(req.body?.image_url || "").trim();
+      if (!imageUrl) return res.status(400).json({ error: "La imagen es obligatoria" });
+      if (imageUrl.length > 255) {
+        if (savedImage) await fs.promises.unlink(savedImage.filepath).catch(() => {});
+        return res.status(400).json({ error: "La URL de la imagen supera el limite permitido" });
       }
 
       const [result] = await pool.query(
@@ -2647,13 +2739,15 @@ app.post(
           banner_type,
           event_id,
           title,
+          additional_text,
           image_url,
           link,
           active
-        ) VALUES (?, NULL, ?, ?, ?, ?)
+        ) VALUES (?, NULL, ?, ?, ?, ?, ?)
         `,
-        [bannerType, title, imageUrl, link || null, active ? 1 : 0]
+        [bannerType, title, additionalText || null, imageUrl, link || null, active ? 1 : 0]
       );
+      imagePersisted = true;
 
       const [rows] = await pool.query(
         `
@@ -2662,6 +2756,7 @@ app.post(
           b.banner_type,
           b.event_id,
           b.title,
+          b.additional_text,
           b.image_url,
           b.link,
           b.active,
@@ -2683,8 +2778,9 @@ app.post(
         banner: mapBannerRow(rows[0] || null),
       });
     } catch (err) {
+      if (savedImage && !imagePersisted) await fs.promises.unlink(savedImage.filepath).catch(() => {});
       console.error("ADMIN BANNERS CREATE ERROR:", err);
-      return res.status(500).json({ error: "No se pudo crear el banner" });
+      return res.status(err.statusCode || 500).json({ error: err.message || "No se pudo crear el banner" });
     }
   }
 );
@@ -2698,7 +2794,10 @@ app.put(
   "/admin/banners/:id",
   verifyToken,
   checkRole(["admin", "owner"]),
+  parseBannerUpload,
   async (req, res) => {
+    let savedImage = null;
+    let imagePersisted = false;
     try {
       const bannerId = Number(req.params.id);
 
@@ -2707,18 +2806,14 @@ app.put(
       }
 
       const title = String(req.body?.title || "").trim();
-      const imageUrl = String(req.body?.image_url || "").trim();
+      const additionalText = String(req.body?.additional_text || "").trim();
       const link = String(req.body?.link || "").trim();
 
       if (!title) {
         return res.status(400).json({ error: "El titulo es obligatorio" });
       }
 
-      if (!imageUrl) {
-        return res.status(400).json({ error: "La imagen es obligatoria" });
-      }
-
-      if (title.length > 255 || imageUrl.length > 255 || link.length > 255) {
+      if (title.length > 255 || additionalText.length > 255 || link.length > 255) {
         return res.status(400).json({ error: "Alguno de los campos supera el limite permitido" });
       }
 
@@ -2737,16 +2832,26 @@ app.put(
         return res.status(404).json({ error: "Banner no encontrado" });
       }
 
+      savedImage = await saveBannerImage(req.file);
+      const imageUrl = savedImage?.imageUrl || String(req.body?.image_url || "").trim();
+      if (!imageUrl) return res.status(400).json({ error: "La imagen es obligatoria" });
+      if (imageUrl.length > 255) {
+        if (savedImage) await fs.promises.unlink(savedImage.filepath).catch(() => {});
+        return res.status(400).json({ error: "La URL de la imagen supera el limite permitido" });
+      }
+
       await pool.query(
         `
         UPDATE banners
         SET title = ?,
+            additional_text = ?,
             image_url = ?,
             link = ?
         WHERE id = ?
         `,
-        [title, imageUrl, link || null, bannerId]
+        [title, additionalText || null, imageUrl, link || null, bannerId]
       );
+      imagePersisted = true;
 
       const [rows] = await pool.query(
         `
@@ -2755,6 +2860,7 @@ app.put(
           b.banner_type,
           b.event_id,
           b.title,
+          b.additional_text,
           b.image_url,
           b.link,
           b.active,
@@ -2776,8 +2882,9 @@ app.put(
         banner: mapBannerRow(rows[0] || null),
       });
     } catch (err) {
+      if (savedImage && !imagePersisted) await fs.promises.unlink(savedImage.filepath).catch(() => {});
       console.error("ADMIN BANNERS UPDATE ERROR:", err);
-      return res.status(500).json({ error: "No se pudo actualizar el banner" });
+      return res.status(err.statusCode || 500).json({ error: err.message || "No se pudo actualizar el banner" });
     }
   }
 );
@@ -2888,9 +2995,8 @@ app.get("/banners/current", async (req, res) => {
     let userProvince = "";
     let isAuthenticated = false;
 
-    const authHeader = req.headers.authorization || "";
-    if (authHeader.startsWith("Bearer ")) {
-      const token = authHeader.slice(7);
+    const token = parseCookies(req.headers.cookie || "")[SESSION_COOKIE];
+    if (token) {
       try {
         const payload = jwt.verify(token, process.env.JWT_SECRET);
         if (payload?.id) {

@@ -19,15 +19,17 @@ FILE FILTER
 ====================================
 */
 const fileFilter = (req, file, cb) => {
-  const allowed = /jpg|jpeg|png|webp/;
-
+  const allowedMimeByExtension = {
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".png": "image/png",
+    ".webp": "image/webp",
+  };
   const ext = path.extname(file.originalname).toLowerCase();
-  const mime = file.mimetype.startsWith("image/");
-
-  if (allowed.test(ext) && mime) {
+  if (allowedMimeByExtension[ext] === file.mimetype) {
     cb(null, true);
   } else {
-    cb(new Error("Solo imágenes permitidas"));
+    cb(new Error("Solo se permiten imágenes JPG, PNG o WEBP"));
   }
 };
 
@@ -40,8 +42,8 @@ const upload = multer({
   storage: multer.memoryStorage(), // 🔥 CLAVE
   fileFilter,
   limits: {
-    fileSize: 20 * 1024 * 1024, // límite de subida (no disco)
-    files: 10
+    fileSize: 5 * 1024 * 1024,
+    files: 10,
   }
 });
 

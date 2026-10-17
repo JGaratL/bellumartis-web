@@ -14,6 +14,7 @@ export default function FilterGroup({ label, filterKey, icon: Icon }) {
     const [open, setOpen] = useState(false);
     const [expanded, setExpanded] = useState(null);
     const [guests, setGuests] = useState([]);
+    const [contentTaxonomy, setContentTaxonomy] = useState({ periods: [], conflicts: [] });
     const [search, setSearch] = useState("");
 
     const ref = useRef();
@@ -31,12 +32,14 @@ export default function FilterGroup({ label, filterKey, icon: Icon }) {
             { value: "historia_militar", label: "Historia Militar" },
             { value: "actualidad_militar", label: "Actualidad Militar" },
         ],
-        type: ["video", "podcast", "articulo", "webinar"],
-        region: ["Europa", "Oriente Medio", "Asia", "América"],
-        country: ["España", "EEUU", "Rusia", "China"],
+        type: [
+            { value: "video", label: "Vídeo" },
+            { value: "podcast", label: "Podcast" },
+            { value: "articulo", label: "Artículo" },
+        ],
     };
 
-    const periodTree = {
+    const fallbackPeriodTree = {
         Prehistoria: ["Prehistoria"],
         "Historia Antigua": ["Mesopotamia", "Persia", "Grecia", "Roma"],
         "Edad Media": [
@@ -64,6 +67,20 @@ export default function FilterGroup({ label, filterKey, icon: Icon }) {
     };
 
     useEffect(() => {
+        if (filterKey === "period" || filterKey === "conflict") {
+            fetch("http://localhost:5000/api/content/filters")
+                .then((response) => {
+                    if (!response.ok) throw new Error(`Error HTTP ${response.status}`);
+                    return response.json();
+                })
+                .then((data) => setContentTaxonomy({
+                    periods: Array.isArray(data.periods) ? data.periods : [],
+                    conflicts: Array.isArray(data.conflicts) ? data.conflicts : [],
+                }))
+                .catch((err) => console.error("Error cargando filtros de contenido:", err));
+            return;
+        }
+
         if (filterKey !== "guest") return;
 
         async function loadGuests() {
@@ -106,8 +123,14 @@ export default function FilterGroup({ label, filterKey, icon: Icon }) {
               )
             : [];
 
-    const options =
-        filterKey === "guest" ? sortedGuests || [] : optionsMap[filterKey] || [];
+    const options = filterKey === "guest"
+        ? sortedGuests || []
+        : filterKey === "conflict"
+            ? contentTaxonomy.conflicts
+            : optionsMap[filterKey] || [];
+    const periodTree = contentTaxonomy.periods.length
+        ? Object.fromEntries(contentTaxonomy.periods.map((period) => [period.name, period.subperiods || []]))
+        : fallbackPeriodTree;
 
     useEffect(() => {
         const handleClickOutside = (e) => {
@@ -142,6 +165,13 @@ export default function FilterGroup({ label, filterKey, icon: Icon }) {
         }
     };
 
+    const togglePeriod = (value) => {
+        const prev = Array.isArray(currentValue) ? currentValue : [];
+        setFilter("period", prev.includes(value)
+            ? prev.filter((item) => item !== value)
+            : [...prev, value]);
+    };
+
     const isSelected = (value) =>
         Array.isArray(currentValue) && currentValue.includes(value);
 
@@ -156,7 +186,7 @@ export default function FilterGroup({ label, filterKey, icon: Icon }) {
                 type="button"
                 disabled={isDisabled}
                 className={`filter-group-btn
-                    ${currentValue ? "active" : ""}
+                    ${(Array.isArray(currentValue) ? currentValue.length > 0 : Boolean(currentValue)) ? "active" : ""}
                     ${isDisabled ? "disabled" : ""}
                 `}
                 onClick={() => {
@@ -165,10 +195,10 @@ export default function FilterGroup({ label, filterKey, icon: Icon }) {
                 }}
             >
             <span className="filter-placeholder">
-                {filterKey === "theme"
-                    ? optionsMap.theme.find(o => o.value === currentValue)?.label || "Seleccionar"
+                {filterKey === "theme" || filterKey === "type"
+                    ? optionsMap[filterKey].find(o => o.value === currentValue)?.label || "Seleccionar"
                     : Array.isArray(currentValue)
-                        ? currentValue.join(", ")
+                        ? currentValue.join(", ") || "Seleccionar"
                         : currentValue || "Seleccionar"}
             </span>
 
@@ -214,6 +244,15 @@ export default function FilterGroup({ label, filterKey, icon: Icon }) {
 
                                     {expanded === periodo && (
                                         <div className="subperiods">
+                                            <label className="subperiod-item">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={isSelected(periodo)}
+                                                    onClick={(event) => event.stopPropagation()}
+                                                    onChange={() => togglePeriod(periodo)}
+                                                />
+                                                <span>Todo {periodo}</span>
+                                            </label>
                                             {subitems.map((sub) => (
                                                 <label
                                                     key={sub}
@@ -222,6 +261,7 @@ export default function FilterGroup({ label, filterKey, icon: Icon }) {
                                                     <input
                                                         type="checkbox"
                                                         checked={isSelected(sub)}
+                                                        onClick={(event) => event.stopPropagation()}
                                                         onChange={() =>
                                                             toggleSubperiod(sub)
                                                         }
@@ -239,18 +279,22 @@ export default function FilterGroup({ label, filterKey, icon: Icon }) {
                                 const value =
                                     filterKey === "guest"
                                         ? opt?.name || `guest-${opt?.id}`
-                                        : filterKey === "theme"
+                                        : filterKey === "theme" || filterKey === "type"
                                             ? opt.value
                                             : opt;
 
                                 const text =
-                                    filterKey === "theme"
+                                    filterKey === "theme" || filterKey === "type"
                                         ? opt.label
                                         : value;
 
                                 return (
                                     <div
-                                        key={filterKey === "guest" ? opt.id : opt}
+                                        key={filterKey === "guest"
+                                            ? opt.id
+                                            : filterKey === "theme" || filterKey === "type"
+                                                ? opt.value
+                                                : opt}
                                         className="filter-group-item"
                                         onClick={() => {
                                             setFilter(filterKey, value);

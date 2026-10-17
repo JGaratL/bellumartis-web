@@ -9,8 +9,8 @@ export default function AdminUserStatusModal({
   if (!user) return null;
 
   const isActive = user.status === "active";
-  const nextStatus = isActive ? "inactive" : "active";
   const title = isActive ? "Bloquear usuario" : "Desbloquear usuario";
+  const nextBlockingState = isActive ? "Bloqueado" : "Habilitado";
   const actionText = isActive ? "bloqueado" : "desbloqueado";
 
   return (
@@ -27,7 +27,7 @@ export default function AdminUserStatusModal({
           {title} a {user.nickname}
         </h3>
         <p className="admin-modal-copy">
-          Este usuario quedará como <strong>{nextStatus}</strong>.
+          El estado del usuario será <strong>{nextBlockingState}</strong>.
         </p>
         <p className="admin-modal-copy admin-modal-strong">
           Al confirmar, el usuario será {actionText}.

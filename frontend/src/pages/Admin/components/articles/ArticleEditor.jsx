@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { sanitizeArticleHtml } from "../../../../utils/htmlSanitizers";
 import { FaBold, FaItalic, FaImage, FaLink, FaListOl, FaListUl, FaHeading } from "react-icons/fa6";
 
 export default function ArticleEditor({
@@ -16,7 +17,7 @@ export default function ArticleEditor({
 
     const nextValue = value || "";
     if (editor.innerHTML !== nextValue) {
-      editor.innerHTML = nextValue;
+      editor.innerHTML = sanitizeArticleHtml(nextValue);
     }
   }, [value]);
 

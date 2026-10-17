@@ -162,6 +162,50 @@ export default function ArticlesSection() {
     [loadArticles]
   );
 
+  const toggleArticleVisibility = useCallback(
+    async (article) => {
+      if (!article?.id || saving) return;
+
+      try {
+        setSaving(true);
+        setError("");
+        setMessage("");
+
+        const payload = new FormData();
+        payload.append("title", article.title || "");
+        payload.append("slug", article.slug || "");
+        payload.append("description", article.description || "");
+        payload.append("published_at", article.published_at || "");
+        payload.append("theme", article.theme || "historia_militar");
+        payload.append("period_id", article.period_id || "");
+        payload.append("subperiod_id", article.subperiod_id || "");
+        payload.append("is_visible", article.is_visible ? "0" : "1");
+        payload.append("content", article.content_html || "");
+        payload.append("image_url", article.thumbnail_url || "");
+
+        const res = await api.put(`/api/articles/${article.id}`, payload);
+        const updatedArticle = res.data?.article;
+        setArticles((current) =>
+          current.map((item) =>
+            item.id === article.id
+              ? updatedArticle || { ...item, is_visible: !article.is_visible }
+              : item
+          )
+        );
+        setMessage(
+          res.data?.message ||
+            `Articulo ${article.is_visible ? "desactivado" : "activado"} correctamente`
+        );
+      } catch (err) {
+        console.error("ADMIN ARTICLES VISIBILITY ERROR:", err);
+        setError(err?.response?.data?.error || "No se pudo cambiar la visibilidad del articulo");
+      } finally {
+        setSaving(false);
+      }
+    },
+    [loadArticles, saving]
+  );
+
   const articleRows = useMemo(() => sortedArticles, [sortedArticles]);
 
   return (
@@ -220,8 +264,6 @@ export default function ArticlesSection() {
                   <th>Imagen</th>
                   <th>Título</th>
                   <th>Fecha</th>
-                  <th>Periodo</th>
-                  <th>Subperiodo</th>
                   <th>Visible</th>
                   <th>Acciones</th>
                 </tr>
@@ -245,8 +287,6 @@ export default function ArticlesSection() {
                         <span className="admin-strong-cell">{article.title}</span>
                       </td>
                       <td>{formatDate(article.published_at)}</td>
-                      <td>{article.period || "-"}</td>
-                      <td>{article.subperiod || "-"}</td>
                       <td>
                         <span className={`admin-banner-status ${article.is_visible ? "is-active" : "is-inactive"}`}>
                           {article.is_visible ? "Visible" : "No visible"}
@@ -261,6 +301,15 @@ export default function ArticlesSection() {
                             disabled={saving}
                           >
                             Editar
+                          </button>
+
+                          <button
+                            type="button"
+                            className={`admin-banner-action-btn${article.is_visible ? " danger" : ""}`}
+                            onClick={() => toggleArticleVisibility(article)}
+                            disabled={saving}
+                          >
+                            {article.is_visible ? "Desactivar" : "Activar"}
                           </button>
 
                           <button

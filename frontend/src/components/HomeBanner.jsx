@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import api from "../api";
+import { getAutonomousCommunity } from "../utils/spainProvinces";
 
 const DISMISSED_BANNER_KEY = "home-banner-dismissed-id";
 
@@ -56,11 +57,15 @@ export default function HomeBanner({ user }) {
   const imageUrl = resolveAssetUrl(banner.image_url);
   const title = banner.title || "Banner";
   const description = banner.description || "";
-  const bannerTypeLabel =
-    banner.banner_type === "book_promotion"
-      ? "Promocion"
-      : banner.banner_type === "sorteo"
-        ? "Sorteo"
+  const eventCommunity = banner.event_id
+    ? getAutonomousCommunity(banner.event_province)
+    : null;
+  const bannerTypeLabel = banner.banner_type === "book_promotion"
+    ? "Promocion"
+    : banner.banner_type === "sorteo"
+      ? "Sorteo"
+      : eventCommunity
+        ? `Evento - ${eventCommunity}`
         : "Evento";
 
   const goToEvents = () => {
@@ -76,6 +81,9 @@ export default function HomeBanner({ user }) {
         <h2 className="home-banner-title">{title}</h2>
         {description && (
           <p className="home-banner-description">{description}</p>
+        )}
+        {banner.additional_text && (
+          <p className="home-banner-additional-text">{banner.additional_text}</p>
         )}
         {banner.event_id && (
           <button

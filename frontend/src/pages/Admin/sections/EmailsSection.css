@@ -537,6 +537,26 @@ padding: 12px 18px;
   font-size: 12px;
 }
 
+.admin-email-message-html img {
+  max-width: 100%;
+  height: auto;
+}
+
+.admin-email-message-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.email-external-images-toggle {
+  margin: 0 0 12px;
+  padding: 7px 11px;
+  border: 1px solid #0f6970;
+  border-radius: 6px;
+  color: #0f6970;
+  background: #fff;
+  cursor: pointer;
+}
+
 .admin-email-row.selected {
   background: #eef8f8;
 }

@@ -1,3 +1,4 @@
+import { apiFetch } from "../api";
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { FaInstagram, FaYoutube, FaSpotify } from "react-icons/fa";
@@ -33,7 +34,7 @@ function About() {
   const [status, setStatus] = useState({ type: "", message: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [website, setWebsite] = useState("");
-  const { token } = useAuth();
+  const { user } = useAuth();
 
   useEffect(() => {
     if (!eventRequestFromLink) return;
@@ -102,11 +103,11 @@ function About() {
         const apiReason = isEventRequest ? "otro" : form.reason;
         const storedSubject = isEventRequest ? `${subject} - ${form.province}` : subject;
         const { province, customSubject, ...reportFields } = form;
-        const response = await fetch(`${apiUrl}/api/communications/reports`, {
+        const response = await apiFetch(`${apiUrl}/api/communications/reports`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+
           },
           body: JSON.stringify({ ...reportFields, reason: apiReason, subject: storedSubject, website }),
         });

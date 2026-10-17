@@ -31,6 +31,7 @@ function BannerFormModal({
     () => ({
       banner_type: banner?.banner_type || "book_promotion",
       title: banner?.title || "",
+      additional_text: banner?.additional_text || "",
       image_url: banner?.image_url || "",
       link: banner?.link || "",
     }),
@@ -173,6 +174,21 @@ function BannerFormModal({
               value={form.title}
               onChange={(event) => updateField("title", event.target.value)}
               placeholder="Titulo del banner"
+            />
+          </div>
+
+          <div className="admin-event-field">
+            <label className="event-create-label" htmlFor="banner-additional-text">
+              <span>Texto adicional</span>
+            </label>
+            <input
+              id="banner-additional-text"
+              className="admin-event-input"
+              type="text"
+              maxLength={255}
+              value={form.additional_text}
+              onChange={(event) => updateField("additional_text", event.target.value)}
+              placeholder="Ej. Cómpralo aquí"
             />
           </div>
 
@@ -329,6 +345,7 @@ export default function BannersSection() {
       const payload = new FormData();
       payload.append("banner_type", form.banner_type);
       payload.append("title", form.title);
+      payload.append("additional_text", form.additional_text || "");
       payload.append("link", form.link);
       payload.append("image_url", form.image_url || "");
 
@@ -481,6 +498,11 @@ export default function BannersSection() {
                       </td>
                       <td>
                         <span className="admin-strong-cell">{banner.title || "-"}</span>
+                        {banner.additional_text && (
+                          <small className="admin-banner-additional-text">
+                            {banner.additional_text}
+                          </small>
+                        )}
                       </td>
                       <td>
                         <span className="admin-banner-type-badge">{typeLabel}</span>

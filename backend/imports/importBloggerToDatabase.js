@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const pool = require("../db");
+const { sanitizeArticleHtml } = require("../services/htmlSanitizers");
 
 const PREVIEW_PATH = path.join(
   __dirname,
@@ -112,7 +113,7 @@ async function main() {
         title: article.title,
         slug: article.slug,
         description: article.description || null,
-        body: article.body,
+        body: sanitizeArticleHtml(article.body),
         theme,
         source_url:
           article.blogger_url || article.source_url || null,

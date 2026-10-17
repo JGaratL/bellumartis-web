@@ -409,7 +409,7 @@ function ProfileCard({
                             {/* EMAIL */}
                             <div className="pc-cell">
                                 <div className="pc-label-small">Email</div>
-                                <div>{form.email}</div>
+                                <div aria-label="Correo electrónico oculto">xxxxx</div>
                             </div>
 
                             {/* PASSWORD */}

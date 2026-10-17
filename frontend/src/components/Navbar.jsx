@@ -1,3 +1,4 @@
+import { apiFetch } from "../api";
 ﻿import { useState, useRef, useEffect, useContext } from "react";
 
 import { MdLogout } from "react-icons/md";
@@ -20,6 +21,7 @@ import { FaUser } from "react-icons/fa6";
 import { FiMenu, FiX } from "react-icons/fi";
 
 import { AuthContext } from "../context/AuthContext";
+import { useFiltersStore } from "../store/filtersStore";
 
 const formatRelativeTime = (value) => {
   if (!value) return "";
@@ -75,16 +77,91 @@ function Navbar() {
   const [notifCount, setNotifCount] = useState(0);
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState(() => useFiltersStore.getState().search || "");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState("");
 
   const userRef = useRef(null);
   const notifRef = useRef(null);
+  const searchRef = useRef(null);
+  const searchInputRef = useRef(null);
+  const setContentSearch = useFiltersStore((state) => state.setSearch);
 
   const navigate = useNavigate();
   const location = useLocation();
 
   useEffect(() => {
     setMobileMenuOpen(false);
+    setSearchOpen(false);
   }, [location.pathname]);
+
+  useEffect(() => {
+    if (!searchOpen) return undefined;
+    searchInputRef.current?.focus();
+
+    const handleOutsideClick = (event) => {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setSearchOpen(false);
+      }
+    };
+    const handleEscape = (event) => {
+      if (event.key === "Escape") setSearchOpen(false);
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [searchOpen]);
+
+  useEffect(() => {
+    if (!searchOpen) return undefined;
+    const timer = window.setTimeout(() => setSearchTerm(searchQuery.trim()), 250);
+    return () => window.clearTimeout(timer);
+  }, [searchOpen, searchQuery]);
+
+  useEffect(() => {
+    if (!searchOpen || searchTerm.length < 2) {
+      setSearchResults([]);
+      setSearchError("");
+      setSearchLoading(false);
+      return undefined;
+    }
+
+    const controller = new AbortController();
+    setSearchLoading(true);
+    setSearchError("");
+
+    apiFetch(`http://localhost:5000/api/search?q=${encodeURIComponent(searchTerm)}`, {
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data?.error || "No se pudo realizar la búsqueda");
+
+        const normalizedTerm = searchTerm.toLocaleLowerCase("es");
+        const books = ["Guerras Convulsas", "Un Mundo Convulso", "La Frontera Norte", "Cayo Mario"]
+          .filter((title) => title.toLocaleLowerCase("es").includes(normalizedTerm))
+          .map((title) => ({ kind: "book", id: title, title, snippet: "Libro · Tienda Bellumartis" }));
+        setSearchResults([...(data.results || []), ...books]);
+      })
+      .catch((error) => {
+        if (error.name !== "AbortError") {
+          setSearchError(error.message || "No se pudo realizar la búsqueda");
+          setSearchResults([]);
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setSearchLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [searchOpen, searchTerm]);
 
   useEffect(() => {
     const setScrollbarOffset = () => {
@@ -177,19 +254,16 @@ function Navbar() {
 
   const fetchNotifCount = async () => {
     try {
-      const token = localStorage.getItem("token");
-      if (!token) {
+
+      if (!user) {
         setNotifCount(0);
         return;
       }
 
-      const res = await fetch(
+      const res = await apiFetch(
         "http://localhost:5000/api/notifications/count",
         {
-          headers: {
-            Authorization: `Bearer ${token}`
           }
-        }
       );
 
       const data = await res.json();
@@ -202,20 +276,17 @@ function Navbar() {
 
   const fetchNotifications = async () => {
     try {
-      const token = localStorage.getItem("token");
-      if (!token) {
+
+      if (!user) {
         setNotifications([]);
         setNotifCount(0);
         return;
       }
 
-      const res = await fetch(
+      const res = await apiFetch(
         "http://localhost:5000/api/notifications?limit=20",
         {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+          }
       );
 
       const data = await res.json();
@@ -272,17 +343,32 @@ function Navbar() {
     navigate(path);
   };
 
+  const submitGlobalSearch = (event) => {
+    event.preventDefault();
+    setSearchTerm(searchQuery.trim());
+  };
+
+  const openSearchResult = (result) => {
+    setSearchOpen(false);
+    setMobileMenuOpen(false);
+    if (result.kind === "post") {
+      navigate(`/community?post=${result.id}`);
+    } else if (result.kind === "event") {
+      navigate("/events", { state: { openEventId: result.id } });
+    } else if (result.kind === "book") {
+      navigate("/shop", { state: { openBookTitle: result.title } });
+    } else {
+      setContentSearch(result.title);
+      navigate(`/articles?search=${encodeURIComponent(result.title)}`);
+    }
+  };
+
   const handleNotificationClick = async (notification) => {
     try {
-      const token = localStorage.getItem("token");
-
-      if (token && notification?.id && !notification.is_read) {
-        await fetch(`http://localhost:5000/api/notifications/${notification.id}/read`, {
+      if (user && notification?.id && !notification.is_read) {
+        await apiFetch(`http://localhost:5000/api/notifications/${notification.id}/read`, {
           method: "PUT",
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
+          });
       }
 
       setNotifications((prev) =>
@@ -366,7 +452,66 @@ function Navbar() {
 
       <div className="navbar-right">
 
-        <FaSearch className="icon" />
+        <div className="navbar-search" ref={searchRef}>
+          <button
+            type="button"
+            className="navbar-search-trigger"
+            aria-label="Abrir búsqueda"
+            aria-expanded={searchOpen}
+            onClick={() => setSearchOpen((current) => !current)}
+          >
+            <FaSearch className="icon" />
+          </button>
+
+          {searchOpen && (
+            <form className="navbar-search-panel" onSubmit={submitGlobalSearch}>
+              <label htmlFor="navbar-content-search">Buscar en Bellumartis</label>
+              <div className="navbar-search-form-row">
+                <input
+                  id="navbar-content-search"
+                  ref={searchInputRef}
+                  type="search"
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  placeholder="Vídeos, artículos, posts, eventos, libros…"
+                />
+                <button type="submit">Buscar</button>
+              </div>
+              {searchQuery.trim().length < 2 ? (
+                <p className="navbar-search-hint">Escribe al menos 2 caracteres.</p>
+              ) : searchQuery.trim() !== searchTerm ? (
+                <p className="navbar-search-hint">Buscando…</p>
+              ) : searchLoading ? (
+                <p className="navbar-search-hint">Buscando…</p>
+              ) : searchError ? (
+                <p className="navbar-search-error">{searchError}</p>
+              ) : searchResults.length ? (
+                <div className="navbar-search-results" role="listbox" aria-label="Resultados de búsqueda">
+                  {searchResults.map((result) => (
+                    <button
+                      type="button"
+                      className="navbar-search-result"
+                      key={`${result.kind}-${result.id}`}
+                      onClick={() => openSearchResult(result)}
+                    >
+                      <span className="navbar-search-result-kind">
+                        {result.kind === "article" ? "Artículo" :
+                          result.kind === "video" ? "Vídeo" :
+                            result.kind === "podcast" ? "Pódcast" :
+                            result.kind === "post" ? "Comunidad" :
+                              result.kind === "event" ? "Evento" : "Libro"}
+                      </span>
+                      <span className="navbar-search-result-title">{result.title}</span>
+                      {result.snippet && <span className="navbar-search-result-snippet">{result.snippet}</span>}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="navbar-search-hint">No se encontraron resultados.</p>
+              )}
+            </form>
+          )}
+        </div>
 
         <div className="notif-wrapper" ref={notifRef}>
           <div

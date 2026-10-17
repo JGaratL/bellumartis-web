@@ -698,6 +698,20 @@
   min-width: 1120px;
 }
 
+.admin-articles-table {
+  min-width: 980px;
+}
+
+.admin-articles-table thead th:first-child,
+.admin-articles-table tbody td:first-child {
+  width: 96px;
+  min-width: 96px;
+}
+
+.admin-articles-table tbody td:first-child {
+  text-align: center;
+}
+
 .admin-users-table thead th {
   text-align: left;
   font-size: 12px;
@@ -890,6 +904,14 @@
 .admin-banner-status.is-inactive {
   background: rgba(153, 27, 27, 0.1);
   color: #991b1b;
+}
+
+.admin-banner-additional-text {
+  display: block;
+  margin-top: 4px;
+  color: #52656b;
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 .admin-banner-source {
@@ -1795,4 +1817,16 @@
   .admin-filters-clear-btn {
     width: 100%;
   }
+}
+
+.admin-articles-table .admin-banner-thumb {
+  width: 72px;
+  max-width: 72px;
+}
+
+.admin-articles-table .admin-banner-thumb-empty {
+  display: flex;
+  width: 72px;
+  height: 56px;
+  margin-inline: auto;
 }

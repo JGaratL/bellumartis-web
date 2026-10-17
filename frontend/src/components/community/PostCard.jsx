@@ -1,3 +1,4 @@
+import { apiFetch } from "../../api";
 ﻿import { useState, useRef, useEffect } from "react";
 import { SlSpeech } from "react-icons/sl";
 import { BiLike } from "react-icons/bi";
@@ -73,6 +74,7 @@ const PostCard = ({ post = {}, onDelete, targetReplyId = null, onAvatarClick }) 
   const [liked, setLiked] = useState(false);
 
   const [replies, setReplies] = useState([]);
+  const [replyCount, setReplyCount] = useState(post.replies_count || 0);
   const [replyLikes, setReplyLikes] = useState({});
   const [showReplies, setShowReplies] = useState(false);
   const [replyText, setReplyText] = useState("");
@@ -90,6 +92,7 @@ const PostCard = ({ post = {}, onDelete, targetReplyId = null, onAvatarClick }) 
   const [activeIndex, setActiveIndex] = useState(0);
 
   const { user } = useAuth();
+  const canModerateReplies = ["moderator", "admin", "owner"].includes(user?.role);
 
   useEffect(() => {
     const fetchPostLikeStatus = async () => {
@@ -99,14 +102,8 @@ const PostCard = ({ post = {}, onDelete, targetReplyId = null, onAvatarClick }) 
           return;
         }
 
-        const token = localStorage.getItem("token");
-        if (!token) return;
-
-        const res = await fetch(`http://localhost:5000/api/posts/${post.id}/like-status`, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
+        const res = await apiFetch(`http://localhost:5000/api/posts/${post.id}/like-status`, {
+          });
 
         const data = await res.json();
         if (!res.ok) return;
@@ -127,12 +124,10 @@ const PostCard = ({ post = {}, onDelete, targetReplyId = null, onAvatarClick }) 
     }
 
     try {
-      const token = localStorage.getItem("token");
-      if (!token) return;
 
-      const res = await fetch(`http://localhost:5000/api/posts/${post.id}/like`, {
+      const res = await apiFetch(`http://localhost:5000/api/posts/${post.id}/like`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
+
       });
 
       const data = await res.json();
@@ -169,10 +164,9 @@ const PostCard = ({ post = {}, onDelete, targetReplyId = null, onAvatarClick }) 
     try {
       setDeleting(true);
 
-      const token = localStorage.getItem("token");
-      const res = await fetch(`http://localhost:5000/api/posts/${post.id}`, {
+      const res = await apiFetch(`http://localhost:5000/api/posts/${post.id}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
+
       });
 
       const data = await res.json();
@@ -287,22 +281,17 @@ const PostCard = ({ post = {}, onDelete, targetReplyId = null, onAvatarClick }) 
   const fetchReplies = async () => {
     try {
       setLoadingReplies(true);
-      const res = await fetch(`http://localhost:5000/api/posts/${post.id}/replies`);
+      const res = await apiFetch(`http://localhost:5000/api/posts/${post.id}/replies`);
       const data = await res.json();
       const safeReplies = Array.isArray(data) ? data : [];
       setReplies(safeReplies);
 
       if (user) {
-        const token = localStorage.getItem("token");
-        if (!token) return;
 
-        const likeStatusRes = await fetch(
+        const likeStatusRes = await apiFetch(
           `http://localhost:5000/api/posts/${post.id}/replies/like-status`,
           {
-            headers: {
-              Authorization: `Bearer ${token}`
             }
-          }
         );
 
         const likeStatusData = await likeStatusRes.json();
@@ -344,14 +333,11 @@ const PostCard = ({ post = {}, onDelete, targetReplyId = null, onAvatarClick }) 
       }
       if (!replyText.trim()) return;
 
-      const token = localStorage.getItem("token");
-      if (!token) return;
-
-      const res = await fetch(`http://localhost:5000/api/posts/${post.id}/reply`, {
+      const res = await apiFetch(`http://localhost:5000/api/posts/${post.id}/reply`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+
         },
         body: JSON.stringify({ content: replyText }),
       });
@@ -379,16 +365,11 @@ const PostCard = ({ post = {}, onDelete, targetReplyId = null, onAvatarClick }) 
 
     try {
 
-      const token = localStorage.getItem("token");
-
-      const res = await fetch(
+      const res = await apiFetch(
         `http://localhost:5000/api/posts/${post.id}/replies/${replyId}/like`,
         {
           method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`
           }
-        }
       );
 
       const data = await res.json();
@@ -415,23 +396,52 @@ const PostCard = ({ post = {}, onDelete, targetReplyId = null, onAvatarClick }) 
     }
   };
 
+  const handleDeleteReply = async (replyId) => {
+    if (!window.confirm("¿Quieres borrar este comentario?")) return;
+
+    try {
+      const res = await apiFetch(`http://localhost:5000/api/posts/${post.id}/replies/${replyId}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Error eliminando comentario");
+
+      setReplies((current) => current.filter((reply) => reply.id !== replyId));
+      setReplyCount((current) => Math.max(0, current - 1));
+      setReplyLikes((current) => {
+        const next = { ...current };
+        delete next[replyId];
+        return next;
+      });
+    } catch (err) {
+      console.error(err);
+      alert(err.message || "No se pudo borrar el comentario");
+    }
+  };
+
   return (
     <div className="post-card" id={`post-${post.id}`}>
       <div className="post-header">
-        <img
-          src={resolveAvatarSrc(post.avatar) || "/BHM.webp"}
-          alt="avatar"
-          referrerPolicy="no-referrer"
-          style={{ cursor: "pointer" }}
-          onClick={() => {
-            console.log("CLICK AVATAR", post.user_id);
-            onAvatarClick?.(post.user_id);
-          }}
-          onError={(e) => {
-            e.currentTarget.onerror = null;
-            e.currentTarget.src = "/BHM.webp";
-          }}
-        />
+        <button
+          type="button"
+          className="post-avatar-trigger"
+          aria-label={`Ver perfil de ${post.nickname || "usuario"}`}
+          onClick={() => onAvatarClick?.(post.user_id)}
+        >
+          <img
+            src={resolveAvatarSrc(post.avatar) || "/BHM.webp"}
+            alt=""
+            referrerPolicy="no-referrer"
+            onError={(e) => {
+              e.currentTarget.onerror = null;
+              e.currentTarget.src = "/BHM.webp";
+            }}
+          />
+          <span className="post-avatar-overlay" aria-hidden="true">
+            <span>Ver</span>
+            <span>Perfil</span>
+          </span>
+        </button>
 
         <div className="post-user-info">
           <div className="post-name">{post.nickname}</div>
@@ -477,6 +487,8 @@ const PostCard = ({ post = {}, onDelete, targetReplyId = null, onAvatarClick }) 
                 className="post-carousel-image"
                 src={`http://localhost:5000/uploads/posts/${img}`}
                 alt={`post-${index}`}
+                loading="lazy"
+                decoding="async"
               />
             ))}
           </div>
@@ -504,7 +516,7 @@ const PostCard = ({ post = {}, onDelete, targetReplyId = null, onAvatarClick }) 
           }}
         >
           <SlSpeech />
-          <span>{post.replies_count}</span>
+          <span>{replyCount}</span>
         </div>
 
         <div
@@ -558,6 +570,16 @@ const PostCard = ({ post = {}, onDelete, targetReplyId = null, onAvatarClick }) 
                         </div>
 
                         <div className="reply-actions">
+                          {canModerateReplies && (
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteReply(reply.id)}
+                              className="reply-delete-btn"
+                              aria-label={`Borrar comentario de ${reply.nickname}`}
+                            >
+                              Borrar
+                            </button>
+                          )}
                           <button
                             onClick={() => handleReplyLike(reply.id)}
                             className="reply-like-btn"

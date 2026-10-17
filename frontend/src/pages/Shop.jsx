@@ -4,8 +4,11 @@ import { FiArrowRight } from "react-icons/fi";
 import { MdOutlineShoppingCart } from "react-icons/md";
 
 import { useEffect, useState, useRef } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 
 function Shop() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [selectedBook, setSelectedBook] = useState(null);
 
   const bookRefs = useRef([]);
@@ -79,6 +82,20 @@ function Shop() {
   ];
 
   const books = [
+    
+    {
+      image: "/Libro4.png",
+      title: "Guerras Convulsas",
+      description:
+        <p>
+          La guerra ha vuelto, pero ya no se parece a la que conocíamos. <strong>Guerras Convulsas</strong> explica cómo se combate en el siglo XXI, desde <strong>Ucrania</strong> y <strong>Oriente Medio</strong> hasta el <strong>ciberespacio</strong>.
+
+          Francisco García Campa analiza las nuevas armas y estrategias del conflicto, desde los drones y la inteligencia artificial hasta la guerra electrónica. La tecnología acelera el combate, pero siguen siendo esenciales la <strong>industria, la logística y la voluntad de resistir</strong>.
+
+          El libro explora la guerra asimétrica, las vulnerabilidades de Europa y España y una cuestión fundamental: qué significa <strong>vencer en las guerras del siglo XXI</strong>, cuando las armas cambian, pero la naturaleza de la guerra permanece.
+
+        </p>
+    },
     {
       image: "/Libro1.webp",
       title: "Un Mundo Convulso",
@@ -114,6 +131,17 @@ function Shop() {
         </p>
     }
   ];
+  const booksRefForSearch = useRef(books);
+  booksRefForSearch.current = books;
+
+  useEffect(() => {
+    const requestedTitle = location.state?.openBookTitle;
+    if (!requestedTitle) return;
+
+    const requestedBook = booksRefForSearch.current.find((book) => book.title === requestedTitle);
+    if (requestedBook) setSelectedBook(requestedBook);
+    navigate("/shop", { replace: true, state: null });
+  }, [location.state, navigate]);
 
   return (
     <div className="page-container shop-page">

@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { sanitizeEmailHtml } from "../../../../utils/htmlSanitizers";
 
 export default function RichTextEditor({
   value = "",
@@ -11,7 +12,7 @@ export default function RichTextEditor({
       editorRef.current &&
       editorRef.current.innerHTML !== value
     ) {
-      editorRef.current.innerHTML = value;
+      editorRef.current.innerHTML = sanitizeEmailHtml(value);
     }
   }, [value]);
 

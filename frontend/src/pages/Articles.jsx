@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import SearchBar from "../components/search/SearchBar";
 import FilterBar from "../components/filters/FilterBar";
 import ActiveFilters from "../components/filters/ActiveFilters";
@@ -11,7 +13,14 @@ import { useFiltersStore } from "../store/filtersStore";
 import "./Articles.css";
 
 function Articles() {
+  const location = useLocation();
   const resetFilters = useFiltersStore((s) => s.resetFilters);
+  const setSearch = useFiltersStore((s) => s.setSearch);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.has("search")) setSearch(params.get("search") || "");
+  }, [location.search, setSearch]);
 
   return (
     <div className="page-container articles-page">

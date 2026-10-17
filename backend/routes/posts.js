@@ -3,8 +3,34 @@ const router = express.Router();
 
 const upload = require("../middleware/upload");
 const verifyToken = require("../middleware/auth");
+const checkRole = require("../middleware/role");
 const pool = require("../db");
 const sharp = require("sharp");
+const fs = require("fs");
+const path = require("path");
+const crypto = require("crypto");
+
+const POSTS_UPLOAD_DIR = path.join(__dirname, "..", "uploads", "posts");
+const MAX_IMAGE_PIXELS = 25_000_000;
+
+const validatePostImage = async (file) => {
+    const metadata = await sharp(file.buffer, {
+        limitInputPixels: MAX_IMAGE_PIXELS,
+        failOn: "error",
+    }).metadata();
+    const expectedFormatByMime = {
+        "image/jpeg": "jpeg",
+        "image/png": "png",
+        "image/webp": "webp",
+    };
+
+    if (!metadata.format || expectedFormatByMime[file.mimetype] !== metadata.format) {
+        throw new Error("El contenido no coincide con una imagen JPG, PNG o WEBP válida");
+    }
+    if (!metadata.width || !metadata.height || metadata.width * metadata.height > MAX_IMAGE_PIXELS) {
+        throw new Error("La imagen supera las dimensiones permitidas");
+    }
+};
 
 /*
 ====================================
@@ -26,6 +52,7 @@ router.post(
         });
     },
     async (req, res) => {
+        const createdImagePaths = [];
         try {
             const { content } = req.body;
 
@@ -34,19 +61,22 @@ router.post(
                 ? req.files
                 : [];
 
-            const images = await Promise.all(
-                files.map(async (file) => {
-
-                    const filename = `post-${Date.now()}-${Math.round(Math.random() * 1e9)}.webp`;
-
-                    await sharp(file.buffer)   // 🔥 IMPORTANTE: buffer, NO path
-                        .resize(1080, null, { withoutEnlargement: true })
-                        .webp({ quality: 80 })
-                        .toFile(`uploads/posts/${filename}`);
-
-                    return filename;
+            const images = [];
+            await fs.promises.mkdir(POSTS_UPLOAD_DIR, { recursive: true });
+            for (const file of files) {
+                await validatePostImage(file);
+                const filename = `post-${crypto.randomUUID()}.webp`;
+                const outputPath = path.join(POSTS_UPLOAD_DIR, filename);
+                createdImagePaths.push(outputPath);
+                await sharp(file.buffer, {
+                    limitInputPixels: MAX_IMAGE_PIXELS,
+                    failOn: "error",
                 })
-            );
+                    .resize(1080, null, { withoutEnlargement: true })
+                    .webp({ quality: 80 })
+                    .toFile(outputPath);
+                images.push(filename);
+            }
             const cleanContent = content?.trim() || "";
 
             await pool.query(
@@ -68,10 +98,11 @@ router.post(
             });
 
         } catch (err) {
+            await Promise.all(createdImagePaths.map((filePath) => fs.promises.unlink(filePath).catch(() => {})));
             console.error("CREATE POST ERROR:", err);
 
             return res.status(500).json({
-                error: "Error creando post"
+                error: err.message || "Error creando post"
             });
         }
     }
@@ -82,10 +113,39 @@ router.post(
 GET POSTS (likes + avatar + images)
 ====================================
 */
-router.get("/", async (req, res) => {
+const formatPostRows = (rows) => rows.map((post) => {
+    let parsedImages = [];
+
     try {
-        const [rows] = await pool.query(`
-      SELECT 
+        if (!post.images) parsedImages = [];
+        else if (Array.isArray(post.images)) parsedImages = post.images;
+        else if (typeof post.images === "string") parsedImages = JSON.parse(post.images);
+        else parsedImages = post.images;
+    } catch (error) {
+        console.error("JSON PARSE ERROR:", error);
+        parsedImages = [];
+    }
+
+    return {
+        id: post.id,
+        user_id: post.user_id,
+        content: post.content,
+        created_at: post.created_at,
+        likes_count: post.likes_count,
+        nickname: post.nickname,
+        avatar: typeof post.avatar === "string" && post.avatar.trim() ? post.avatar.trim() : null,
+        replies_count: Number(post.replies_count) || 0,
+        images: parsedImages,
+    };
+});
+
+const fetchPostRows = async ({ id, limit = 50, offset = 0 } = {}) => {
+    const whereSql = id ? "WHERE p.id = ?" : "";
+    const pageSql = id ? "LIMIT 1" : "LIMIT ? OFFSET ?";
+    const params = id ? [id] : [limit, offset];
+
+    return pool.query(`
+      SELECT
         p.id,
         p.user_id,
         p.content,
@@ -94,61 +154,48 @@ router.get("/", async (req, res) => {
         p.likes_count,
         u.nickname,
         u.profile_image AS avatar,
-        COUNT(r.id) AS replies_count
-      FROM posts p
-      JOIN users u ON p.user_id = u.id
-      LEFT JOIN post_replies r ON r.post_id = p.id
-      GROUP BY 
-        p.id,
-        p.user_id,
-        p.content,
-        p.images,
-        p.created_at,
-        p.likes_count,
-        u.nickname,
-        u.profile_image
+        (SELECT COUNT(*) FROM post_replies r WHERE r.post_id = p.id) AS replies_count
+      FROM (
+        SELECT p.id, p.user_id, p.content, p.images, p.created_at, p.likes_count
+        FROM posts p
+        ${whereSql}
+        ORDER BY p.id DESC
+        ${pageSql}
+      ) p
+      JOIN users u ON u.id = p.user_id
       ORDER BY p.id DESC
-    `);
+    `, params);
+};
 
-        const formatted = rows.map((post) => {
-            let parsedImages = [];
+router.get("/", async (req, res) => {
+    try {
+        const limit = Math.min(Math.max(Number.parseInt(req.query.limit, 10) || 50, 1), 50);
+        const offset = Math.max(Number.parseInt(req.query.offset, 10) || 0, 0);
+        const [[countRow]] = await pool.query("SELECT COUNT(*) AS total FROM posts");
+        const [rows] = await fetchPostRows({ limit, offset });
+        const total = Number(countRow?.total) || 0;
 
-            try {
-                if (!post.images) {
-                    parsedImages = [];
-                } else if (Array.isArray(post.images)) {
-                    parsedImages = post.images;
-                } else if (typeof post.images === "string") {
-                    parsedImages = JSON.parse(post.images);
-                } else {
-                    parsedImages = post.images;
-                }
-            } catch (e) {
-                console.error("JSON PARSE ERROR:", e);
-                parsedImages = [];
-            }
-
-            return {
-                id: post.id,
-                user_id: post.user_id, // 👈 IMPORTANTE
-                content: post.content,
-                created_at: post.created_at,
-                likes_count: post.likes_count,
-                nickname: post.nickname,
-                avatar:
-                    typeof post.avatar === "string" && post.avatar.trim()
-                        ? post.avatar.trim()
-                        : null,
-                replies_count: post.replies_count || 0,
-                images: parsedImages
-            };
+        return res.json({
+            posts: formatPostRows(rows),
+            total,
+            limit,
+            offset,
+            hasMore: offset + rows.length < total,
         });
-
-        return res.json(formatted);
-
     } catch (err) {
         console.error("GET POSTS ERROR:", err);
         return res.status(500).json({ error: "Error obteniendo posts" });
+    }
+});
+
+router.get("/:id", async (req, res) => {
+    try {
+        const [rows] = await fetchPostRows({ id: req.params.id });
+        if (!rows.length) return res.status(404).json({ error: "Post no encontrado" });
+        return res.json(formatPostRows(rows)[0]);
+    } catch (err) {
+        console.error("GET POST ERROR:", err);
+        return res.status(500).json({ error: "Error obteniendo el post" });
     }
 });
 
@@ -177,8 +224,9 @@ router.delete("/:id", verifyToken, async (req, res) => {
         }
 
         const post = rows[0];
+        const canModerate = ["moderator", "admin", "owner"].includes(req.user.role);
 
-        if (post.user_id !== userId) {
+        if (Number(post.user_id) !== Number(userId) && !canModerate) {
             return res.status(403).json({
                 error: "No autorizado"
             });
@@ -629,6 +677,52 @@ router.get("/:id/replies", async (req, res) => {
         return res.status(500).json({
             error: "Error obteniendo respuestas"
         });
+    }
+});
+
+/*
+====================================
+MODERATE REPLIES
+====================================
+*/
+router.delete("/:id/replies/:replyId", verifyToken, checkRole(["moderator", "admin", "owner"]), async (req, res) => {
+    const postId = Number(req.params.id);
+    const replyId = Number(req.params.replyId);
+
+    if (!Number.isSafeInteger(postId) || postId <= 0 || !Number.isSafeInteger(replyId) || replyId <= 0) {
+        return res.status(400).json({ error: "ID inválido" });
+    }
+
+    let connection;
+    try {
+        connection = await pool.getConnection();
+        await connection.beginTransaction();
+
+        const [replyRows] = await connection.query(
+            "SELECT id FROM post_replies WHERE id = ? AND post_id = ? LIMIT 1",
+            [replyId, postId]
+        );
+
+        if (!replyRows.length) {
+            await connection.rollback();
+            return res.status(404).json({ error: "Comentario no encontrado" });
+        }
+
+        await connection.query(
+            "DELETE FROM notifications WHERE type IN ('reply_post', 'like_reply') AND reference_id = ?",
+            [replyId]
+        );
+        await connection.query("DELETE FROM post_reply_likes WHERE reply_id = ?", [replyId]);
+        await connection.query("DELETE FROM post_replies WHERE id = ? AND post_id = ?", [replyId, postId]);
+
+        await connection.commit();
+        return res.json({ message: "Comentario eliminado" });
+    } catch (err) {
+        if (connection) await connection.rollback();
+        console.error("DELETE REPLY ERROR:", err);
+        return res.status(500).json({ error: "Error eliminando comentario" });
+    } finally {
+        connection?.release();
     }
 });
 

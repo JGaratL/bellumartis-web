@@ -1,3 +1,4 @@
+import { apiFetch } from "../../api";
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
@@ -25,7 +26,7 @@ function VerifyEmailPage() {
 
     const verifyEmail = async () => {
       try {
-        const response = await fetch(`${API_URL}/auth/verify-email`, {
+        const response = await apiFetch(`${API_URL}/auth/verify-email`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ token }),

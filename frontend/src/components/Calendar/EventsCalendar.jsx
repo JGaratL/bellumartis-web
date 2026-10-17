@@ -40,6 +40,7 @@ function Events() {
   const [selectedEventActionLoading, setSelectedEventActionLoading] = useState(false);
   const [selectedEventError, setSelectedEventError] = useState("");
   const [selectedEventNotice, setSelectedEventNotice] = useState("");
+  const [selectedEventNoticeType, setSelectedEventNoticeType] = useState("");
   const bannerOpenHandledRef = useRef(null);
 
   const parseDateOnly = (value) => {
@@ -110,6 +111,7 @@ function Events() {
         setSelectedEventJoined(false);
         setSelectedEventError("");
         setSelectedEventNotice("");
+        setSelectedEventNoticeType("");
         setSelectedEventLoading(false);
         return;
       }
@@ -118,6 +120,7 @@ function Events() {
         setSelectedEventJoined(false);
         setSelectedEventError("");
         setSelectedEventNotice("");
+        setSelectedEventNoticeType("");
         setSelectedEventLoading(false);
         return;
       }
@@ -331,10 +334,12 @@ function Events() {
         const res = await api.delete(`/events/${selectedEvent.id}/join`);
         setSelectedEventJoined(false);
         setSelectedEventNotice(res.data?.message || "Te has desapuntado correctamente.");
+        setSelectedEventNoticeType("cancelled");
       } else {
         const res = await api.post(`/events/${selectedEvent.id}/join`);
         setSelectedEventJoined(true);
         setSelectedEventNotice(res.data?.message || "Te has apuntado correctamente.");
+        setSelectedEventNoticeType("joined");
       }
     } catch (err) {
       console.error("Error cambiando asistencia:", err);
@@ -565,7 +570,9 @@ function Events() {
             )}
 
             {selectedEventNotice && (
-              <p className="modal-success">{selectedEventNotice}</p>
+              <p className={`modal-success event-attendance-notice ${selectedEventNoticeType}`}>
+                {selectedEventNotice}
+              </p>
             )}
 
             {selectedEventError && (
